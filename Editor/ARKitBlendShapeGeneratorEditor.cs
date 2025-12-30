@@ -85,6 +85,7 @@ namespace ARKitBlendShapeGenerator
             EditorGUILayout.Space();
             EditorGUILayout.PropertyField(serializedObject.FindProperty("intensityMultiplier"));
             EditorGUILayout.PropertyField(serializedObject.FindProperty("enableLeftRightSplit"));
+            EditorGUILayout.PropertyField(serializedObject.FindProperty("blendWidth"));
             EditorGUILayout.PropertyField(serializedObject.FindProperty("overwriteExisting"));
 
             EditorGUILayout.Space();
