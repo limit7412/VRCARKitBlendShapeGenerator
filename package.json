@@ -1,6 +1,6 @@
 {
     "name": "com.qazx7412.kx-vrc-arkit-blendshape-generator",
-    "version": "1.0.0",
+    "version": "0.0.1",
     "displayName": "Kx VRC ARKit BlendShape Generator",
     "description": "VRChat/MMDのBlendShapeからARKit用BlendShapeを自動生成するNDMFプラグイン。Jerry's Templatesと組み合わせて使用することで、フェイストラッキング非対応アバターを簡単に対応させることができます。",
     "unity": "2022.3",
