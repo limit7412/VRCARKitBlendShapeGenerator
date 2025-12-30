@@ -49,6 +49,7 @@ namespace ARKitBlendShapeGenerator
                 renderer,
                 component.intensityMultiplier,
                 component.enableLeftRightSplit,
+                component.blendWidth,
                 component.overwriteExisting,
                 component.customMappings,
                 component.debugMode
@@ -68,6 +69,7 @@ namespace ARKitBlendShapeGenerator
         private readonly Mesh _originalMesh;  // 元のメッシュ（BlendShapeデータ取得用）
         private readonly float _intensity;
         private readonly bool _enableSplit;
+        private readonly float _blendWidth;
         private readonly bool _overwrite;
         private readonly List<CustomBlendShapeMapping> _customMappings;
         private readonly bool _debug;
@@ -80,6 +82,7 @@ namespace ARKitBlendShapeGenerator
             SkinnedMeshRenderer renderer,
             float intensity,
             bool enableSplit,
+            float blendWidth,
             bool overwrite,
             List<CustomBlendShapeMapping> customMappings,
             bool debug)
@@ -89,6 +92,7 @@ namespace ARKitBlendShapeGenerator
             _mesh = UnityEngine.Object.Instantiate(renderer.sharedMesh);
             _intensity = intensity;
             _enableSplit = enableSplit;
+            _blendWidth = blendWidth;
             _overwrite = overwrite;
             _customMappings = customMappings ?? new List<CustomBlendShapeMapping>();
             _debug = debug;
@@ -350,27 +354,54 @@ namespace ARKitBlendShapeGenerator
                     // 中央付近の閾値（顔の中心線付近の頂点は両方に含める）
                     const float CENTER_THRESHOLD = 0.0001f;
 
-                    bool shouldApply = side switch
+                    // sideMultiplier: 1.0 = 完全適用, 0.0 = 適用なし, 0.0-1.0 = グラデーション
+                    float sideMultiplier = 1.0f;
+
+                    if (side == BlendShapeSide.LeftOnly)
                     {
                         // ARKit Left = 視聴者の左 = アバターの右側 = X < 0
-                        BlendShapeSide.LeftOnly => vertexX < CENTER_THRESHOLD,
+                        if (vertexX > _blendWidth)
+                        {
+                            // 反対側（アバターの左側）は適用しない
+                            sideMultiplier = 0.0f;
+                        }
+                        else if (vertexX > -_blendWidth)
+                        {
+                            // 中央付近はグラデーション（X=_blendWidthで0、X=-_blendWidthで1）
+                            sideMultiplier = (_blendWidth - vertexX) / (_blendWidth * 2);
+                        }
+                        // else: X < -_blendWidth は完全適用 (1.0)
+                    }
+                    else if (side == BlendShapeSide.RightOnly)
+                    {
                         // ARKit Right = 視聴者の右 = アバターの左側 = X > 0
-                        BlendShapeSide.RightOnly => vertexX > -CENTER_THRESHOLD,
-                        _ => true  // Both
-                    };
+                        if (vertexX < -_blendWidth)
+                        {
+                            // 反対側（アバターの右側）は適用しない
+                            sideMultiplier = 0.0f;
+                        }
+                        else if (vertexX < _blendWidth)
+                        {
+                            // 中央付近はグラデーション（X=-_blendWidthで0、X=_blendWidthで1）
+                            sideMultiplier = (vertexX + _blendWidth) / (_blendWidth * 2);
+                        }
+                        // else: X > _blendWidth は完全適用 (1.0)
+                    }
+                    // Both の場合は sideMultiplier = 1.0 のまま
 
                     // デバッグカウント
                     if (vertexX > CENTER_THRESHOLD) leftCount++;
                     else if (vertexX < -CENTER_THRESHOLD) rightCount++;
                     else centerCount++;
 
-                    if (shouldApply && hasMovement) appliedCount++;
+                    if (sideMultiplier > 0 && hasMovement) appliedCount++;
 
-                    if (shouldApply)
+                    if (sideMultiplier > 0)
                     {
-                        deltaVertices[i] += srcDeltaV[i] * adjustedWeight;
-                        deltaNormals[i] += srcDeltaN[i] * adjustedWeight;
-                        deltaTangents[i] += srcDeltaT[i] * adjustedWeight;
+                        float finalWeight = adjustedWeight * sideMultiplier;
+                        deltaVertices[i] += srcDeltaV[i] * finalWeight;
+                        deltaNormals[i] += srcDeltaN[i] * finalWeight;
+                        deltaTangents[i] += srcDeltaT[i] * finalWeight;
                     }
                 }
 

@@ -30,6 +30,10 @@ namespace ARKitBlendShapeGenerator
         [Tooltip("左右分割を有効にする（まばたき等を左右別々に生成）")]
         public bool enableLeftRightSplit = true;
 
+        [Tooltip("左右分割時のグラデーション幅（中央付近で左右をブレンドする範囲）")]
+        [Range(0.001f, 0.1f)]
+        public float blendWidth = 0.02f;
+
         [Tooltip("既存のARKit BlendShapeを上書きする")]
         public bool overwriteExisting = false;
 

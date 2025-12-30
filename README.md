@@ -43,6 +43,7 @@ Jerry's Templatesと組み合わせて使用することで、フェイストラ
 | **Target Renderer** | 対象のSkinnedMeshRenderer（空の場合はBody/Faceを自動検出） |
 | **Intensity Multiplier** | 生成時の強度係数（0.5〜1.5推奨） |
 | **Enable Left Right Split** | 左右分割を有効化（まばたき等を左右別々に生成） |
+| **Blend Width** | 左右分割時のグラデーション幅（中央付近で左右をブレンドする範囲、0.001〜0.1） |
 | **Overwrite Existing** | 既存のARKit BlendShapeを上書きする |
 | **Custom Mappings** | 自動マッピングできないBlendShapeを手動で指定 |
 | **Debug Mode** | デバッグログを出力する |
