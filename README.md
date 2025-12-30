@@ -18,7 +18,7 @@ Jerry's Templatesと組み合わせて使用することで、フェイストラ
 
 ### VCC/ALCOM経由（推奨）
 
-1. VPMリポジトリをVCC/ALCOMに追加
+1. [VPMリポジトリ](https://limit7412.github.io/vcc-vpm/)をVCC/ALCOMに追加
 2. プロジェクトに「Kx VRC ARKit BlendShape Generator」を追加
 
 ### 手動インストール
