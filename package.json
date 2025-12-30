@@ -10,6 +10,7 @@
     "licensesUrl": "",
     "dependencies": {},
     "vpmDependencies": {
+        "com.vrchat.avatars": ">=3.5.0",
         "nadena.dev.ndmf": ">=1.4.0"
     },
     "author": {
