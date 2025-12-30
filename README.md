@@ -1,5 +1,10 @@
 # Kx VRC ARKit BlendShape Generator
 
+顔トラ機材を投入するのにBlendShapeが無いアバターをどうにかするために既存表情からARKit用BlendShapeを生成するやつをClaude Codeに作らせました
+あくまで自分用の簡易的なもので100%生成したコードなのでメンテは期待しないでください
+
+以下生成した説明文
+
 VRChat/MMDのBlendShapeからARKit用BlendShapeを自動生成するNDMFプラグインです。
 Jerry's Templatesと組み合わせて使用することで、フェイストラッキング非対応アバターを簡単に対応させることができます。
 
