@@ -188,27 +188,44 @@ namespace ARKitBlendShapeGenerator
                         // ARKitは視聴者視点（アバターを見ている人の視点）で左右を定義:
                         // eyeBlinkLeft = 視聴者の左 = アバターの右側 = X < 0
                         // eyeBlinkRight = 視聴者の右 = アバターの左側 = X > 0
-                        bool shouldApply = true;
+                        float sideMultiplier = 1.0f;
                         if (_component.enableLeftRightSplit && source.side != BlendShapeSide.Both)
                         {
                             float vertexX = vertices[i].x;
-                            const float CENTER_THRESHOLD = 0.0001f;
+                            float blendWidth = _component.blendWidth;
 
-                            shouldApply = source.side switch
+                            if (source.side == BlendShapeSide.LeftOnly)
                             {
                                 // ARKit Left = 視聴者の左 = アバターの右側 = X < 0
-                                BlendShapeSide.LeftOnly => vertexX < CENTER_THRESHOLD,
+                                if (vertexX > blendWidth)
+                                {
+                                    sideMultiplier = 0.0f;
+                                }
+                                else if (vertexX > -blendWidth)
+                                {
+                                    sideMultiplier = (blendWidth - vertexX) / (blendWidth * 2);
+                                }
+                            }
+                            else if (source.side == BlendShapeSide.RightOnly)
+                            {
                                 // ARKit Right = 視聴者の右 = アバターの左側 = X > 0
-                                BlendShapeSide.RightOnly => vertexX > -CENTER_THRESHOLD,
-                                _ => true
-                            };
+                                if (vertexX < -blendWidth)
+                                {
+                                    sideMultiplier = 0.0f;
+                                }
+                                else if (vertexX < blendWidth)
+                                {
+                                    sideMultiplier = (vertexX + blendWidth) / (blendWidth * 2);
+                                }
+                            }
                         }
 
-                        if (shouldApply)
+                        if (sideMultiplier > 0)
                         {
-                            deltaVertices[i] += srcDeltaV[i] * adjustedWeight;
-                            deltaNormals[i] += srcDeltaN[i] * adjustedWeight;
-                            deltaTangents[i] += srcDeltaT[i] * adjustedWeight;
+                            float finalWeight = adjustedWeight * sideMultiplier;
+                            deltaVertices[i] += srcDeltaV[i] * finalWeight;
+                            deltaNormals[i] += srcDeltaN[i] * finalWeight;
+                            deltaTangents[i] += srcDeltaT[i] * finalWeight;
                         }
                     }
 
