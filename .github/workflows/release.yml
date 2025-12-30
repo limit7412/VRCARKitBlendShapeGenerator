@@ -1,0 +1,66 @@
+name: Build VPM Package
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version tag (e.g., 1.0.0)'
+        required: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Get version
+        id: version
+        run: |
+          if [ "${{ github.event_name }}" = "release" ]; then
+            VERSION="${{ github.event.release.tag_name }}"
+          elif [ -n "${{ github.event.inputs.version }}" ]; then
+            VERSION="${{ github.event.inputs.version }}"
+          else
+            VERSION=$(jq -r '.version' package.json)
+          fi
+          # Remove 'v' prefix if present
+          VERSION="${VERSION#v}"
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Version: $VERSION"
+
+      - name: Update package.json version
+        run: |
+          jq '.version = "${{ steps.version.outputs.version }}"' package.json > package.json.tmp
+          mv package.json.tmp package.json
+
+      - name: Create package zip
+        run: |
+          PACKAGE_NAME="com.qazx7412.kx-vrc-arkit-blendshape-generator"
+          ZIP_NAME="${PACKAGE_NAME}-${{ steps.version.outputs.version }}.zip"
+
+          # Create zip with package contents
+          zip -r "$ZIP_NAME" \
+            package.json \
+            Runtime/ \
+            Editor/ \
+            -x "*.meta"
+
+          echo "Created: $ZIP_NAME"
+          ls -la "$ZIP_NAME"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: vpm-package
+          path: "*.zip"
+
+      - name: Upload to Release
+        if: github.event_name == 'release'
+        uses: softprops/action-gh-release@v1
+        with:
+          files: "*.zip"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -1,0 +1,19 @@
+{
+    "name": "ARKitBlendShapeGenerator.Editor",
+    "rootNamespace": "ARKitBlendShapeGenerator",
+    "references": [
+        "nadena.dev.ndmf",
+        "ARKitBlendShapeGenerator.Runtime"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
