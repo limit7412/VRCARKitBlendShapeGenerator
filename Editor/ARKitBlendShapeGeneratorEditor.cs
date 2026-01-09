@@ -168,6 +168,24 @@ namespace ARKitBlendShapeGenerator
                 MessageType.Info
             );
 
+            // VRChat標準表情のみを使用したプリセット
+            EditorGUILayout.LabelField("プリセット", EditorStyles.miniBoldLabel);
+            EditorGUILayout.BeginHorizontal();
+            if (GUILayout.Button("VRChat標準表情のみで設定"))
+            {
+                if (EditorUtility.DisplayDialog(
+                    "VRChat標準表情プリセット",
+                    "MMD用シェイプキーが存在しないアバター向けに、VRChat標準の表情（vrc.v_aa, vrc.v_ih, vrc.v_ou等）のみを使用したマッピングを設定します。\n\n現在のカスタムマッピングは上書きされます。",
+                    "設定する",
+                    "キャンセル"))
+                {
+                    ApplyVRChatStandardPreset();
+                }
+            }
+            EditorGUILayout.EndHorizontal();
+
+            EditorGUILayout.Space(5);
+
             // カテゴリ別クイック追加ボタン
             EditorGUILayout.LabelField("カテゴリ別追加", EditorStyles.miniBoldLabel);
             EditorGUILayout.BeginHorizontal();
@@ -343,12 +361,30 @@ namespace ARKitBlendShapeGenerator
                 options.AddRange(_availableBlendShapes);
 
                 int currentIdx = _availableBlendShapes.IndexOf(source.blendShapeName) + 1;
+
+                // リストにない名前が設定されている場合は末尾に追加して表示
+                if (currentIdx == 0 && !string.IsNullOrEmpty(source.blendShapeName))
+                {
+                    options.Add(source.blendShapeName + " (未検出)");
+                    currentIdx = options.Count - 1;
+                }
+
                 int newIdx = EditorGUILayout.Popup(currentIdx, options.ToArray());
 
-                if (newIdx > 0 && newIdx <= _availableBlendShapes.Count)
+                if (newIdx > 0 && newIdx < options.Count)
                 {
-                    source.blendShapeName = _availableBlendShapes[newIdx - 1];
-                    EditorUtility.SetDirty(_component);
+                    // 「(未検出)」付きの項目が選択された場合は元の名前を維持
+                    string selectedName = options[newIdx];
+                    if (selectedName.EndsWith(" (未検出)"))
+                    {
+                        selectedName = selectedName.Replace(" (未検出)", "");
+                    }
+
+                    if (source.blendShapeName != selectedName)
+                    {
+                        source.blendShapeName = selectedName;
+                        EditorUtility.SetDirty(_component);
+                    }
                 }
             }
             else
@@ -388,6 +424,109 @@ namespace ARKitBlendShapeGenerator
         private void AddEyeLookMappings()
         {
             AddCategoryMappings(ARKitBlendShapeNames.EyeLook);
+        }
+
+        /// <summary>
+        /// VRChat標準の表情のみを使用したカスタムマッピングを設定
+        /// MMD用シェイプキーが存在しないアバター向け
+        /// </summary>
+        private void ApplyVRChatStandardPreset()
+        {
+            // BlendShapeリストを先に更新
+            RefreshBlendShapeList();
+
+            // SerializedObjectを使用して変更を適用
+            serializedObject.Update();
+
+            var customMappingsProperty = serializedObject.FindProperty("customMappings");
+            customMappingsProperty.ClearArray();
+
+            // === 目 (Eye) ===
+            // vrc.blink または vrc_blink を自動検出
+            string blinkName = FindVrcBlendShape("vrc.blink", "vrc_blink");
+            AddPresetMappingSerialized(customMappingsProperty, "eyeBlinkLeft", blinkName, 1.0f, BlendShapeSide.LeftOnly);
+            AddPresetMappingSerialized(customMappingsProperty, "eyeBlinkRight", blinkName, 1.0f, BlendShapeSide.RightOnly);
+
+            // === 口 - 母音系 (Mouth Vowels) ===
+            string vAa = FindVrcBlendShape("vrc.v_aa", "vrc_v_aa");
+            string vOu = FindVrcBlendShape("vrc.v_ou", "vrc_v_ou");
+            string vIh = FindVrcBlendShape("vrc.v_ih", "vrc_v_ih");
+            string vNn = FindVrcBlendShape("vrc.v_nn", "vrc_v_nn");
+            string vCh = FindVrcBlendShape("vrc.v_ch", "vrc_v_ch");
+            string vOh = FindVrcBlendShape("vrc.v_oh", "vrc_v_oh");
+
+            AddPresetMappingSerialized(customMappingsProperty, "jawOpen", vAa, 0.7f, BlendShapeSide.Both);
+            AddPresetMappingSerialized(customMappingsProperty, "mouthFunnel", vOu, 1.0f, BlendShapeSide.Both);
+            AddPresetMappingSerialized(customMappingsProperty, "mouthPucker", vOu, 1.2f, BlendShapeSide.Both);
+            AddPresetMappingSerialized(customMappingsProperty, "mouthUpperUpLeft", vIh, 1.0f, BlendShapeSide.LeftOnly);
+            AddPresetMappingSerialized(customMappingsProperty, "mouthUpperUpRight", vIh, 1.0f, BlendShapeSide.RightOnly);
+            AddPresetMappingSerialized(customMappingsProperty, "mouthLowerDownLeft", vAa, 0.6f, BlendShapeSide.LeftOnly);
+            AddPresetMappingSerialized(customMappingsProperty, "mouthLowerDownRight", vAa, 0.6f, BlendShapeSide.RightOnly);
+            AddPresetMappingSerialized(customMappingsProperty, "mouthClose", vNn, 1.0f, BlendShapeSide.Both);
+            AddPresetMappingSerialized(customMappingsProperty, "mouthShrugUpper", vCh, 1.0f, BlendShapeSide.Both);
+            AddPresetMappingSerialized(customMappingsProperty, "mouthShrugLower", vOh, 0.5f, BlendShapeSide.Both);
+            AddPresetMappingSerialized(customMappingsProperty, "mouthStretchLeft", vIh, 1.0f, BlendShapeSide.LeftOnly);
+            AddPresetMappingSerialized(customMappingsProperty, "mouthStretchRight", vIh, 1.0f, BlendShapeSide.RightOnly);
+            AddPresetMappingSerialized(customMappingsProperty, "mouthSmileLeft", vIh, 0.7f, BlendShapeSide.LeftOnly);
+            AddPresetMappingSerialized(customMappingsProperty, "mouthSmileRight", vIh, 0.7f, BlendShapeSide.RightOnly);
+
+            // === 視線系 (Eye Look) - 無効で追加（通常は手動設定が必要） ===
+            foreach (var eyeLookName in ARKitBlendShapeNames.EyeLook)
+            {
+                AddPresetMappingSerialized(customMappingsProperty, eyeLookName, null, 0f, BlendShapeSide.Both, false);
+            }
+
+            serializedObject.ApplyModifiedProperties();
+
+            Debug.Log("[ARKitGenerator] VRChat標準表情プリセットを適用しました");
+        }
+
+        /// <summary>
+        /// 複数の候補名からメッシュに存在するBlendShape名を検索
+        /// </summary>
+        private string FindVrcBlendShape(params string[] candidates)
+        {
+            foreach (var name in candidates)
+            {
+                if (_availableBlendShapes.Contains(name))
+                {
+                    return name;
+                }
+            }
+            // 見つからない場合は最初の候補を返す
+            return candidates.Length > 0 ? candidates[0] : null;
+        }
+
+        /// <summary>
+        /// SerializedPropertyを使用してプリセットマッピングを追加
+        /// </summary>
+        private void AddPresetMappingSerialized(SerializedProperty customMappingsProperty, string arkitName, string sourceName, float weight, BlendShapeSide side, bool enabled = true)
+        {
+            int index = customMappingsProperty.arraySize;
+            customMappingsProperty.InsertArrayElementAtIndex(index);
+            var mappingProperty = customMappingsProperty.GetArrayElementAtIndex(index);
+
+            var arkitNameProp = mappingProperty.FindPropertyRelative("arkitName");
+            var enabledProp = mappingProperty.FindPropertyRelative("enabled");
+            var sourcesProperty = mappingProperty.FindPropertyRelative("sources");
+
+            arkitNameProp.stringValue = arkitName;
+            enabledProp.boolValue = enabled;
+            sourcesProperty.ClearArray();
+
+            if (!string.IsNullOrEmpty(sourceName))
+            {
+                sourcesProperty.InsertArrayElementAtIndex(0);
+                var sourceProperty = sourcesProperty.GetArrayElementAtIndex(0);
+
+                var blendShapeNameProp = sourceProperty.FindPropertyRelative("blendShapeName");
+                var weightProp = sourceProperty.FindPropertyRelative("weight");
+                var sideProp = sourceProperty.FindPropertyRelative("side");
+
+                blendShapeNameProp.stringValue = sourceName;
+                weightProp.floatValue = weight;
+                sideProp.enumValueIndex = (int)side;
+            }
         }
 
         private void DrawPreviewUI()
