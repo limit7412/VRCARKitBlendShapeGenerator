@@ -70,6 +70,11 @@ namespace ARKitBlendShapeGenerator
 
             EditorGUILayout.Space();
 
+            // NDMFプレビュー ON/OFF ボタン
+            DrawNdmfPreviewToggle();
+
+            EditorGUILayout.Space();
+
             // 基本設定
             EditorGUILayout.LabelField("基本設定", EditorStyles.boldLabel);
             EditorGUILayout.PropertyField(serializedObject.FindProperty("targetRenderer"));
@@ -158,6 +163,30 @@ namespace ARKitBlendShapeGenerator
             EditorGUILayout.EndHorizontal();
 
             serializedObject.ApplyModifiedProperties();
+        }
+
+        private void DrawNdmfPreviewToggle()
+        {
+            var isEnabled = ARKitBlendShapeGeneratorPreview.EnableNode.IsEnabled.Value;
+
+            EditorGUILayout.BeginHorizontal();
+            EditorGUILayout.LabelField("NDMF Preview", EditorStyles.boldLabel, GUILayout.Width(100));
+
+            // プレビュー状態に応じてボタンの色を変更
+            var originalColor = GUI.backgroundColor;
+            GUI.backgroundColor = isEnabled ? new Color(0.6f, 1.0f, 0.6f) : new Color(1.0f, 0.6f, 0.6f);
+
+            string buttonText = isEnabled ? "ON" : "OFF";
+            if (GUILayout.Button(buttonText, GUILayout.Width(50)))
+            {
+                ARKitBlendShapeGeneratorPreview.EnableNode.IsEnabled.Value = !isEnabled;
+                SceneView.RepaintAll();
+            }
+
+            GUI.backgroundColor = originalColor;
+
+            EditorGUILayout.LabelField(isEnabled ? "プレビュー有効" : "プレビュー無効", EditorStyles.miniLabel);
+            EditorGUILayout.EndHorizontal();
         }
 
         private void DrawCustomMappingsUI()
