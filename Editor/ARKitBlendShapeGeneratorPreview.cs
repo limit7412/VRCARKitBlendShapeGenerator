@@ -21,7 +21,7 @@ namespace ARKitBlendShapeGenerator
         public static readonly TogglablePreviewNode EnableNode = TogglablePreviewNode.Create(
             () => "ARKit BlendShape Generator",
             qualifiedName: "com.example.arkit-blendshape-generator/Preview",
-            initialState: true
+            initialState: false
         );
 
         public IEnumerable<TogglablePreviewNode> GetPreviewControlNodes()

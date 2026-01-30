@@ -34,7 +34,7 @@ namespace ARKitBlendShapeGenerator
 
         // プレビュー用
         private int _previewMappingIndex = -1;
-        private float _previewWeight = 1.0f;
+        private float _previewWeight = 0f;
         private Dictionary<int, float> _originalWeights = new Dictionary<int, float>();
         private Mesh _originalMesh;
         private Mesh _previewMesh;
@@ -158,6 +158,30 @@ namespace ARKitBlendShapeGenerator
             EditorGUILayout.EndHorizontal();
 
             serializedObject.ApplyModifiedProperties();
+        }
+
+        private void DrawNdmfPreviewToggle()
+        {
+            var isEnabled = ARKitBlendShapeGeneratorPreview.EnableNode.IsEnabled.Value;
+
+            EditorGUILayout.BeginHorizontal();
+            EditorGUILayout.LabelField("NDMF Preview", EditorStyles.boldLabel, GUILayout.Width(100));
+
+            // プレビュー状態に応じてボタンの色を変更
+            var originalColor = GUI.backgroundColor;
+            GUI.backgroundColor = isEnabled ? new Color(0.6f, 1.0f, 0.6f) : new Color(1.0f, 0.6f, 0.6f);
+
+            string buttonText = isEnabled ? "ON" : "OFF";
+            if (GUILayout.Button(buttonText, GUILayout.Width(50)))
+            {
+                ARKitBlendShapeGeneratorPreview.EnableNode.IsEnabled.Value = !isEnabled;
+                SceneView.RepaintAll();
+            }
+
+            GUI.backgroundColor = originalColor;
+
+            EditorGUILayout.LabelField(isEnabled ? "プレビュー有効" : "プレビュー無効", EditorStyles.miniLabel);
+            EditorGUILayout.EndHorizontal();
         }
 
         private void DrawCustomMappingsUI()
@@ -531,6 +555,19 @@ namespace ARKitBlendShapeGenerator
 
         private void DrawPreviewUI()
         {
+            // NDMFプレビュー ON/OFF ボタン
+            DrawNdmfPreviewToggle();
+
+            // NDMFプレビューがOFFの場合はカスタムプレビューを無効化
+            var isNdmfPreviewEnabled = ARKitBlendShapeGeneratorPreview.EnableNode.IsEnabled.Value;
+            if (!isNdmfPreviewEnabled)
+            {
+                ResetPreview();
+                return;
+            }
+
+            EditorGUILayout.Space(5);
+
             if (_component.targetRenderer == null)
             {
                 EditorGUILayout.HelpBox(
@@ -567,14 +604,10 @@ namespace ARKitBlendShapeGenerator
             EditorGUILayout.LabelField("マッピング:", GUILayout.Width(70));
             int newSelection = EditorGUILayout.Popup(currentSelection, options);
 
-            bool mappingChanged = false;
             if (newSelection != currentSelection || _previewMappingIndex < 0)
             {
                 ResetPreview();
                 _previewMappingIndex = enabledMappings[newSelection].Index;
-                // マッピング変更時は自動的に強度を1.0に設定
-                _previewWeight = 1.0f;
-                mappingChanged = true;
             }
             EditorGUILayout.EndHorizontal();
 
@@ -583,15 +616,9 @@ namespace ARKitBlendShapeGenerator
             EditorGUILayout.LabelField("強度:", GUILayout.Width(70));
             float newWeight = EditorGUILayout.Slider(_previewWeight, 0f, 1f);
 
-            // 重み変更時のみnewWeightを適用、マッピング変更時は_previewWeightを維持
             if (Mathf.Abs(newWeight - _previewWeight) > 0.001f)
             {
                 _previewWeight = newWeight;
-                ApplyPreview();
-            }
-            else if (mappingChanged)
-            {
-                // _previewWeightは既に1.0に設定済み
                 ApplyPreview();
             }
             EditorGUILayout.EndHorizontal();
