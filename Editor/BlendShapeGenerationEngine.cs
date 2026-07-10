@@ -179,7 +179,7 @@ namespace ARKitBlendShapeGenerator
 
             if (options.EnableProceduralMouthShapes)
             {
-                GenerateProceduralMouthShapes(sourceMesh, targetMesh, options, generatedShapes);
+                GenerateProceduralMouthShapes(sourceMesh, targetMesh, options, customMappedNames, generatedShapes);
             }
 
             // 生成・削除後の最終状態からインデックスを再構築する
@@ -200,6 +200,7 @@ namespace ARKitBlendShapeGenerator
             Mesh sourceMesh,
             Mesh targetMesh,
             BlendShapeGenerationOptions options,
+            HashSet<string> customMappedNames,
             List<string> generatedShapes)
         {
             if (sourceMesh.vertexCount != targetMesh.vertexCount)
@@ -218,6 +219,14 @@ namespace ARKitBlendShapeGenerator
                 // 既存シェイプキーからの生成が成立している場合はそちらを優先
                 if (generatedNames.Contains(arkitName))
                 {
+                    continue;
+                }
+
+                // カスタムマッピングで定義済みの名前はユーザー設定を尊重して対象外にする
+                // （ソース未検出等で生成に失敗した場合もフォールバックしない）
+                if (customMappedNames != null && customMappedNames.Contains(arkitName))
+                {
+                    Log(options, $"Skip procedural (custom defined): {arkitName}");
                     continue;
                 }
 
