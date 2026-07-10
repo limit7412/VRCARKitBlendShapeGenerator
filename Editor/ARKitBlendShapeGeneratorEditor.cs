@@ -87,6 +87,19 @@ namespace ARKitBlendShapeGenerator
             EditorGUILayout.PropertyField(serializedObject.FindProperty("overwriteExisting"));
 
             EditorGUILayout.Space();
+            EditorGUILayout.LabelField("口の手続き的生成", EditorStyles.boldLabel);
+            EditorGUILayout.HelpBox(
+                "既存シェイプキーから生成できない口周りのBlendShape（mouthLeft/Right、jaw系等）を、" +
+                "口領域の頂点移動で自動生成します。既存シェイプキーは口領域の検出にのみ使用されます。",
+                MessageType.Info);
+            var enableProceduralProperty = serializedObject.FindProperty("enableProceduralMouthShapes");
+            EditorGUILayout.PropertyField(enableProceduralProperty);
+            using (new EditorGUI.DisabledScope(!enableProceduralProperty.boolValue))
+            {
+                EditorGUILayout.PropertyField(serializedObject.FindProperty("proceduralMouthIntensity"));
+            }
+
+            EditorGUILayout.Space();
             EditorGUILayout.LabelField("", GUI.skin.horizontalSlider);
 
             // カスタムマッピング
@@ -1006,6 +1019,20 @@ namespace ARKitBlendShapeGenerator
                 processedAutoNames.Add(mapping.arkitName);
             }
 
+            if (_component.enableProceduralMouthShapes &&
+                ProceduralMouthShapeGenerator.HasMouthSource(sourceShapeNames))
+            {
+                foreach (var arkitName in ProceduralMouthShapeGenerator.TargetShapeNames)
+                {
+                    if (customMappedNames.Contains(arkitName) || autoSet.Contains(arkitName))
+                    {
+                        continue;
+                    }
+
+                    autoSet.Add(arkitName);
+                }
+            }
+
             var originalSet = new HashSet<string>();
             foreach (var shapeName in sourceShapeNames)
             {
@@ -1076,6 +1103,8 @@ namespace ARKitBlendShapeGenerator
                 EditorGUILayout.LabelField("mouthPucker", "← vrc.v_ou, う, ω (120%)");
                 EditorGUILayout.LabelField("mouthSmileLeft/Right", "← にやり, ∧, にっこり");
                 EditorGUILayout.LabelField("mouthFrownLeft/Right", "← への字, 悲しみ");
+                EditorGUILayout.LabelField("mouthLeft/Right", "← 手続き的生成（口領域を頂点移動）");
+                EditorGUILayout.LabelField("jawLeft/Right/Forward", "← 手続き的生成（口領域を頂点移動）");
                 EditorGUI.indentLevel--;
             }
 

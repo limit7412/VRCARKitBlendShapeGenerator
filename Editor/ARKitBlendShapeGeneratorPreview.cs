@@ -138,6 +138,8 @@ namespace ARKitBlendShapeGenerator
             private readonly bool _observedEnableLeftRightSplit;
             private readonly float _observedBlendWidth;
             private readonly bool _observedOverwriteExisting;
+            private readonly bool _observedEnableProceduralMouthShapes;
+            private readonly float _observedProceduralMouthIntensity;
             private readonly int _observedTargetRendererInstanceId;
             private readonly int _observedCustomMappingsSignature;
             private readonly Dictionary<string, int> _shapeIndices = new Dictionary<string, int>();
@@ -161,6 +163,8 @@ namespace ARKitBlendShapeGenerator
                 bool observedEnableLeftRightSplit = false;
                 float observedBlendWidth = 0f;
                 bool observedOverwriteExisting = false;
+                bool observedEnableProceduralMouthShapes = false;
+                float observedProceduralMouthIntensity = 0f;
                 int observedCustomMappingsSignature = 0;
                 SkinnedMeshRenderer observedTargetRenderer = null;
                 if (component != null)
@@ -170,6 +174,8 @@ namespace ARKitBlendShapeGenerator
                     observedEnableLeftRightSplit = context.Observe(component, c => c.enableLeftRightSplit);
                     observedBlendWidth = context.Observe(component, c => c.blendWidth);
                     observedOverwriteExisting = context.Observe(component, c => c.overwriteExisting);
+                    observedEnableProceduralMouthShapes = context.Observe(component, c => c.enableProceduralMouthShapes);
+                    observedProceduralMouthIntensity = context.Observe(component, c => c.proceduralMouthIntensity);
                     observedCustomMappingsSignature = BuildCustomMappingsSignature(component.customMappings);
                     observedTargetRenderer = context.Observe(component, c => c.targetRenderer);
                 }
@@ -178,6 +184,8 @@ namespace ARKitBlendShapeGenerator
                 _observedEnableLeftRightSplit = observedEnableLeftRightSplit;
                 _observedBlendWidth = observedBlendWidth;
                 _observedOverwriteExisting = observedOverwriteExisting;
+                _observedEnableProceduralMouthShapes = observedEnableProceduralMouthShapes;
+                _observedProceduralMouthIntensity = observedProceduralMouthIntensity;
                 _observedCustomMappingsSignature = observedCustomMappingsSignature;
                 _observedTargetRendererInstanceId = observedTargetRenderer != null ? observedTargetRenderer.GetInstanceID() : 0;
 
@@ -252,6 +260,18 @@ namespace ARKitBlendShapeGenerator
 
                 bool currentOverwriteExisting = context.Observe(_component, c => c.overwriteExisting);
                 if (currentOverwriteExisting != _observedOverwriteExisting)
+                {
+                    return Task.FromResult<IRenderFilterNode>(null);
+                }
+
+                bool currentEnableProceduralMouthShapes = context.Observe(_component, c => c.enableProceduralMouthShapes);
+                if (currentEnableProceduralMouthShapes != _observedEnableProceduralMouthShapes)
+                {
+                    return Task.FromResult<IRenderFilterNode>(null);
+                }
+
+                float currentProceduralMouthIntensity = context.Observe(_component, c => c.proceduralMouthIntensity);
+                if (!Mathf.Approximately(currentProceduralMouthIntensity, _observedProceduralMouthIntensity))
                 {
                     return Task.FromResult<IRenderFilterNode>(null);
                 }

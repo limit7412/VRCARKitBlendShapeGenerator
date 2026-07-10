@@ -10,6 +10,8 @@ namespace ARKitBlendShapeGenerator
         public bool EnableLeftRightSplit { get; set; } = true;
         public float BlendWidth { get; set; } = 0.02f;
         public bool OverwriteExisting { get; set; }
+        public bool EnableProceduralMouthShapes { get; set; }
+        public float ProceduralMouthIntensity { get; set; } = 1.0f;
         public bool Debug { get; set; }
 
         public static BlendShapeGenerationOptions FromComponent(ARKitBlendShapeGeneratorComponent component)
@@ -20,6 +22,8 @@ namespace ARKitBlendShapeGenerator
                 EnableLeftRightSplit = component.enableLeftRightSplit,
                 BlendWidth = component.blendWidth,
                 OverwriteExisting = component.overwriteExisting,
+                EnableProceduralMouthShapes = component.enableProceduralMouthShapes,
+                ProceduralMouthIntensity = component.proceduralMouthIntensity,
                 Debug = component.debugMode
             };
         }
@@ -173,7 +177,124 @@ namespace ARKitBlendShapeGenerator
                 }
             }
 
-            return new BlendShapeGenerationResult(generatedShapes, existingShapes);
+            if (options.EnableProceduralMouthShapes)
+            {
+                GenerateProceduralMouthShapes(sourceMesh, targetMesh, options, customMappedNames, generatedShapes);
+            }
+
+            // 生成・削除後の最終状態からインデックスを再構築する
+            var shapeIndices = new Dictionary<string, int>();
+            for (int i = 0; i < targetMesh.blendShapeCount; i++)
+            {
+                var shapeName = targetMesh.GetBlendShapeName(i);
+                if (!string.IsNullOrEmpty(shapeName))
+                {
+                    shapeIndices[shapeName] = i;
+                }
+            }
+
+            return new BlendShapeGenerationResult(generatedShapes, shapeIndices);
+        }
+
+        private static void GenerateProceduralMouthShapes(
+            Mesh sourceMesh,
+            Mesh targetMesh,
+            BlendShapeGenerationOptions options,
+            HashSet<string> customMappedNames,
+            List<string> generatedShapes)
+        {
+            if (sourceMesh.vertexCount != targetMesh.vertexCount)
+            {
+                Log(options, "Skip procedural (vertex count mismatch)");
+                return;
+            }
+
+            var generatedNames = new HashSet<string>(generatedShapes);
+            var targetExistingNames = GetExistingBlendShapeNames(targetMesh);
+            var namesToGenerate = new List<string>();
+            var namesToReplace = new HashSet<string>();
+
+            foreach (var arkitName in ProceduralMouthShapeGenerator.TargetShapeNames)
+            {
+                // 既存シェイプキーからの生成が成立している場合はそちらを優先
+                if (generatedNames.Contains(arkitName))
+                {
+                    continue;
+                }
+
+                // カスタムマッピングで定義済みの名前はユーザー設定を尊重して対象外にする
+                // （ソース未検出等で生成に失敗した場合もフォールバックしない）
+                if (customMappedNames != null && customMappedNames.Contains(arkitName))
+                {
+                    Log(options, $"Skip procedural (custom defined): {arkitName}");
+                    continue;
+                }
+
+                if (targetExistingNames.Contains(arkitName))
+                {
+                    if (!options.OverwriteExisting)
+                    {
+                        Log(options, $"Skip procedural (exists): {arkitName}");
+                        continue;
+                    }
+
+                    namesToReplace.Add(arkitName);
+                }
+
+                namesToGenerate.Add(arkitName);
+            }
+
+            if (namesToGenerate.Count == 0)
+            {
+                return;
+            }
+
+            if (!ProceduralMouthShapeGenerator.TryCreateContext(sourceMesh, out var context))
+            {
+                Log(options, "Skip procedural (mouth region not found)");
+                return;
+            }
+
+            // 生成できなかったシェイプの既存データを消さないよう、先にデルタを確定させる
+            var plannedDeltas = new List<(string arkitName, Vector3[] deltaVertices)>();
+            foreach (var arkitName in namesToGenerate)
+            {
+                if (ProceduralMouthShapeGenerator.TryBuildDeltaVertices(context, arkitName, options, out var deltaVertices))
+                {
+                    plannedDeltas.Add((arkitName, deltaVertices));
+                }
+                else
+                {
+                    namesToReplace.Remove(arkitName);
+                }
+            }
+
+            if (plannedDeltas.Count == 0)
+            {
+                return;
+            }
+
+            if (namesToReplace.Count > 0)
+            {
+                int removedCount = RemoveBlendShapesByNames(targetMesh, namesToReplace);
+                if (removedCount > 0)
+                {
+                    Log(options, $"Replaced existing blendshapes (procedural): {string.Join(", ", namesToReplace.OrderBy(name => name))}");
+                }
+            }
+
+            foreach (var (arkitName, deltaVertices) in plannedDeltas)
+            {
+                // 平行移動のみのため法線・接線のデルタは不要（nullで省略可能）
+                targetMesh.AddBlendShapeFrame(
+                    arkitName,
+                    100f,
+                    deltaVertices,
+                    null,
+                    null);
+                generatedShapes.Add(arkitName);
+                Log(options, $"Generated (procedural): {arkitName}");
+            }
         }
 
         private static void CollectCustomMappings(
@@ -377,30 +498,7 @@ namespace ARKitBlendShapeGenerator
                     float sideMultiplier = 1.0f;
                     if (options.EnableLeftRightSplit && side != BlendShapeSide.Both)
                     {
-                        float vertexX = vertices[i].x;
-
-                        if (side == BlendShapeSide.LeftOnly)
-                        {
-                            if (vertexX > blendWidth)
-                            {
-                                sideMultiplier = 0.0f;
-                            }
-                            else if (vertexX > -blendWidth)
-                            {
-                                sideMultiplier = (blendWidth - vertexX) / (blendWidth * 2.0f);
-                            }
-                        }
-                        else if (side == BlendShapeSide.RightOnly)
-                        {
-                            if (vertexX < -blendWidth)
-                            {
-                                sideMultiplier = 0.0f;
-                            }
-                            else if (vertexX < blendWidth)
-                            {
-                                sideMultiplier = (vertexX + blendWidth) / (blendWidth * 2.0f);
-                            }
-                        }
+                        sideMultiplier = CalculateSideMultiplier(vertices[i].x, side, blendWidth);
                     }
 
                     if (sideMultiplier > 0.0f)
@@ -423,6 +521,44 @@ namespace ARKitBlendShapeGenerator
             targetMesh.AddBlendShapeFrame(arkitName, 100f, deltaVertices, deltaNormals, deltaTangents);
             Log(options, $"Generated: {arkitName} from {sourceCount} source(s)");
             return true;
+        }
+
+        /// <summary>
+        /// 左右分割時の頂点ごとの適用係数を算出する（中央付近はblendWidthの範囲でグラデーション）
+        /// </summary>
+        internal static float CalculateSideMultiplier(float vertexX, BlendShapeSide side, float blendWidth)
+        {
+            if (side == BlendShapeSide.LeftOnly)
+            {
+                if (vertexX > blendWidth)
+                {
+                    return 0.0f;
+                }
+
+                if (vertexX > -blendWidth)
+                {
+                    return (blendWidth - vertexX) / (blendWidth * 2.0f);
+                }
+
+                return 1.0f;
+            }
+
+            if (side == BlendShapeSide.RightOnly)
+            {
+                if (vertexX < -blendWidth)
+                {
+                    return 0.0f;
+                }
+
+                if (vertexX < blendWidth)
+                {
+                    return (vertexX + blendWidth) / (blendWidth * 2.0f);
+                }
+
+                return 1.0f;
+            }
+
+            return 1.0f;
         }
 
         private static HashSet<string> GetExistingBlendShapeNames(Mesh mesh)

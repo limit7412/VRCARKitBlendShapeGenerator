@@ -41,6 +41,14 @@ namespace ARKitBlendShapeGenerator
         [Tooltip("既存のARKit BlendShapeを上書きする")]
         public bool overwriteExisting = false;
 
+        [Header("口の手続き的生成")]
+        [Tooltip("既存シェイプキーから生成できない口周りのBlendShape（mouthLeft/Right、jaw系等）を、口領域の頂点移動で自動生成する")]
+        public bool enableProceduralMouthShapes = false;
+
+        [Tooltip("手続き的生成の変形量係数")]
+        [Range(0.1f, 2.0f)]
+        public float proceduralMouthIntensity = 1.0f;
+
         [Header("カスタムマッピング")]
         [Tooltip("自動マッピングできないBlendShapeを手動で指定")]
         public List<CustomBlendShapeMapping> customMappings = new List<CustomBlendShapeMapping>();

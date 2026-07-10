@@ -88,7 +88,9 @@ namespace ARKitBlendShapeGenerator
                 component.blendWidth,
                 component.overwriteExisting,
                 component.customMappings,
-                component.debugMode
+                component.debugMode,
+                component.enableProceduralMouthShapes,
+                component.proceduralMouthIntensity
             );
 
             generator.Process();
@@ -109,6 +111,8 @@ namespace ARKitBlendShapeGenerator
         private readonly bool _overwrite;
         private readonly List<CustomBlendShapeMapping> _customMappings;
         private readonly bool _debug;
+        private readonly bool _enableProceduralMouthShapes;
+        private readonly float _proceduralMouthIntensity;
 
         private List<string> _generatedShapes = new List<string>();
 
@@ -119,7 +123,9 @@ namespace ARKitBlendShapeGenerator
             float blendWidth,
             bool overwrite,
             List<CustomBlendShapeMapping> customMappings,
-            bool debug)
+            bool debug,
+            bool enableProceduralMouthShapes = false,
+            float proceduralMouthIntensity = 1.0f)
         {
             _renderer = renderer;
             _originalMesh = renderer.sharedMesh;  // 元のメッシュを保持
@@ -130,7 +136,8 @@ namespace ARKitBlendShapeGenerator
             _overwrite = overwrite;
             _customMappings = customMappings ?? new List<CustomBlendShapeMapping>();
             _debug = debug;
-
+            _enableProceduralMouthShapes = enableProceduralMouthShapes;
+            _proceduralMouthIntensity = proceduralMouthIntensity;
         }
 
         public void Process()
@@ -149,6 +156,8 @@ namespace ARKitBlendShapeGenerator
                     EnableLeftRightSplit = _enableSplit,
                     BlendWidth = _blendWidth,
                     OverwriteExisting = _overwrite,
+                    EnableProceduralMouthShapes = _enableProceduralMouthShapes,
+                    ProceduralMouthIntensity = _proceduralMouthIntensity,
                     Debug = _debug
                 });
             _generatedShapes = result.GeneratedShapes.ToList();
