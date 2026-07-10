@@ -274,15 +274,15 @@ namespace ARKitBlendShapeGenerator
                 }
             }
 
-            int vertexCount = targetMesh.vertexCount;
             foreach (var (arkitName, deltaVertices) in plannedDeltas)
             {
+                // 平行移動のみのため法線・接線のデルタは不要（nullで省略可能）
                 targetMesh.AddBlendShapeFrame(
                     arkitName,
                     100f,
                     deltaVertices,
-                    new Vector3[vertexCount],
-                    new Vector3[vertexCount]);
+                    null,
+                    null);
                 generatedShapes.Add(arkitName);
                 Log(options, $"Generated (procedural): {arkitName}");
             }

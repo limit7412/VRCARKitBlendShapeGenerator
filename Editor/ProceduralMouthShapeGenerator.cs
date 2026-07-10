@@ -125,8 +125,6 @@ namespace ARKitBlendShapeGenerator
             int vertexCount = sourceMesh.vertexCount;
             var maxDeltas = new float[vertexCount];
             var deltaVertices = new Vector3[vertexCount];
-            var deltaNormals = new Vector3[vertexCount];
-            var deltaTangents = new Vector3[vertexCount];
 
             foreach (int shapeIndex in sourceIndices)
             {
@@ -136,12 +134,13 @@ namespace ARKitBlendShapeGenerator
                     continue;
                 }
 
+                // 法線・接線のデルタは使用しないためnullを渡して取得をスキップする
                 sourceMesh.GetBlendShapeFrameVertices(
                     shapeIndex,
                     frameCount - 1,
                     deltaVertices,
-                    deltaNormals,
-                    deltaTangents);
+                    null,
+                    null);
 
                 for (int i = 0; i < vertexCount; i++)
                 {
