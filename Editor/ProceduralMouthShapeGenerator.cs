@@ -50,6 +50,9 @@ namespace ARKitBlendShapeGenerator
         // 上唇側/下唇側を分けるブレンド帯の幅（口領域の高さに対する比率）
         private const float LipBlendBandRatio = 0.2f;
 
+        // 奥行き減衰: 口領域の最奥の頂点に適用する移動量の割合（前面=1.0から奥に向かって減衰）
+        private const float DepthFalloffMinScale = 0.3f;
+
         // 各シェイプの移動量（口領域の幅に対する比率、ウェイト100適用時）
         private const float MouthTranslateRatio = 0.12f;
         private const float JawTranslateRatio = 0.20f;
@@ -70,13 +73,20 @@ namespace ARKitBlendShapeGenerator
             public readonly Vector3[] Vertices;
             public readonly float[] Weights;
             public readonly float[] LowerRatios;
+            public readonly float[] DepthFactors;
             public readonly float MouthWidth;
 
-            public MouthRegionContext(Vector3[] vertices, float[] weights, float[] lowerRatios, float mouthWidth)
+            public MouthRegionContext(
+                Vector3[] vertices,
+                float[] weights,
+                float[] lowerRatios,
+                float[] depthFactors,
+                float mouthWidth)
             {
                 Vertices = vertices;
                 Weights = weights;
                 LowerRatios = lowerRatios;
+                DepthFactors = depthFactors;
                 MouthWidth = mouthWidth;
             }
         }
@@ -246,7 +256,48 @@ namespace ARKitBlendShapeGenerator
                 lowerRatios[i] = Mathf.Clamp01((lipLineY - vertices[i].y) / blendBand * 0.5f + 0.5f);
             }
 
-            context = new MouthRegionContext(vertices, weights, lowerRatios, mouthWidth);
+            // 奥行き減衰係数を算出（口の前面ほど大きく、奥にかけて動きを減らして自然な変形にする）
+            float minZ = float.PositiveInfinity;
+            float maxZ = float.NegativeInfinity;
+            for (int i = 0; i < vertexCount; i++)
+            {
+                if (weights[i] <= 0f)
+                {
+                    continue;
+                }
+
+                float z = vertices[i].z;
+                if (z < minZ)
+                {
+                    minZ = z;
+                }
+
+                if (z > maxZ)
+                {
+                    maxZ = z;
+                }
+            }
+
+            var depthFactors = new float[vertexCount];
+            float depthRange = maxZ - minZ;
+            if (depthRange <= Mathf.Epsilon)
+            {
+                for (int i = 0; i < vertexCount; i++)
+                {
+                    depthFactors[i] = 1f;
+                }
+            }
+            else
+            {
+                for (int i = 0; i < vertexCount; i++)
+                {
+                    float depthT = Mathf.Clamp01((vertices[i].z - minZ) / depthRange);
+                    float smoothDepth = depthT * depthT * (3f - 2f * depthT);
+                    depthFactors[i] = Mathf.Lerp(DepthFalloffMinScale, 1f, smoothDepth);
+                }
+            }
+
+            context = new MouthRegionContext(vertices, weights, lowerRatios, depthFactors, mouthWidth);
             return true;
         }
 
@@ -298,6 +349,9 @@ namespace ARKitBlendShapeGenerator
                 {
                     weight *= context.LowerRatios[i];
                 }
+
+                // 奥の頂点ほど動きを減らし、単純な平行移動にならないようにする
+                weight *= context.DepthFactors[i];
 
                 if (options.EnableLeftRightSplit && side != BlendShapeSide.Both)
                 {
