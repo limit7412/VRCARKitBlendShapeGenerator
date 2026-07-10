@@ -124,7 +124,7 @@ namespace ARKitBlendShapeGenerator
             bool overwrite,
             List<CustomBlendShapeMapping> customMappings,
             bool debug,
-            bool enableProceduralMouthShapes = true,
+            bool enableProceduralMouthShapes = false,
             float proceduralMouthIntensity = 1.0f)
         {
             _renderer = renderer;

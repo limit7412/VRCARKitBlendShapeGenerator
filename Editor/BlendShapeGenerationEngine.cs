@@ -10,7 +10,7 @@ namespace ARKitBlendShapeGenerator
         public bool EnableLeftRightSplit { get; set; } = true;
         public float BlendWidth { get; set; } = 0.02f;
         public bool OverwriteExisting { get; set; }
-        public bool EnableProceduralMouthShapes { get; set; } = true;
+        public bool EnableProceduralMouthShapes { get; set; }
         public float ProceduralMouthIntensity { get; set; } = 1.0f;
         public bool Debug { get; set; }
 

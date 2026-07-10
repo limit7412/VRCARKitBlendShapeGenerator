@@ -51,7 +51,7 @@ namespace ARKitBlendShapeGenerator
         private const float LipBlendBandRatio = 0.2f;
 
         // 各シェイプの移動量（口領域の幅に対する比率、ウェイト100適用時）
-        private const float MouthTranslateRatio = 0.25f;
+        private const float MouthTranslateRatio = 0.12f;
         private const float JawTranslateRatio = 0.20f;
         private const float JawForwardRatio = 0.20f;
         private const float ShrugForwardRatio = 0.12f;
