@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
+using static ARKitBlendShapeGenerator.Localization;
 
 namespace ARKitBlendShapeGenerator
 {
@@ -44,7 +45,7 @@ namespace ARKitBlendShapeGenerator
         {
             if (duplicateArkitNames == null)
             {
-                return "カスタムマッピングに同一ARKit名の重複があります。";
+                return S("validation.duplicate.generic");
             }
 
             var names = duplicateArkitNames
@@ -56,10 +57,10 @@ namespace ARKitBlendShapeGenerator
 
             if (names.Count == 0)
             {
-                return "カスタムマッピングに同一ARKit名の重複があります。";
+                return S("validation.duplicate.generic");
             }
 
-            return "カスタムマッピングで同一ARKit名は複数設定できません。\n重複: " + string.Join(", ", names);
+            return S("validation.duplicate.message", string.Join(", ", names));
         }
     }
 }

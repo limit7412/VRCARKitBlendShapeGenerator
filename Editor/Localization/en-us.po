@@ -1,0 +1,327 @@
+msgid ""
+msgstr ""
+"Language: en-us\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+# Common
+msgid "common.ok"
+msgstr "OK"
+
+msgid "common.yes"
+msgstr "Yes"
+
+msgid "common.no"
+msgstr "No"
+
+msgid "common.cancel"
+msgstr "Cancel"
+
+msgid "dialog.title"
+msgstr "ARKit BlendShape Generator"
+
+# Inspector: header / basic settings
+msgid "inspector.description"
+msgstr "Automatically generates ARKit blend shapes from VRChat/MMD blend shapes."
+
+msgid "inspector.section.basic"
+msgstr "Basic Settings"
+
+msgid "inspector.refresh_list"
+msgstr "Refresh BlendShape List"
+
+msgid "inspector.detected_count"
+msgstr "Found: {0}"
+
+msgid "inspector.search"
+msgstr "Search:"
+
+# Properties
+msgid "prop.target_renderer"
+msgstr "Target Renderer"
+
+msgid "prop.target_renderer.tooltip"
+msgstr "Target SkinnedMeshRenderer (auto-detects the Body mesh when empty)"
+
+msgid "prop.intensity_multiplier"
+msgstr "Intensity Multiplier"
+
+msgid "prop.intensity_multiplier.tooltip"
+msgstr "Intensity multiplier for generation (0.5-1.5 recommended)"
+
+msgid "prop.enable_left_right_split"
+msgstr "Left/Right Split"
+
+msgid "prop.enable_left_right_split.tooltip"
+msgstr "Generate left/right variants separately (e.g. blink)"
+
+msgid "prop.blend_width"
+msgstr "Blend Width"
+
+msgid "prop.blend_width.tooltip"
+msgstr "Width of the gradient around the center where left and right are blended when splitting"
+
+msgid "prop.overwrite_existing"
+msgstr "Overwrite Existing"
+
+msgid "prop.overwrite_existing.tooltip"
+msgstr "Overwrite existing ARKit blend shapes"
+
+msgid "prop.enable_procedural_mouth"
+msgstr "Enable Procedural Generation"
+
+msgid "prop.enable_procedural_mouth.tooltip"
+msgstr "Procedurally generate mouth-related blend shapes (mouthLeft/Right, jaw*, etc.) that cannot be derived from existing blend shapes, by moving vertices in the mouth region"
+
+msgid "prop.procedural_mouth_intensity"
+msgstr "Deformation Intensity"
+
+msgid "prop.procedural_mouth_intensity.tooltip"
+msgstr "Deformation intensity for procedural generation"
+
+msgid "prop.debug_mode"
+msgstr "Debug Mode"
+
+msgid "prop.debug_mode.tooltip"
+msgstr "Output debug logs"
+
+# Procedural mouth generation
+msgid "inspector.section.procedural_mouth"
+msgstr "Procedural Mouth Generation"
+
+msgid "inspector.procedural_mouth.description"
+msgstr "Procedurally generates mouth-related blend shapes (mouthLeft/Right, jaw*, etc.) that cannot be derived from existing blend shapes, by moving vertices in the mouth region. Existing blend shapes are only used to detect the mouth region."
+
+# Custom mappings
+msgid "inspector.section.custom_mappings"
+msgstr "Custom Mappings"
+
+msgid "custom_mappings.description"
+msgstr "Manually map blend shapes that cannot be mapped automatically (e.g. eye look).\nMultiple source blend shapes can be combined."
+
+msgid "custom_mappings.duplicate_blocked"
+msgstr "Preview/generation is suspended until the duplicates are resolved."
+
+msgid "custom_mappings.add_new"
+msgstr "Add New Mapping"
+
+msgid "custom_mappings.delete_all"
+msgstr "Delete All"
+
+msgid "custom_mappings.count"
+msgstr "Mappings: {0}/{1} enabled"
+
+msgid "custom_mappings.none_matching"
+msgstr "No mappings match the filter."
+
+msgid "custom_mappings.no_available_names"
+msgstr "(no available ARKit names)"
+
+msgid "presets.label"
+msgstr "Presets"
+
+msgid "presets.vrchat_standard"
+msgstr "Use VRChat Standard Visemes Only"
+
+msgid "dialog.vrchat_preset.message"
+msgstr "Sets up mappings that use only VRChat standard visemes (vrc.v_aa, vrc.v_ih, vrc.v_ou, etc.), intended for avatars without MMD blend shapes.\n\nYour current custom mappings will be overwritten."
+
+msgid "dialog.vrchat_preset.apply"
+msgstr "Apply"
+
+msgid "dialog.delete_all.message"
+msgstr "Delete all custom mappings?"
+
+msgid "dialog.no_available_name.message"
+msgstr "There are no ARKit names left to add.\nDelete an existing mapping or change its ARKit name."
+
+msgid "category_add.label"
+msgstr "Add by Category"
+
+msgid "category.eye_look"
+msgstr "Eye Look"
+
+msgid "category.eye"
+msgstr "Eye"
+
+msgid "category.brow"
+msgstr "Brow"
+
+msgid "category.mouth"
+msgstr "Mouth"
+
+msgid "category.cheek"
+msgstr "Cheek"
+
+msgid "category.nose"
+msgstr "Nose"
+
+msgid "category.tongue"
+msgstr "Tongue"
+
+msgid "source.placeholder"
+msgstr "(select)"
+
+msgid "source.not_found_suffix"
+msgstr " (not found)"
+
+msgid "enum.side.both"
+msgstr "Both"
+
+msgid "enum.side.left_only"
+msgstr "Left Only"
+
+msgid "enum.side.right_only"
+msgstr "Right Only"
+
+# Preview
+msgid "inspector.section.preview"
+msgstr "Preview"
+
+msgid "preview.realtime"
+msgstr "Realtime Preview"
+
+msgid "preview.reset"
+msgstr "Reset"
+
+msgid "preview.categories"
+msgstr "Categories"
+
+msgid "preview.ndmf_off_warning"
+msgstr "NDMF Preview is OFF, so value changes are not reflected in the scene view."
+
+msgid "preview.category.custom"
+msgstr "Custom"
+
+msgid "preview.category.auto"
+msgstr "Auto-generated"
+
+msgid "preview.category.original"
+msgstr "Original BlendShapes"
+
+msgid "preview.category.empty"
+msgstr "None"
+
+# Auto mapping list
+msgid "inspector.section.auto_mappings"
+msgstr "Auto Mapping List (Reference)"
+
+msgid "auto_mappings.description"
+msgstr "The following blend shapes are mapped automatically.\nIf the same ARKit name is specified in a custom mapping, the custom mapping takes precedence."
+
+msgid "auto_mappings.fold.eye"
+msgstr "Eye"
+
+msgid "auto_mappings.fold.eye_look"
+msgstr "Eye Look (usually requires manual setup)"
+
+msgid "auto_mappings.fold.brow"
+msgstr "Brow"
+
+msgid "auto_mappings.fold.mouth"
+msgstr "Mouth"
+
+msgid "auto_mappings.fold.cheek"
+msgstr "Cheek"
+
+msgid "auto_mappings.fold.nose"
+msgstr "Nose"
+
+msgid "auto_mappings.fold.tongue"
+msgstr "Tongue"
+
+msgid "auto_mappings.row.eye_blink"
+msgstr "← vrc.blink_left/right, まばたき, ウィンク"
+
+msgid "auto_mappings.row.eye_squint"
+msgstr "← 笑い, にこり, ><"
+
+msgid "auto_mappings.row.eye_wide"
+msgstr "← びっくり, 見開き"
+
+msgid "auto_mappings.row.manual"
+msgstr "← (manual setup recommended)"
+
+msgid "auto_mappings.row.eye_look_in"
+msgstr "← より目"
+
+msgid "auto_mappings.row.brow_down"
+msgstr "← 怒り, 真面目, 困る"
+
+msgid "auto_mappings.row.brow_inner_up"
+msgstr "← 困る, 上, 悲しい"
+
+msgid "auto_mappings.row.brow_outer_up"
+msgstr "← 上, 驚き"
+
+msgid "auto_mappings.row.jaw_open"
+msgstr "← vrc.v_aa, あ (70%)"
+
+msgid "auto_mappings.row.mouth_funnel"
+msgstr "← vrc.v_ou, う"
+
+msgid "auto_mappings.row.mouth_pucker"
+msgstr "← vrc.v_ou, う, ω (120%)"
+
+msgid "auto_mappings.row.mouth_smile"
+msgstr "← にやり, ∧, にっこり"
+
+msgid "auto_mappings.row.mouth_frown"
+msgstr "← への字, 悲しみ"
+
+msgid "auto_mappings.row.procedural"
+msgstr "← procedural generation (moves mouth-region vertices)"
+
+msgid "auto_mappings.row.cheek_puff"
+msgstr "← ぷく, 膨らみ"
+
+msgid "auto_mappings.row.cheek_squint"
+msgstr "← 笑い, にこり"
+
+msgid "auto_mappings.row.nose_sneer"
+msgstr "← 怒り"
+
+msgid "auto_mappings.row.tongue_out"
+msgstr "← べー, 舌"
+
+# Debug
+msgid "debug.show_all_meshes"
+msgstr "Log BlendShape Counts of All Meshes"
+
+msgid "debug.show_target_shapes"
+msgstr "Log BlendShape Names of Target Mesh"
+
+# Logs
+msgid "log.target_renderer_not_set"
+msgstr "Target Renderer is not set."
+
+msgid "log.preset_applied"
+msgstr "Applied the VRChat standard viseme preset"
+
+# Build / preview logs
+msgid "log.multiple_components"
+msgstr "Multiple ARKitBlendShapeGeneratorComponents were found on the same avatar. Only \"{0}\" will be processed."
+
+msgid "log.duplicate_abort"
+msgstr "Generation was aborted because the same ARKit name is duplicated in the custom mappings.\nDuplicates: {0}"
+
+msgid "log.duplicate_preview_stop"
+msgstr "The same ARKit name is duplicated in the custom mappings. Preview is suspended until the duplicates are resolved.\nDuplicates: {0}"
+
+msgid "log.renderer_not_found"
+msgstr "SkinnedMeshRenderer not found."
+
+# Duplicate component guard
+msgid "guard.log.duplicate"
+msgstr "Only one ARKitBlendShapeGeneratorComponent can be placed per avatar. The duplicate component will be removed."
+
+msgid "guard.dialog.duplicate_removed"
+msgstr "Only one ARKitBlendShapeGeneratorComponent can be placed per avatar.\n\nThe duplicate component that was added has been removed."
+
+# Validation
+msgid "validation.duplicate.generic"
+msgstr "There are duplicate ARKit names in the custom mappings."
+
+msgid "validation.duplicate.message"
+msgstr "The same ARKit name cannot be used in multiple custom mappings.\nDuplicates: {0}"
