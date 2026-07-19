@@ -77,7 +77,7 @@ namespace ARKitBlendShapeGenerator
 
             if (renderer == null || renderer.sharedMesh == null)
             {
-                Debug.LogWarning("[ARKitGenerator] SkinnedMeshRenderer not found");
+                Debug.LogWarning("[ARKitGenerator] SkinnedMeshRendererが見つかりません。");
                 return;
             }
 

@@ -89,8 +89,8 @@ namespace ARKitBlendShapeGenerator
             EditorGUILayout.Space();
             EditorGUILayout.LabelField("口の手続き的生成", EditorStyles.boldLabel);
             EditorGUILayout.HelpBox(
-                "既存シェイプキーから生成できない口周りのBlendShape（mouthLeft/Right、jaw系等）を、" +
-                "口領域の頂点移動で自動生成します。既存シェイプキーは口領域の検出にのみ使用されます。",
+                "既存のBlendShapeから生成できない口周りのBlendShape（mouthLeft/Right、jaw系等）を、" +
+                "口領域の頂点移動で自動生成します。既存のBlendShapeは口領域の検出にのみ使用されます。",
                 MessageType.Info);
             var enableProceduralProperty = serializedObject.FindProperty("enableProceduralMouthShapes");
             EditorGUILayout.PropertyField(enableProceduralProperty);
@@ -150,7 +150,7 @@ namespace ARKitBlendShapeGenerator
                     Debug.Log($"  {smr.gameObject.name}: {count} BlendShapes");
                 }
             }
-            if (GUILayout.Button("特定メッシュのBlendShape名を表示", EditorStyles.miniButton))
+            if (GUILayout.Button("対象メッシュのBlendShape名を表示", EditorStyles.miniButton))
             {
                 if (_component.targetRenderer != null && _component.targetRenderer.sharedMesh != null)
                 {
@@ -163,7 +163,7 @@ namespace ARKitBlendShapeGenerator
                 }
                 else
                 {
-                    Debug.LogWarning("Target Renderer not set");
+                    Debug.LogWarning("[ARKitGenerator] Target Rendererが設定されていません。");
                 }
             }
             EditorGUILayout.EndHorizontal();
@@ -222,7 +222,7 @@ namespace ARKitBlendShapeGenerator
             {
                 if (EditorUtility.DisplayDialog(
                     "VRChat標準表情プリセット",
-                    "MMD用シェイプキーが存在しないアバター向けに、VRChat標準の表情（vrc.v_aa, vrc.v_ih, vrc.v_ou等）のみを使用したマッピングを設定します。\n\n現在のカスタムマッピングは上書きされます。",
+                    "MMD用BlendShapeが存在しないアバター向けに、VRChat標準の表情（vrc.v_aa, vrc.v_ih, vrc.v_ou等）のみを使用したマッピングを設定します。\n\n現在のカスタムマッピングは上書きされます。",
                     "設定する",
                     "キャンセル"))
                 {
@@ -286,7 +286,7 @@ namespace ARKitBlendShapeGenerator
             }
             if (GUILayout.Button("全て削除", GUILayout.Width(80)))
             {
-                if (EditorUtility.DisplayDialog("確認", "全てのカスタムマッピングを削除しますか？", "はい", "いいえ"))
+                if (EditorUtility.DisplayDialog("ARKit BlendShape Generator", "全てのカスタムマッピングを削除しますか？", "はい", "いいえ"))
                 {
                     _component.customMappings.Clear();
                     MarkComponentChanged();
@@ -807,7 +807,7 @@ namespace ARKitBlendShapeGenerator
             if (_showPreviewCategoryOriginal)
             {
                 DrawPreviewCategory(
-                    "このツールで生成されるシェイプキー以外の元からあるシェイプキー",
+                    "元からあるBlendShape",
                     previewCategories.Original,
                     componentId,
                     ref previewState,
@@ -830,7 +830,7 @@ namespace ARKitBlendShapeGenerator
                 _showPreviewCategoryAuto = !_showPreviewCategoryAuto;
                 Repaint();
             });
-            menu.AddItem(new GUIContent("元からあるシェイプキー"), _showPreviewCategoryOriginal, () =>
+            menu.AddItem(new GUIContent("元からあるBlendShape"), _showPreviewCategoryOriginal, () =>
             {
                 _showPreviewCategoryOriginal = !_showPreviewCategoryOriginal;
                 Repaint();

@@ -42,7 +42,7 @@ namespace ARKitBlendShapeGenerator
         public bool overwriteExisting = false;
 
         [Header("口の手続き的生成")]
-        [Tooltip("既存シェイプキーから生成できない口周りのBlendShape（mouthLeft/Right、jaw系等）を、口領域の頂点移動で自動生成する")]
+        [Tooltip("既存のBlendShapeから生成できない口周りのBlendShape（mouthLeft/Right、jaw系等）を、口領域の頂点移動で自動生成する")]
         public bool enableProceduralMouthShapes = false;
 
         [Tooltip("手続き的生成の変形量係数")]
