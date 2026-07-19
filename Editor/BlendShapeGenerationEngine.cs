@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
+using static ARKitBlendShapeGenerator.Localization;
 
 namespace ARKitBlendShapeGenerator
 {
@@ -119,8 +120,7 @@ namespace ARKitBlendShapeGenerator
             if (CustomMappingValidation.HasDuplicateArkitNames(customMappings, out var duplicateArkitNames))
             {
                 Debug.LogError(
-                    "[ARKitGenerator] カスタムマッピングで同一ARKit名が重複しているため、生成を中止しました。\n" +
-                    $"重複: {string.Join(", ", duplicateArkitNames)}");
+                    "[ARKitGenerator] " + S("log.duplicate_abort", string.Join(", ", duplicateArkitNames)));
                 return new BlendShapeGenerationResult(
                     new List<string>(),
                     new Dictionary<string, int>());

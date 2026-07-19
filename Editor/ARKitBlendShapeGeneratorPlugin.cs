@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 using nadena.dev.ndmf;
+using static ARKitBlendShapeGenerator.Localization;
 
 [assembly: ExportsPlugin(typeof(ARKitBlendShapeGenerator.ARKitBlendShapeGeneratorPlugin))]
 
@@ -28,7 +29,7 @@ namespace ARKitBlendShapeGenerator
                     if (components.Length > 1 && primaryComponent != null)
                     {
                         Debug.LogWarning(
-                            $"[ARKitGenerator] 同一アバター内で複数のARKitBlendShapeGeneratorComponentが検出されました。\"{primaryComponent.name}\" のみ処理します。",
+                            "[ARKitGenerator] " + S("log.multiple_components", primaryComponent.name),
                             primaryComponent);
                     }
 
@@ -63,8 +64,7 @@ namespace ARKitBlendShapeGenerator
             if (CustomMappingValidation.HasDuplicateArkitNames(component.customMappings, out var duplicateArkitNames))
             {
                 Debug.LogError(
-                    "[ARKitGenerator] カスタムマッピングで同一ARKit名が重複しているため、生成を中止しました。\n" +
-                    $"重複: {string.Join(", ", duplicateArkitNames)}",
+                    "[ARKitGenerator] " + S("log.duplicate_abort", string.Join(", ", duplicateArkitNames)),
                     component);
                 return;
             }
@@ -77,7 +77,7 @@ namespace ARKitBlendShapeGenerator
 
             if (renderer == null || renderer.sharedMesh == null)
             {
-                Debug.LogWarning("[ARKitGenerator] SkinnedMeshRendererが見つかりません。");
+                Debug.LogWarning("[ARKitGenerator] " + S("log.renderer_not_found"));
                 return;
             }
 

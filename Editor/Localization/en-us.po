@@ -299,6 +299,26 @@ msgstr "Target Renderer is not set."
 msgid "log.preset_applied"
 msgstr "Applied the VRChat standard viseme preset"
 
+# Build / preview logs
+msgid "log.multiple_components"
+msgstr "Multiple ARKitBlendShapeGeneratorComponents were found on the same avatar. Only \"{0}\" will be processed."
+
+msgid "log.duplicate_abort"
+msgstr "Generation was aborted because the same ARKit name is duplicated in the custom mappings.\nDuplicates: {0}"
+
+msgid "log.duplicate_preview_stop"
+msgstr "The same ARKit name is duplicated in the custom mappings. Preview is suspended until the duplicates are resolved.\nDuplicates: {0}"
+
+msgid "log.renderer_not_found"
+msgstr "SkinnedMeshRenderer not found."
+
+# Duplicate component guard
+msgid "guard.log.duplicate"
+msgstr "Only one ARKitBlendShapeGeneratorComponent can be placed per avatar. The duplicate component will be removed."
+
+msgid "guard.dialog.duplicate_removed"
+msgstr "Only one ARKitBlendShapeGeneratorComponent can be placed per avatar.\n\nThe duplicate component that was added has been removed."
+
 # Validation
 msgid "validation.duplicate.generic"
 msgstr "There are duplicate ARKit names in the custom mappings."

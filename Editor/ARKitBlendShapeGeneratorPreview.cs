@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using nadena.dev.ndmf;
 using nadena.dev.ndmf.preview;
 using UnityEngine;
+using static ARKitBlendShapeGenerator.Localization;
 
 namespace ARKitBlendShapeGenerator
 {
@@ -109,8 +110,7 @@ namespace ARKitBlendShapeGenerator
             if (CustomMappingValidation.HasDuplicateArkitNames(component.customMappings, out var duplicateArkitNames))
             {
                 Debug.LogError(
-                    "[ARKitGenerator] カスタムマッピングで同一ARKit名が重複しています。重複を解消するまでプレビューを停止します。\n" +
-                    $"重複: {string.Join(", ", duplicateArkitNames)}",
+                    "[ARKitGenerator] " + S("log.duplicate_preview_stop", string.Join(", ", duplicateArkitNames)),
                     component);
                 return Task.FromResult<IRenderFilterNode>(null);
             }

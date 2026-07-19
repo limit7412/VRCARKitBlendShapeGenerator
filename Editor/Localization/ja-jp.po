@@ -299,6 +299,26 @@ msgstr "Target Rendererが設定されていません。"
 msgid "log.preset_applied"
 msgstr "VRChat標準表情プリセットを適用しました"
 
+# ビルド・プレビュー時ログ
+msgid "log.multiple_components"
+msgstr "同一アバター内で複数のARKitBlendShapeGeneratorComponentが検出されました。\"{0}\" のみ処理します。"
+
+msgid "log.duplicate_abort"
+msgstr "カスタムマッピングで同一ARKit名が重複しているため、生成を中止しました。\n重複: {0}"
+
+msgid "log.duplicate_preview_stop"
+msgstr "カスタムマッピングで同一ARKit名が重複しています。重複を解消するまでプレビューを停止します。\n重複: {0}"
+
+msgid "log.renderer_not_found"
+msgstr "SkinnedMeshRendererが見つかりません。"
+
+# 重複コンポーネントガード
+msgid "guard.log.duplicate"
+msgstr "同一アバター内にはARKitBlendShapeGeneratorComponentを1つだけ設定できます。重複コンポーネントを削除します。"
+
+msgid "guard.dialog.duplicate_removed"
+msgstr "同一アバター内には ARKitBlendShapeGeneratorComponent を1つだけ設定できます。\n\n重複して追加されたコンポーネントを削除しました。"
+
 # バリデーション
 msgid "validation.duplicate.generic"
 msgstr "カスタムマッピングに同一ARKit名の重複があります。"

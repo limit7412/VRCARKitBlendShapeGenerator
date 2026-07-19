@@ -1,11 +1,7 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using UnityEngine;
 using VRC.SDKBase;
-#if UNITY_EDITOR
-using UnityEditor;
-#endif
 
 namespace ARKitBlendShapeGenerator
 {
@@ -22,44 +18,49 @@ namespace ARKitBlendShapeGenerator
     [AddComponentMenu("KxVRCARKitBlendShapeGenerator/Kx VRC ARKit BlendShape Generator")]
     public class ARKitBlendShapeGeneratorComponent : MonoBehaviour, IEditorOnly
     {
-        [Header("対象設定")]
-        [Tooltip("対象のSkinnedMeshRenderer（空の場合はBodyを自動検出）")]
+        // インスペクタ表示用の文言はEditorアセンブリ側でローカライズされる
+        // （以下の属性はカスタムエディタが無効な場合のフォールバック表示）
+        [Header("Target")]
+        [Tooltip("Target SkinnedMeshRenderer (auto-detects the Body mesh when empty)")]
         public SkinnedMeshRenderer targetRenderer;
 
-        [Header("生成設定")]
-        [Tooltip("生成時の強度係数（0.5-1.5推奨）")]
+        [Header("Generation")]
+        [Tooltip("Intensity multiplier for generation (0.5-1.5 recommended)")]
         [Range(0.1f, 2.0f)]
         public float intensityMultiplier = 1.0f;
 
-        [Tooltip("左右分割を有効にする（まばたき等を左右別々に生成）")]
+        [Tooltip("Generate left/right variants separately (e.g. blink)")]
         public bool enableLeftRightSplit = true;
 
-        [Tooltip("左右分割時のグラデーション幅（中央付近で左右をブレンドする範囲）")]
+        [Tooltip("Width of the gradient around the center where left and right are blended when splitting")]
         [Range(0.001f, 0.1f)]
         public float blendWidth = 0.02f;
 
-        [Tooltip("既存のARKit BlendShapeを上書きする")]
+        [Tooltip("Overwrite existing ARKit blend shapes")]
         public bool overwriteExisting = false;
 
-        [Header("口の手続き的生成")]
-        [Tooltip("既存のBlendShapeから生成できない口周りのBlendShape（mouthLeft/Right、jaw系等）を、口領域の頂点移動で自動生成する")]
+        [Header("Procedural Mouth Generation")]
+        [Tooltip("Procedurally generate mouth-related blend shapes (mouthLeft/Right, jaw*, etc.) that cannot be derived from existing blend shapes, by moving vertices in the mouth region")]
         public bool enableProceduralMouthShapes = false;
 
-        [Tooltip("手続き的生成の変形量係数")]
+        [Tooltip("Deformation intensity for procedural generation")]
         [Range(0.1f, 2.0f)]
         public float proceduralMouthIntensity = 1.0f;
 
-        [Header("カスタムマッピング")]
-        [Tooltip("自動マッピングできないBlendShapeを手動で指定")]
+        [Header("Custom Mappings")]
+        [Tooltip("Manually specify blend shapes that cannot be mapped automatically")]
         public List<CustomBlendShapeMapping> customMappings = new List<CustomBlendShapeMapping>();
 
-        [Header("デバッグ")]
-        [Tooltip("デバッグログを出力する")]
+        [Header("Debug")]
+        [Tooltip("Output debug logs")]
         public bool debugMode = false;
 
 #if UNITY_EDITOR
-        [NonSerialized]
-        private bool _pendingDuplicateRemoval;
+        /// <summary>
+        /// Editorアセンブリ側から差し込まれるOnValidateフック
+        /// （同一アバター内の重複コンポーネント排除に使用）
+        /// </summary>
+        internal static Action<ARKitBlendShapeGeneratorComponent> EditorOnValidateHook;
 #endif
 
         private void Reset()
@@ -74,7 +75,7 @@ namespace ARKitBlendShapeGenerator
         private void OnValidate()
         {
 #if UNITY_EDITOR
-            EnforceSingleComponentPerAvatar();
+            EditorOnValidateHook?.Invoke(this);
 #endif
         }
 
@@ -132,142 +133,6 @@ namespace ARKitBlendShapeGenerator
 
             return result;
         }
-
-#if UNITY_EDITOR
-        private void EnforceSingleComponentPerAvatar()
-        {
-            var avatarRoot = FindAvatarRootForUniqueness();
-            if (avatarRoot == null)
-            {
-                return;
-            }
-
-            var components = avatarRoot.GetComponentsInChildren<ARKitBlendShapeGeneratorComponent>(true)
-                .Where(c => c != null)
-                .ToArray();
-
-            if (components.Length <= 1)
-            {
-                _pendingDuplicateRemoval = false;
-                return;
-            }
-
-            var primary = SelectPrimaryComponent(avatarRoot, components);
-            if (primary == this)
-            {
-                _pendingDuplicateRemoval = false;
-                return;
-            }
-
-            if (_pendingDuplicateRemoval)
-            {
-                return;
-            }
-
-            _pendingDuplicateRemoval = true;
-
-            Debug.LogWarning(
-                "[ARKitGenerator] 同一アバター内にはARKitBlendShapeGeneratorComponentを1つだけ設定できます。重複コンポーネントを削除します。",
-                this);
-
-            EditorApplication.delayCall += () =>
-            {
-                _pendingDuplicateRemoval = false;
-
-                if (this == null || avatarRoot == null)
-                {
-                    return;
-                }
-
-                var refreshed = avatarRoot.GetComponentsInChildren<ARKitBlendShapeGeneratorComponent>(true)
-                    .Where(c => c != null)
-                    .ToArray();
-                var refreshedPrimary = SelectPrimaryComponent(avatarRoot, refreshed);
-
-                if (refreshedPrimary != this)
-                {
-                    DestroyImmediate(this);
-
-                    if (!Application.isBatchMode)
-                    {
-                        EditorUtility.DisplayDialog(
-                            "ARKit BlendShape Generator",
-                            "同一アバター内には ARKitBlendShapeGeneratorComponent を1つだけ設定できます。\n\n" +
-                            "重複して追加されたコンポーネントを削除しました。",
-                            "OK");
-                    }
-                }
-            };
-        }
-
-        private Transform FindAvatarRootForUniqueness()
-        {
-            Transform lastDescriptorRoot = null;
-            var cursor = transform;
-
-            while (cursor != null)
-            {
-                if (HasAvatarDescriptor(cursor.gameObject))
-                {
-                    lastDescriptorRoot = cursor;
-                }
-
-                cursor = cursor.parent;
-            }
-
-            if (lastDescriptorRoot != null)
-            {
-                return lastDescriptorRoot;
-            }
-
-            return transform.root;
-        }
-
-        private static bool HasAvatarDescriptor(GameObject go)
-        {
-            if (go == null)
-            {
-                return false;
-            }
-
-            var components = go.GetComponents<Component>();
-            foreach (var component in components)
-            {
-                if (component == null)
-                {
-                    continue;
-                }
-
-                if (component.GetType().Name == "VRCAvatarDescriptor")
-                {
-                    return true;
-                }
-            }
-
-            return false;
-        }
-
-        private static ARKitBlendShapeGeneratorComponent SelectPrimaryComponent(
-            Transform avatarRoot,
-            ARKitBlendShapeGeneratorComponent[] components)
-        {
-            if (components == null || components.Length == 0)
-            {
-                return null;
-            }
-
-            if (avatarRoot != null)
-            {
-                var onRoot = components.FirstOrDefault(c => c != null && c.transform == avatarRoot);
-                if (onRoot != null)
-                {
-                    return onRoot;
-                }
-            }
-
-            return components[0];
-        }
-#endif
     }
 
     /// <summary>
@@ -276,13 +141,13 @@ namespace ARKitBlendShapeGenerator
     [Serializable]
     public class CustomBlendShapeMapping
     {
-        [Tooltip("生成するARKit BlendShape名")]
+        [Tooltip("ARKit blend shape name to generate")]
         public string arkitName;
 
-        [Tooltip("このマッピングを有効にする")]
+        [Tooltip("Enable this mapping")]
         public bool enabled = true;
 
-        [Tooltip("ソースBlendShapeのリスト")]
+        [Tooltip("List of source blend shapes")]
         public List<BlendShapeSource> sources = new List<BlendShapeSource>();
     }
 
@@ -292,14 +157,14 @@ namespace ARKitBlendShapeGenerator
     [Serializable]
     public class BlendShapeSource
     {
-        [Tooltip("ソースBlendShape名")]
+        [Tooltip("Source blend shape name")]
         public string blendShapeName;
 
-        [Tooltip("適用する重み（-2.0〜2.0）")]
+        [Tooltip("Weight to apply (-2.0 to 2.0)")]
         [Range(-2f, 2f)]
         public float weight = 1.0f;
 
-        [Tooltip("適用範囲（左右分かれていないBlendShapeを片側だけ使用する場合）")]
+        [Tooltip("Side to apply (for using one side of a non-split blend shape)")]
         public BlendShapeSide side = BlendShapeSide.Both;
     }
 
@@ -308,11 +173,11 @@ namespace ARKitBlendShapeGenerator
     /// </summary>
     public enum BlendShapeSide
     {
-        [Tooltip("両側に適用")]
+        [Tooltip("Apply to both sides")]
         Both,
-        [Tooltip("左側（X > 0）のみ適用")]
+        [Tooltip("Apply to the left side (X > 0) only")]
         LeftOnly,
-        [Tooltip("右側（X < 0）のみ適用")]
+        [Tooltip("Apply to the right side (X < 0) only")]
         RightOnly
     }
 
