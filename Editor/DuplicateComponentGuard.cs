@@ -75,7 +75,7 @@ namespace ARKitBlendShapeGenerator
 
                 if (refreshedPrimary != component)
                 {
-                    Object.DestroyImmediate(component);
+                    Undo.DestroyObjectImmediate(component);
 
                     if (!Application.isBatchMode)
                     {
@@ -113,26 +113,9 @@ namespace ARKitBlendShapeGenerator
 
         private static bool HasAvatarDescriptor(GameObject go)
         {
-            if (go == null)
-            {
-                return false;
-            }
-
-            var components = go.GetComponents<Component>();
-            foreach (var component in components)
-            {
-                if (component == null)
-                {
-                    continue;
-                }
-
-                if (component.GetType().Name == "VRCAvatarDescriptor")
-                {
-                    return true;
-                }
-            }
-
-            return false;
+            // 文字列指定のGetComponentは配列アロケーションなしで型名一致を判定できる
+            // （EditorアセンブリはVRC SDKを参照していないため型名での判定が必要）
+            return go != null && go.GetComponent("VRCAvatarDescriptor") != null;
         }
 
         private static ARKitBlendShapeGeneratorComponent SelectPrimaryComponent(
