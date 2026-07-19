@@ -2,6 +2,8 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 using UnityEditor;
+using nadena.dev.ndmf.ui;
+using static ARKitBlendShapeGenerator.Localization;
 
 namespace ARKitBlendShapeGenerator
 {
@@ -60,50 +62,46 @@ namespace ARKitBlendShapeGenerator
         {
             serializedObject.Update();
 
-            // ヘッダー
+            // 言語切替 + ヘッダー
+            LanguageSwitcher.DrawImmediate();
             EditorGUILayout.LabelField("ARKit BlendShape Generator", EditorStyles.boldLabel);
-            EditorGUILayout.HelpBox(
-                "VRChat/MMDのBlendShapeからARKit用BlendShapeを自動生成します。",
-                MessageType.Info);
+            EditorGUILayout.HelpBox(S("inspector.description"), MessageType.Info);
 
             EditorGUILayout.Space();
 
             // 基本設定
-            EditorGUILayout.LabelField("基本設定", EditorStyles.boldLabel);
-            EditorGUILayout.PropertyField(serializedObject.FindProperty("targetRenderer"));
+            EditorGUILayout.LabelField(S("inspector.section.basic"), EditorStyles.boldLabel);
+            EditorGUILayout.PropertyField(serializedObject.FindProperty("targetRenderer"), G("prop.target_renderer"));
 
             EditorGUILayout.BeginHorizontal();
-            if (GUILayout.Button("BlendShapeリストを更新"))
+            if (GUILayout.Button(S("inspector.refresh_list")))
             {
                 RefreshBlendShapeList();
             }
-            EditorGUILayout.LabelField($"検出: {_availableBlendShapes.Count}個", GUILayout.Width(80));
+            EditorGUILayout.LabelField(S("inspector.detected_count", _availableBlendShapes.Count), GUILayout.Width(80));
             EditorGUILayout.EndHorizontal();
 
             EditorGUILayout.Space();
-            EditorGUILayout.PropertyField(serializedObject.FindProperty("intensityMultiplier"));
-            EditorGUILayout.PropertyField(serializedObject.FindProperty("enableLeftRightSplit"));
-            EditorGUILayout.PropertyField(serializedObject.FindProperty("blendWidth"));
-            EditorGUILayout.PropertyField(serializedObject.FindProperty("overwriteExisting"));
+            EditorGUILayout.PropertyField(serializedObject.FindProperty("intensityMultiplier"), G("prop.intensity_multiplier"));
+            EditorGUILayout.PropertyField(serializedObject.FindProperty("enableLeftRightSplit"), G("prop.enable_left_right_split"));
+            EditorGUILayout.PropertyField(serializedObject.FindProperty("blendWidth"), G("prop.blend_width"));
+            EditorGUILayout.PropertyField(serializedObject.FindProperty("overwriteExisting"), G("prop.overwrite_existing"));
 
             EditorGUILayout.Space();
-            EditorGUILayout.LabelField("口の手続き的生成", EditorStyles.boldLabel);
-            EditorGUILayout.HelpBox(
-                "既存のBlendShapeから生成できない口周りのBlendShape（mouthLeft/Right、jaw系等）を、" +
-                "口領域の頂点移動で自動生成します。既存のBlendShapeは口領域の検出にのみ使用されます。",
-                MessageType.Info);
+            EditorGUILayout.LabelField(S("inspector.section.procedural_mouth"), EditorStyles.boldLabel);
+            EditorGUILayout.HelpBox(S("inspector.procedural_mouth.description"), MessageType.Info);
             var enableProceduralProperty = serializedObject.FindProperty("enableProceduralMouthShapes");
-            EditorGUILayout.PropertyField(enableProceduralProperty);
+            EditorGUILayout.PropertyField(enableProceduralProperty, G("prop.enable_procedural_mouth"));
             using (new EditorGUI.DisabledScope(!enableProceduralProperty.boolValue))
             {
-                EditorGUILayout.PropertyField(serializedObject.FindProperty("proceduralMouthIntensity"));
+                EditorGUILayout.PropertyField(serializedObject.FindProperty("proceduralMouthIntensity"), G("prop.procedural_mouth_intensity"));
             }
 
             EditorGUILayout.Space();
             EditorGUILayout.LabelField("", GUI.skin.horizontalSlider);
 
             // カスタムマッピング
-            _showCustomMappings = EditorGUILayout.Foldout(_showCustomMappings, "カスタムマッピング", true);
+            _showCustomMappings = EditorGUILayout.Foldout(_showCustomMappings, S("inspector.section.custom_mappings"), true);
             if (_showCustomMappings)
             {
                 EditorGUI.indentLevel++;
@@ -115,7 +113,7 @@ namespace ARKitBlendShapeGenerator
             EditorGUILayout.LabelField("", GUI.skin.horizontalSlider);
 
             // プレビュー
-            _showPreview = EditorGUILayout.Foldout(_showPreview, "プレビュー", true);
+            _showPreview = EditorGUILayout.Foldout(_showPreview, S("inspector.section.preview"), true);
             if (_showPreview)
             {
                 EditorGUI.indentLevel++;
@@ -127,7 +125,7 @@ namespace ARKitBlendShapeGenerator
             EditorGUILayout.LabelField("", GUI.skin.horizontalSlider);
 
             // 自動マッピング情報
-            _showAutoMappings = EditorGUILayout.Foldout(_showAutoMappings, "自動マッピング一覧（参照用）", true);
+            _showAutoMappings = EditorGUILayout.Foldout(_showAutoMappings, S("inspector.section.auto_mappings"), true);
             if (_showAutoMappings)
             {
                 EditorGUI.indentLevel++;
@@ -136,11 +134,11 @@ namespace ARKitBlendShapeGenerator
             }
 
             EditorGUILayout.Space();
-            EditorGUILayout.PropertyField(serializedObject.FindProperty("debugMode"));
+            EditorGUILayout.PropertyField(serializedObject.FindProperty("debugMode"), G("prop.debug_mode"));
 
             // デバッグ: 全SkinnedMeshRendererを表示
             EditorGUILayout.BeginHorizontal();
-            if (GUILayout.Button("全メッシュのBlendShape数を表示", EditorStyles.miniButton))
+            if (GUILayout.Button(S("debug.show_all_meshes"), EditorStyles.miniButton))
             {
                 var allRenderers = _component.GetComponentsInChildren<SkinnedMeshRenderer>(true);
                 Debug.Log($"=== 全SkinnedMeshRenderer ({allRenderers.Length}個) ===");
@@ -150,7 +148,7 @@ namespace ARKitBlendShapeGenerator
                     Debug.Log($"  {smr.gameObject.name}: {count} BlendShapes");
                 }
             }
-            if (GUILayout.Button("対象メッシュのBlendShape名を表示", EditorStyles.miniButton))
+            if (GUILayout.Button(S("debug.show_target_shapes"), EditorStyles.miniButton))
             {
                 if (_component.targetRenderer != null && _component.targetRenderer.sharedMesh != null)
                 {
@@ -163,7 +161,7 @@ namespace ARKitBlendShapeGenerator
                 }
                 else
                 {
-                    Debug.LogWarning("[ARKitGenerator] Target Rendererが設定されていません。");
+                    Debug.LogWarning("[ARKitGenerator] " + S("log.target_renderer_not_set"));
                 }
             }
             EditorGUILayout.EndHorizontal();
@@ -200,31 +198,27 @@ namespace ARKitBlendShapeGenerator
 
         private void DrawCustomMappingsUI()
         {
-            EditorGUILayout.HelpBox(
-                "自動マッピングできないBlendShape（視線など）を手動で指定できます。\n" +
-                "ソースBlendShapeを複数指定して合成することも可能です。",
-                MessageType.Info
-            );
+            EditorGUILayout.HelpBox(S("custom_mappings.description"), MessageType.Info);
 
             var duplicateArkitNames = CustomMappingValidation.GetDuplicateArkitNames(_component.customMappings);
             if (duplicateArkitNames.Count > 0)
             {
                 EditorGUILayout.HelpBox(
                     CustomMappingValidation.BuildDuplicateMessage(duplicateArkitNames) +
-                    "\n重複を解消するまでプレビュー/生成は停止されます。",
+                    "\n" + S("custom_mappings.duplicate_blocked"),
                     MessageType.Error);
             }
 
             // VRChat標準表情のみを使用したプリセット
-            EditorGUILayout.LabelField("プリセット", EditorStyles.miniBoldLabel);
+            EditorGUILayout.LabelField(S("presets.label"), EditorStyles.miniBoldLabel);
             EditorGUILayout.BeginHorizontal();
-            if (GUILayout.Button("VRChat標準表情のみで設定"))
+            if (GUILayout.Button(S("presets.vrchat_standard")))
             {
                 if (EditorUtility.DisplayDialog(
-                    "VRChat標準表情プリセット",
-                    "MMD用BlendShapeが存在しないアバター向けに、VRChat標準の表情（vrc.v_aa, vrc.v_ih, vrc.v_ou等）のみを使用したマッピングを設定します。\n\n現在のカスタムマッピングは上書きされます。",
-                    "設定する",
-                    "キャンセル"))
+                    S("dialog.title"),
+                    S("dialog.vrchat_preset.message"),
+                    S("dialog.vrchat_preset.apply"),
+                    S("common.cancel")))
                 {
                     ApplyVRChatStandardPreset();
                 }
@@ -234,33 +228,33 @@ namespace ARKitBlendShapeGenerator
             EditorGUILayout.Space(5);
 
             // カテゴリ別クイック追加ボタン
-            EditorGUILayout.LabelField("カテゴリ別追加", EditorStyles.miniBoldLabel);
+            EditorGUILayout.LabelField(S("category_add.label"), EditorStyles.miniBoldLabel);
             EditorGUILayout.BeginHorizontal();
-            if (GUILayout.Button("視線", EditorStyles.miniButton))
+            if (GUILayout.Button(S("category.eye_look"), EditorStyles.miniButton))
             {
                 AddCategoryMappings(ARKitBlendShapeNames.EyeLook);
             }
-            if (GUILayout.Button("目", EditorStyles.miniButton))
+            if (GUILayout.Button(S("category.eye"), EditorStyles.miniButton))
             {
                 AddCategoryMappings(ARKitBlendShapeNames.Eye);
             }
-            if (GUILayout.Button("眉毛", EditorStyles.miniButton))
+            if (GUILayout.Button(S("category.brow"), EditorStyles.miniButton))
             {
                 AddCategoryMappings(ARKitBlendShapeNames.Brow);
             }
-            if (GUILayout.Button("口", EditorStyles.miniButton))
+            if (GUILayout.Button(S("category.mouth"), EditorStyles.miniButton))
             {
                 AddCategoryMappings(ARKitBlendShapeNames.Mouth);
             }
-            if (GUILayout.Button("頬", EditorStyles.miniButton))
+            if (GUILayout.Button(S("category.cheek"), EditorStyles.miniButton))
             {
                 AddCategoryMappings(ARKitBlendShapeNames.Cheek);
             }
-            if (GUILayout.Button("鼻", EditorStyles.miniButton))
+            if (GUILayout.Button(S("category.nose"), EditorStyles.miniButton))
             {
                 AddCategoryMappings(ARKitBlendShapeNames.Nose);
             }
-            if (GUILayout.Button("舌", EditorStyles.miniButton))
+            if (GUILayout.Button(S("category.tongue"), EditorStyles.miniButton))
             {
                 AddCategoryMappings(ARKitBlendShapeNames.Tongue);
             }
@@ -270,7 +264,7 @@ namespace ARKitBlendShapeGenerator
 
             // 検索フィルタ
             EditorGUILayout.BeginHorizontal();
-            EditorGUILayout.LabelField("検索:", GUILayout.Width(40));
+            EditorGUILayout.LabelField(S("inspector.search"), GUILayout.Width(60));
             _searchFilter = EditorGUILayout.TextField(_searchFilter);
             if (GUILayout.Button("×", GUILayout.Width(20)))
             {
@@ -280,13 +274,13 @@ namespace ARKitBlendShapeGenerator
             EditorGUILayout.EndHorizontal();
 
             EditorGUILayout.BeginHorizontal();
-            if (GUILayout.Button("新規マッピング追加"))
+            if (GUILayout.Button(S("custom_mappings.add_new")))
             {
                 AddNewMapping();
             }
-            if (GUILayout.Button("全て削除", GUILayout.Width(80)))
+            if (GUILayout.Button(S("custom_mappings.delete_all"), GUILayout.Width(80)))
             {
-                if (EditorUtility.DisplayDialog("ARKit BlendShape Generator", "全てのカスタムマッピングを削除しますか？", "はい", "いいえ"))
+                if (EditorUtility.DisplayDialog(S("dialog.title"), S("dialog.delete_all.message"), S("common.yes"), S("common.no")))
                 {
                     _component.customMappings.Clear();
                     MarkComponentChanged();
@@ -298,7 +292,7 @@ namespace ARKitBlendShapeGenerator
 
             // マッピング数表示
             int enabledCount = _component.customMappings.Count(m => m.enabled);
-            EditorGUILayout.LabelField($"マッピング: {enabledCount}/{_component.customMappings.Count} 有効");
+            EditorGUILayout.LabelField(S("custom_mappings.count", enabledCount, _component.customMappings.Count));
 
             // マッピングリスト表示
             string normalizedFilter = string.IsNullOrWhiteSpace(_searchFilter)
@@ -321,7 +315,7 @@ namespace ARKitBlendShapeGenerator
 
             if (visibleCount == 0)
             {
-                EditorGUILayout.LabelField("該当するマッピングはありません。", EditorStyles.miniLabel);
+                EditorGUILayout.LabelField(S("custom_mappings.none_matching"), EditorStyles.miniLabel);
                 return;
             }
 
@@ -473,7 +467,7 @@ namespace ARKitBlendShapeGenerator
             var selectableArkitNames = GetSelectableArkitNames(index);
             if (selectableArkitNames.Count == 0)
             {
-                EditorGUILayout.LabelField("(利用可能なARKit名なし)");
+                EditorGUILayout.LabelField(S("custom_mappings.no_available_names"));
             }
             else
             {
@@ -529,7 +523,8 @@ namespace ARKitBlendShapeGenerator
             // BlendShape名のドロップダウン
             if (_availableBlendShapes.Count > 0)
             {
-                var options = new List<string> { "(選択してください)" };
+                string notFoundSuffix = S("source.not_found_suffix");
+                var options = new List<string> { S("source.placeholder") };
                 options.AddRange(_availableBlendShapes);
 
                 int currentIdx = _availableBlendShapes.IndexOf(source.blendShapeName) + 1;
@@ -537,7 +532,7 @@ namespace ARKitBlendShapeGenerator
                 // リストにない名前が設定されている場合は末尾に追加して表示
                 if (currentIdx == 0 && !string.IsNullOrEmpty(source.blendShapeName))
                 {
-                    options.Add(source.blendShapeName + " (未検出)");
+                    options.Add(source.blendShapeName + notFoundSuffix);
                     currentIdx = options.Count - 1;
                 }
 
@@ -547,9 +542,9 @@ namespace ARKitBlendShapeGenerator
                 {
                     // 「(未検出)」付きの項目が選択された場合は元の名前を維持
                     string selectedName = options[newIdx];
-                    if (selectedName.EndsWith(" (未検出)"))
+                    if (selectedName.EndsWith(notFoundSuffix))
                     {
-                        selectedName = selectedName.Replace(" (未検出)", "");
+                        selectedName = selectedName.Replace(notFoundSuffix, "");
                     }
 
                     if (source.blendShapeName != selectedName)
@@ -579,7 +574,8 @@ namespace ARKitBlendShapeGenerator
             }
 
             // 左右適用範囲
-            BlendShapeSide newSide = (BlendShapeSide)EditorGUILayout.EnumPopup(source.side, GUILayout.Width(70));
+            var sideLabels = new[] { S("enum.side.both"), S("enum.side.left_only"), S("enum.side.right_only") };
+            BlendShapeSide newSide = (BlendShapeSide)EditorGUILayout.Popup((int)source.side, sideLabels, GUILayout.Width(70));
             if (newSide != source.side)
             {
                 source.side = newSide;
@@ -602,9 +598,9 @@ namespace ARKitBlendShapeGenerator
             if (string.IsNullOrEmpty(firstUnusedArkitName))
             {
                 EditorUtility.DisplayDialog(
-                    "ARKit BlendShape Generator",
-                    "追加可能なARKit名がありません。\n既存マッピングを削除するか、ARKit名を変更してください。",
-                    "OK");
+                    S("dialog.title"),
+                    S("dialog.no_available_name.message"),
+                    S("common.ok"));
                 return;
             }
 
@@ -678,7 +674,7 @@ namespace ARKitBlendShapeGenerator
 
             if (_component.debugMode)
             {
-                Debug.Log("[ARKitGenerator] VRChat標準表情プリセットを適用しました");
+                Debug.Log("[ARKitGenerator] " + S("log.preset_applied"));
             }
         }
 
@@ -745,7 +741,7 @@ namespace ARKitBlendShapeGenerator
             var isNdmfPreviewEnabled = ARKitBlendShapeGeneratorPreview.EnableNode.IsEnabled.Value;
 
             EditorGUILayout.Space(5);
-            EditorGUILayout.LabelField("リアルタイムプレビュー", EditorStyles.boldLabel);
+            EditorGUILayout.LabelField(S("preview.realtime"), EditorStyles.boldLabel);
 
             int componentId = _component.GetInstanceID();
             ARKitBlendShapeGeneratorPreviewState.BeginEdit(componentId);
@@ -759,13 +755,13 @@ namespace ARKitBlendShapeGenerator
 
             EditorGUILayout.BeginHorizontal();
             GUI.enabled = isActive;
-            if (GUILayout.Button("リセット"))
+            if (GUILayout.Button(S("preview.reset")))
             {
                 ARKitBlendShapeGeneratorPreviewState.SetAllWeights(componentId, new string[0], 0f);
                 previewState = ARKitBlendShapeGeneratorPreviewState.Current;
                 SceneView.RepaintAll();
             }
-            if (GUILayout.Button("カテゴリ", GUILayout.Width(90)))
+            if (GUILayout.Button(S("preview.categories"), GUILayout.Width(90)))
             {
                 ShowPreviewCategoryDropdown();
             }
@@ -780,16 +776,14 @@ namespace ARKitBlendShapeGenerator
 
             if (_showNdmfOffWarning && !isNdmfPreviewEnabled)
             {
-                EditorGUILayout.HelpBox(
-                    "NDMF PreviewがOFFのため、値の変更は見た目に反映されません。",
-                    MessageType.Warning);
+                EditorGUILayout.HelpBox(S("preview.ndmf_off_warning"), MessageType.Warning);
             }
 
             _previewScrollPosition = EditorGUILayout.BeginScrollView(_previewScrollPosition, GUILayout.MaxHeight(260));
             if (_showPreviewCategoryCustom)
             {
                 DrawPreviewCategory(
-                    "カスタム",
+                    S("preview.category.custom"),
                     previewCategories.Custom,
                     componentId,
                     ref previewState,
@@ -798,7 +792,7 @@ namespace ARKitBlendShapeGenerator
             if (_showPreviewCategoryAuto)
             {
                 DrawPreviewCategory(
-                    "自動生成",
+                    S("preview.category.auto"),
                     previewCategories.AutoGenerated,
                     componentId,
                     ref previewState,
@@ -807,7 +801,7 @@ namespace ARKitBlendShapeGenerator
             if (_showPreviewCategoryOriginal)
             {
                 DrawPreviewCategory(
-                    "元からあるBlendShape",
+                    S("preview.category.original"),
                     previewCategories.Original,
                     componentId,
                     ref previewState,
@@ -820,17 +814,17 @@ namespace ARKitBlendShapeGenerator
         {
             var menu = new GenericMenu();
 
-            menu.AddItem(new GUIContent("カスタム"), _showPreviewCategoryCustom, () =>
+            menu.AddItem(new GUIContent(S("preview.category.custom")), _showPreviewCategoryCustom, () =>
             {
                 _showPreviewCategoryCustom = !_showPreviewCategoryCustom;
                 Repaint();
             });
-            menu.AddItem(new GUIContent("自動生成"), _showPreviewCategoryAuto, () =>
+            menu.AddItem(new GUIContent(S("preview.category.auto")), _showPreviewCategoryAuto, () =>
             {
                 _showPreviewCategoryAuto = !_showPreviewCategoryAuto;
                 Repaint();
             });
-            menu.AddItem(new GUIContent("元からあるBlendShape"), _showPreviewCategoryOriginal, () =>
+            menu.AddItem(new GUIContent(S("preview.category.original")), _showPreviewCategoryOriginal, () =>
             {
                 _showPreviewCategoryOriginal = !_showPreviewCategoryOriginal;
                 Repaint();
@@ -901,7 +895,7 @@ namespace ARKitBlendShapeGenerator
 
             if (shapeNames == null || shapeNames.Count == 0)
             {
-                EditorGUILayout.LabelField("なし", EditorStyles.miniLabel);
+                EditorGUILayout.LabelField(S("preview.category.empty"), EditorStyles.miniLabel);
                 return;
             }
 
@@ -1053,86 +1047,82 @@ namespace ARKitBlendShapeGenerator
 
         private void DrawAutoMappingsInfo()
         {
-            EditorGUILayout.HelpBox(
-                "以下のBlendShapeは自動的にマッピングされます。\n" +
-                "カスタムマッピングで同じARKit名を指定した場合、カスタム設定が優先されます。",
-                MessageType.Info
-            );
+            EditorGUILayout.HelpBox(S("auto_mappings.description"), MessageType.Info);
 
             // 目
-            _foldEye = EditorGUILayout.Foldout(_foldEye, "目 (Eye)");
+            _foldEye = EditorGUILayout.Foldout(_foldEye, S("auto_mappings.fold.eye"));
             if (_foldEye)
             {
                 EditorGUI.indentLevel++;
-                EditorGUILayout.LabelField("eyeBlinkLeft/Right", "← vrc.blink_left/right, まばたき, ウィンク");
-                EditorGUILayout.LabelField("eyeSquintLeft/Right", "← 笑い, にこり, ><");
-                EditorGUILayout.LabelField("eyeWideLeft/Right", "← びっくり, 見開き");
+                EditorGUILayout.LabelField("eyeBlinkLeft/Right", S("auto_mappings.row.eye_blink"));
+                EditorGUILayout.LabelField("eyeSquintLeft/Right", S("auto_mappings.row.eye_squint"));
+                EditorGUILayout.LabelField("eyeWideLeft/Right", S("auto_mappings.row.eye_wide"));
                 EditorGUI.indentLevel--;
             }
 
             // 視線
-            _foldEyeLook = EditorGUILayout.Foldout(_foldEyeLook, "視線 (Eye Look) ※通常は手動設定が必要");
+            _foldEyeLook = EditorGUILayout.Foldout(_foldEyeLook, S("auto_mappings.fold.eye_look"));
             if (_foldEyeLook)
             {
                 EditorGUI.indentLevel++;
-                EditorGUILayout.LabelField("eyeLookUpLeft/Right", "← (手動設定推奨)");
-                EditorGUILayout.LabelField("eyeLookDownLeft/Right", "← (手動設定推奨)");
-                EditorGUILayout.LabelField("eyeLookInLeft/Right", "← より目");
-                EditorGUILayout.LabelField("eyeLookOutLeft/Right", "← (手動設定推奨)");
+                EditorGUILayout.LabelField("eyeLookUpLeft/Right", S("auto_mappings.row.manual"));
+                EditorGUILayout.LabelField("eyeLookDownLeft/Right", S("auto_mappings.row.manual"));
+                EditorGUILayout.LabelField("eyeLookInLeft/Right", S("auto_mappings.row.eye_look_in"));
+                EditorGUILayout.LabelField("eyeLookOutLeft/Right", S("auto_mappings.row.manual"));
                 EditorGUI.indentLevel--;
             }
 
             // 眉毛
-            _foldBrow = EditorGUILayout.Foldout(_foldBrow, "眉毛 (Brow)");
+            _foldBrow = EditorGUILayout.Foldout(_foldBrow, S("auto_mappings.fold.brow"));
             if (_foldBrow)
             {
                 EditorGUI.indentLevel++;
-                EditorGUILayout.LabelField("browDownLeft/Right", "← 怒り, 真面目, 困る");
-                EditorGUILayout.LabelField("browInnerUp", "← 困る, 上, 悲しい");
-                EditorGUILayout.LabelField("browOuterUpLeft/Right", "← 上, 驚き");
+                EditorGUILayout.LabelField("browDownLeft/Right", S("auto_mappings.row.brow_down"));
+                EditorGUILayout.LabelField("browInnerUp", S("auto_mappings.row.brow_inner_up"));
+                EditorGUILayout.LabelField("browOuterUpLeft/Right", S("auto_mappings.row.brow_outer_up"));
                 EditorGUI.indentLevel--;
             }
 
             // 口
-            _foldMouth = EditorGUILayout.Foldout(_foldMouth, "口 (Mouth)");
+            _foldMouth = EditorGUILayout.Foldout(_foldMouth, S("auto_mappings.fold.mouth"));
             if (_foldMouth)
             {
                 EditorGUI.indentLevel++;
-                EditorGUILayout.LabelField("jawOpen", "← vrc.v_aa, あ (70%)");
-                EditorGUILayout.LabelField("mouthFunnel", "← vrc.v_ou, う");
-                EditorGUILayout.LabelField("mouthPucker", "← vrc.v_ou, う, ω (120%)");
-                EditorGUILayout.LabelField("mouthSmileLeft/Right", "← にやり, ∧, にっこり");
-                EditorGUILayout.LabelField("mouthFrownLeft/Right", "← への字, 悲しみ");
-                EditorGUILayout.LabelField("mouthLeft/Right", "← 手続き的生成（口領域を頂点移動）");
-                EditorGUILayout.LabelField("jawLeft/Right/Forward", "← 手続き的生成（口領域を頂点移動）");
+                EditorGUILayout.LabelField("jawOpen", S("auto_mappings.row.jaw_open"));
+                EditorGUILayout.LabelField("mouthFunnel", S("auto_mappings.row.mouth_funnel"));
+                EditorGUILayout.LabelField("mouthPucker", S("auto_mappings.row.mouth_pucker"));
+                EditorGUILayout.LabelField("mouthSmileLeft/Right", S("auto_mappings.row.mouth_smile"));
+                EditorGUILayout.LabelField("mouthFrownLeft/Right", S("auto_mappings.row.mouth_frown"));
+                EditorGUILayout.LabelField("mouthLeft/Right", S("auto_mappings.row.procedural"));
+                EditorGUILayout.LabelField("jawLeft/Right/Forward", S("auto_mappings.row.procedural"));
                 EditorGUI.indentLevel--;
             }
 
             // 頬
-            _foldCheek = EditorGUILayout.Foldout(_foldCheek, "頬 (Cheek)");
+            _foldCheek = EditorGUILayout.Foldout(_foldCheek, S("auto_mappings.fold.cheek"));
             if (_foldCheek)
             {
                 EditorGUI.indentLevel++;
-                EditorGUILayout.LabelField("cheekPuff", "← ぷく, 膨らみ");
-                EditorGUILayout.LabelField("cheekSquintLeft/Right", "← 笑い, にこり");
+                EditorGUILayout.LabelField("cheekPuff", S("auto_mappings.row.cheek_puff"));
+                EditorGUILayout.LabelField("cheekSquintLeft/Right", S("auto_mappings.row.cheek_squint"));
                 EditorGUI.indentLevel--;
             }
 
             // 鼻
-            _foldNose = EditorGUILayout.Foldout(_foldNose, "鼻 (Nose)");
+            _foldNose = EditorGUILayout.Foldout(_foldNose, S("auto_mappings.fold.nose"));
             if (_foldNose)
             {
                 EditorGUI.indentLevel++;
-                EditorGUILayout.LabelField("noseSneerLeft/Right", "← 怒り");
+                EditorGUILayout.LabelField("noseSneerLeft/Right", S("auto_mappings.row.nose_sneer"));
                 EditorGUI.indentLevel--;
             }
 
             // 舌
-            _foldTongue = EditorGUILayout.Foldout(_foldTongue, "舌 (Tongue)");
+            _foldTongue = EditorGUILayout.Foldout(_foldTongue, S("auto_mappings.fold.tongue"));
             if (_foldTongue)
             {
                 EditorGUI.indentLevel++;
-                EditorGUILayout.LabelField("tongueOut", "← べー, 舌");
+                EditorGUILayout.LabelField("tongueOut", S("auto_mappings.row.tongue_out"));
                 EditorGUI.indentLevel--;
             }
         }

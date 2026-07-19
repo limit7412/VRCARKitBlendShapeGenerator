@@ -1,0 +1,307 @@
+msgid ""
+msgstr ""
+"Language: ja-jp\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+# 共通
+msgid "common.ok"
+msgstr "OK"
+
+msgid "common.yes"
+msgstr "はい"
+
+msgid "common.no"
+msgstr "いいえ"
+
+msgid "common.cancel"
+msgstr "キャンセル"
+
+msgid "dialog.title"
+msgstr "ARKit BlendShape Generator"
+
+# インスペクタ: ヘッダー・基本設定
+msgid "inspector.description"
+msgstr "VRChat/MMDのBlendShapeからARKit用BlendShapeを自動生成します。"
+
+msgid "inspector.section.basic"
+msgstr "基本設定"
+
+msgid "inspector.refresh_list"
+msgstr "BlendShapeリストを更新"
+
+msgid "inspector.detected_count"
+msgstr "検出: {0}個"
+
+msgid "inspector.search"
+msgstr "検索:"
+
+# プロパティ
+msgid "prop.target_renderer"
+msgstr "対象Renderer"
+
+msgid "prop.target_renderer.tooltip"
+msgstr "対象のSkinnedMeshRenderer（空の場合はBodyを自動検出）"
+
+msgid "prop.intensity_multiplier"
+msgstr "強度係数"
+
+msgid "prop.intensity_multiplier.tooltip"
+msgstr "生成時の強度係数（0.5-1.5推奨）"
+
+msgid "prop.enable_left_right_split"
+msgstr "左右分割"
+
+msgid "prop.enable_left_right_split.tooltip"
+msgstr "左右分割を有効にする（まばたき等を左右別々に生成）"
+
+msgid "prop.blend_width"
+msgstr "グラデーション幅"
+
+msgid "prop.blend_width.tooltip"
+msgstr "左右分割時のグラデーション幅（中央付近で左右をブレンドする範囲）"
+
+msgid "prop.overwrite_existing"
+msgstr "既存を上書き"
+
+msgid "prop.overwrite_existing.tooltip"
+msgstr "既存のARKit BlendShapeを上書きする"
+
+msgid "prop.enable_procedural_mouth"
+msgstr "手続き的生成を有効化"
+
+msgid "prop.enable_procedural_mouth.tooltip"
+msgstr "既存のBlendShapeから生成できない口周りのBlendShape（mouthLeft/Right、jaw系等）を、口領域の頂点移動で自動生成する"
+
+msgid "prop.procedural_mouth_intensity"
+msgstr "変形量係数"
+
+msgid "prop.procedural_mouth_intensity.tooltip"
+msgstr "手続き的生成の変形量係数"
+
+msgid "prop.debug_mode"
+msgstr "デバッグモード"
+
+msgid "prop.debug_mode.tooltip"
+msgstr "デバッグログを出力する"
+
+# 口の手続き的生成
+msgid "inspector.section.procedural_mouth"
+msgstr "口の手続き的生成"
+
+msgid "inspector.procedural_mouth.description"
+msgstr "既存のBlendShapeから生成できない口周りのBlendShape（mouthLeft/Right、jaw系等）を、口領域の頂点移動で自動生成します。既存のBlendShapeは口領域の検出にのみ使用されます。"
+
+# カスタムマッピング
+msgid "inspector.section.custom_mappings"
+msgstr "カスタムマッピング"
+
+msgid "custom_mappings.description"
+msgstr "自動マッピングできないBlendShape（視線など）を手動で指定できます。\nソースBlendShapeを複数指定して合成することも可能です。"
+
+msgid "custom_mappings.duplicate_blocked"
+msgstr "重複を解消するまでプレビュー/生成は停止されます。"
+
+msgid "custom_mappings.add_new"
+msgstr "新規マッピング追加"
+
+msgid "custom_mappings.delete_all"
+msgstr "全て削除"
+
+msgid "custom_mappings.count"
+msgstr "マッピング: {0}/{1} 有効"
+
+msgid "custom_mappings.none_matching"
+msgstr "該当するマッピングはありません。"
+
+msgid "custom_mappings.no_available_names"
+msgstr "(利用可能なARKit名なし)"
+
+msgid "presets.label"
+msgstr "プリセット"
+
+msgid "presets.vrchat_standard"
+msgstr "VRChat標準表情のみで設定"
+
+msgid "dialog.vrchat_preset.message"
+msgstr "MMD用BlendShapeが存在しないアバター向けに、VRChat標準の表情（vrc.v_aa, vrc.v_ih, vrc.v_ou等）のみを使用したマッピングを設定します。\n\n現在のカスタムマッピングは上書きされます。"
+
+msgid "dialog.vrchat_preset.apply"
+msgstr "設定する"
+
+msgid "dialog.delete_all.message"
+msgstr "全てのカスタムマッピングを削除しますか？"
+
+msgid "dialog.no_available_name.message"
+msgstr "追加可能なARKit名がありません。\n既存マッピングを削除するか、ARKit名を変更してください。"
+
+msgid "category_add.label"
+msgstr "カテゴリ別追加"
+
+msgid "category.eye_look"
+msgstr "視線"
+
+msgid "category.eye"
+msgstr "目"
+
+msgid "category.brow"
+msgstr "眉毛"
+
+msgid "category.mouth"
+msgstr "口"
+
+msgid "category.cheek"
+msgstr "頬"
+
+msgid "category.nose"
+msgstr "鼻"
+
+msgid "category.tongue"
+msgstr "舌"
+
+msgid "source.placeholder"
+msgstr "(選択してください)"
+
+msgid "source.not_found_suffix"
+msgstr " (未検出)"
+
+msgid "enum.side.both"
+msgstr "両側"
+
+msgid "enum.side.left_only"
+msgstr "左のみ"
+
+msgid "enum.side.right_only"
+msgstr "右のみ"
+
+# プレビュー
+msgid "inspector.section.preview"
+msgstr "プレビュー"
+
+msgid "preview.realtime"
+msgstr "リアルタイムプレビュー"
+
+msgid "preview.reset"
+msgstr "リセット"
+
+msgid "preview.categories"
+msgstr "カテゴリ"
+
+msgid "preview.ndmf_off_warning"
+msgstr "NDMF PreviewがOFFのため、値の変更は見た目に反映されません。"
+
+msgid "preview.category.custom"
+msgstr "カスタム"
+
+msgid "preview.category.auto"
+msgstr "自動生成"
+
+msgid "preview.category.original"
+msgstr "元からあるBlendShape"
+
+msgid "preview.category.empty"
+msgstr "なし"
+
+# 自動マッピング一覧
+msgid "inspector.section.auto_mappings"
+msgstr "自動マッピング一覧（参照用）"
+
+msgid "auto_mappings.description"
+msgstr "以下のBlendShapeは自動的にマッピングされます。\nカスタムマッピングで同じARKit名を指定した場合、カスタム設定が優先されます。"
+
+msgid "auto_mappings.fold.eye"
+msgstr "目 (Eye)"
+
+msgid "auto_mappings.fold.eye_look"
+msgstr "視線 (Eye Look) ※通常は手動設定が必要"
+
+msgid "auto_mappings.fold.brow"
+msgstr "眉毛 (Brow)"
+
+msgid "auto_mappings.fold.mouth"
+msgstr "口 (Mouth)"
+
+msgid "auto_mappings.fold.cheek"
+msgstr "頬 (Cheek)"
+
+msgid "auto_mappings.fold.nose"
+msgstr "鼻 (Nose)"
+
+msgid "auto_mappings.fold.tongue"
+msgstr "舌 (Tongue)"
+
+msgid "auto_mappings.row.eye_blink"
+msgstr "← vrc.blink_left/right, まばたき, ウィンク"
+
+msgid "auto_mappings.row.eye_squint"
+msgstr "← 笑い, にこり, ><"
+
+msgid "auto_mappings.row.eye_wide"
+msgstr "← びっくり, 見開き"
+
+msgid "auto_mappings.row.manual"
+msgstr "← (手動設定推奨)"
+
+msgid "auto_mappings.row.eye_look_in"
+msgstr "← より目"
+
+msgid "auto_mappings.row.brow_down"
+msgstr "← 怒り, 真面目, 困る"
+
+msgid "auto_mappings.row.brow_inner_up"
+msgstr "← 困る, 上, 悲しい"
+
+msgid "auto_mappings.row.brow_outer_up"
+msgstr "← 上, 驚き"
+
+msgid "auto_mappings.row.jaw_open"
+msgstr "← vrc.v_aa, あ (70%)"
+
+msgid "auto_mappings.row.mouth_funnel"
+msgstr "← vrc.v_ou, う"
+
+msgid "auto_mappings.row.mouth_pucker"
+msgstr "← vrc.v_ou, う, ω (120%)"
+
+msgid "auto_mappings.row.mouth_smile"
+msgstr "← にやり, ∧, にっこり"
+
+msgid "auto_mappings.row.mouth_frown"
+msgstr "← への字, 悲しみ"
+
+msgid "auto_mappings.row.procedural"
+msgstr "← 手続き的生成（口領域を頂点移動）"
+
+msgid "auto_mappings.row.cheek_puff"
+msgstr "← ぷく, 膨らみ"
+
+msgid "auto_mappings.row.cheek_squint"
+msgstr "← 笑い, にこり"
+
+msgid "auto_mappings.row.nose_sneer"
+msgstr "← 怒り"
+
+msgid "auto_mappings.row.tongue_out"
+msgstr "← べー, 舌"
+
+# デバッグ
+msgid "debug.show_all_meshes"
+msgstr "全メッシュのBlendShape数を表示"
+
+msgid "debug.show_target_shapes"
+msgstr "対象メッシュのBlendShape名を表示"
+
+# ログ
+msgid "log.target_renderer_not_set"
+msgstr "Target Rendererが設定されていません。"
+
+msgid "log.preset_applied"
+msgstr "VRChat標準表情プリセットを適用しました"
+
+# バリデーション
+msgid "validation.duplicate.generic"
+msgstr "カスタムマッピングに同一ARKit名の重複があります。"
+
+msgid "validation.duplicate.message"
+msgstr "カスタムマッピングで同一ARKit名は複数設定できません。\n重複: {0}"
