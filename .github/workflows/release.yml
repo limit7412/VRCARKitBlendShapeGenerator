@@ -2,6 +2,14 @@ name: Build VPM Package
 
 on:
   release:
+    # `published`のみ。通常リリース・プレリリースいずれの公開でも発火する。
+    #
+    # `released`は追加しない。これはプレリリースからの昇格に限らず通常リリースの
+    # 公開時にも`published`と同時に発火するため、同一タグに対してこのワークフローが
+    # 2回並行実行され、同名zipのアップロードが競合してしまう。
+    # プレリリースを正式リリースへ昇格した場合(`released`のみが発火するケース)は
+    # zipは昇格前の`published`で既に添付済みなので、リスティングを更新したい場合は
+    # vcc-vpm側の"Build Repo Listing" → "Run workflow"で手動再生成する。
     types: [published]
   workflow_dispatch:
     inputs:
@@ -67,3 +75,41 @@ jobs:
           files: "*.zip"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # リリース公開をVPMリスティングリポジトリへ通知し、リスティングを即時再生成する。
+  # GitHubの`release`イベントはリリース元リポジトリのワークフローにしか配信されない
+  # ため、リスティング側から検知することはできず、こちらから通知する必要がある。
+  #
+  # `needs: build`としているのはリリース資材(zip)の添付完了を待つため。リスティングの
+  # 生成はリリースのアセットを参照するので、添付前に通知するとzipが無い状態で
+  # インデックスされてしまう。
+  #
+  # 動作には以下がこのリポジトリに設定されている必要がある:
+  #   secret `LISTING_DISPATCH_TOKEN` … limit7412/vcc-vpm のみをスコープとし
+  #   "Contents: Read and write" を持つ fine-grained PAT。
+  #   (このリポジトリの GITHUB_TOKEN は他リポジトリへ到達できないため必須)
+  #
+  # secretは`inherit`ではなく明示的に渡す。`inherit`は可変ref(@main)で読み込まれる
+  # 他リポジトリのワークフローへこのリポジトリの全secretを渡してしまうが、
+  # 必要なのはこの1つだけ。
+  #
+  # リリースのタグは`release`イベントから読まれるため`tag`入力は渡していない。
+  # (このリポジトリのリリースは手動作成のため`release`トリガが発火する。
+  #  GITHUB_TOKENを使うワークフローからリリースを作る形に変えた場合は
+  #  トリガが発火しなくなるので、その際は`tag`を明示的に渡す必要がある)
+  notify-listing:
+    name: notify-listing
+    needs: build
+    if: github.event_name == 'release'
+    # 呼び出された再利用可能ワークフローは呼び出し元の`GITHUB_TOKEN`を受け取るため、
+    # 何も指定しないとトップレベルの`contents: write`がそのまま渡り、他リポジトリの
+    # ワークフローがこのリポジトリの内容やリリース資材を変更できてしまう。
+    # 通知はvcc-vpm側へ`LISTING_DISPATCH_TOKEN`を使って行われ`GITHUB_TOKEN`は
+    # 使わないので、権限は全て落とす。
+    permissions: {}
+    uses: limit7412/vcc-vpm/.github/workflows/notify-listing.yml@main
+    with:
+      # デフォルトを持たない必須入力。`uses:`の参照先と同じリポジトリを指すこと。
+      listing-repo: limit7412/vcc-vpm
+    secrets:
+      LISTING_DISPATCH_TOKEN: ${{ secrets.LISTING_DISPATCH_TOKEN }}
