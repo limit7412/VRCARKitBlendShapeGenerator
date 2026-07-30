@@ -82,9 +82,22 @@ jobs:
   #   secret `LISTING_DISPATCH_TOKEN` … limit7412/vcc-vpm のみをスコープとし
   #   "Contents: Read and write" を持つ fine-grained PAT。
   #   (このリポジトリの GITHUB_TOKEN は他リポジトリへ到達できないため必須)
+  #
+  # secretは`inherit`ではなく明示的に渡す。`inherit`は可変ref(@main)で読み込まれる
+  # 他リポジトリのワークフローへこのリポジトリの全secretを渡してしまうが、
+  # 必要なのはこの1つだけ。
+  #
+  # リリースのタグは`release`イベントから読まれるため`tag`入力は渡していない。
+  # (このリポジトリのリリースは手動作成のため`release`トリガが発火する。
+  #  GITHUB_TOKENを使うワークフローからリリースを作る形に変えた場合は
+  #  トリガが発火しなくなるので、その際は`tag`を明示的に渡す必要がある)
   notify-listing:
     name: notify-listing
     needs: build
     if: github.event_name == 'release'
     uses: limit7412/vcc-vpm/.github/workflows/notify-listing.yml@main
-    secrets: inherit
+    with:
+      # デフォルトを持たない必須入力。`uses:`の参照先と同じリポジトリを指すこと。
+      listing-repo: limit7412/vcc-vpm
+    secrets:
+      LISTING_DISPATCH_TOKEN: ${{ secrets.LISTING_DISPATCH_TOKEN }}
