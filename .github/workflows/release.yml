@@ -2,7 +2,9 @@ name: Build VPM Package
 
 on:
   release:
-    types: [published]
+    # published: 通常リリース・プレリリースの公開
+    # released:  プレリリースを正式リリースへ昇格したとき
+    types: [published, released]
   workflow_dispatch:
     inputs:
       version:
@@ -67,3 +69,22 @@ jobs:
           files: "*.zip"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # リリース公開をVPMリスティングリポジトリへ通知し、リスティングを即時再生成する。
+  # GitHubの`release`イベントはリリース元リポジトリのワークフローにしか配信されない
+  # ため、リスティング側から検知することはできず、こちらから通知する必要がある。
+  #
+  # `needs: build`としているのはリリース資材(zip)の添付完了を待つため。リスティングの
+  # 生成はリリースのアセットを参照するので、添付前に通知するとzipが無い状態で
+  # インデックスされてしまう。
+  #
+  # 動作には以下がこのリポジトリに設定されている必要がある:
+  #   secret `LISTING_DISPATCH_TOKEN` … limit7412/vcc-vpm のみをスコープとし
+  #   "Contents: Read and write" を持つ fine-grained PAT。
+  #   (このリポジトリの GITHUB_TOKEN は他リポジトリへ到達できないため必須)
+  notify-listing:
+    name: notify-listing
+    needs: build
+    if: github.event_name == 'release'
+    uses: limit7412/vcc-vpm/.github/workflows/notify-listing.yml@main
+    secrets: inherit
