@@ -37,6 +37,11 @@ namespace ARKitBlendShapeGenerator
                     {
                         ProcessComponent(primaryComponent, ctx);
                     }
+
+                    // ビルド時にのみ意味を持つコンポーネントなので、生成の成否にかかわらず取り除く。
+                    // ビルド終盤で動作するAvatar Optimizer等から「未知のコンポーネント」として
+                    // 検出されないようにするため、Optimizing Phaseより前のここで削除する。
+                    RemoveComponents(components);
                 })
                 .PreviewingWith(new ARKitBlendShapeGeneratorPreview());
         }
@@ -57,6 +62,24 @@ namespace ARKitBlendShapeGenerator
             }
 
             return components[0];
+        }
+
+        private static void RemoveComponents(ARKitBlendShapeGeneratorComponent[] components)
+        {
+            if (components == null)
+            {
+                return;
+            }
+
+            foreach (var component in components)
+            {
+                if (component == null)
+                {
+                    continue;
+                }
+
+                UnityEngine.Object.DestroyImmediate(component);
+            }
         }
 
         private void ProcessComponent(ARKitBlendShapeGeneratorComponent component, BuildContext ctx)
