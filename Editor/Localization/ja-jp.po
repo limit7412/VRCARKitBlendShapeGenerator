@@ -80,6 +80,18 @@ msgstr "変形量係数"
 msgid "prop.procedural_mouth_intensity.tooltip"
 msgstr "手続き的生成の変形量係数"
 
+msgid "prop.enable_mouth_cancellation"
+msgstr "打ち消しを有効化"
+
+msgid "prop.enable_mouth_cancellation.tooltip"
+msgstr "生成した口関連BlendShapeに、指定したBlendShapeの変形を打ち消す成分を焼き込む"
+
+msgid "prop.mouth_cancellation_strength"
+msgstr "打ち消し強度"
+
+msgid "prop.mouth_cancellation_strength.tooltip"
+msgstr "打ち消し量の全体係数（1.0で指定した適用量をちょうど打ち消す）"
+
 msgid "prop.debug_mode"
 msgstr "デバッグモード"
 
@@ -92,6 +104,43 @@ msgstr "口の手続き的生成"
 
 msgid "inspector.procedural_mouth.description"
 msgstr "既存のBlendShapeから生成できない口周りのBlendShape（mouthLeft/Right、jaw系等）を、口領域の頂点移動で自動生成します。既存のBlendShapeは口領域の検出にのみ使用されます。"
+
+# 口の打ち消し
+msgid "inspector.section.mouth_cancellation"
+msgstr "口の打ち消し"
+
+msgid "inspector.mouth_cancellation.description"
+msgstr "生成した口関連BlendShapeに、指定したBlendShapeの変形を打ち消す成分（逆方向のデルタ）を焼き込みます。常時適用している口元の調整用BlendShapeが、フェイストラッキングによる口の動きと二重に適用されるのを防ぐ用途を想定しています。\n生成元のBlendShapeの側で既に修正済み（打ち消したい変形を含まない形で作られている）の場合、この設定は不要です。"
+
+msgid "mouth_cancellation.sources.label"
+msgstr "打ち消すBlendShape"
+
+msgid "mouth_cancellation.sources.hint"
+msgstr "重みはアバター側での適用量（1.0 = ウェイト100）を指定します。"
+
+msgid "mouth_cancellation.sources.add"
+msgstr "打ち消すBlendShapeを追加"
+
+msgid "mouth_cancellation.sources.empty"
+msgstr "(未設定 - 打ち消しは行われません)"
+
+msgid "mouth_cancellation.targets.label"
+msgstr "焼き込み先のARKit BlendShape"
+
+msgid "mouth_cancellation.targets.select_all"
+msgstr "全て選択"
+
+msgid "mouth_cancellation.targets.clear"
+msgstr "全て解除"
+
+msgid "mouth_cancellation.targets.count"
+msgstr "選択: {0}/{1}"
+
+msgid "mouth_cancellation.targets.none_warning"
+msgstr "焼き込み先が選択されていないため、打ち消しは行われません。"
+
+msgid "mouth_cancellation.targets.overshoot_warning"
+msgstr "複数の焼き込み先が選択されています。選択したBlendShapeが同時に適用されると打ち消しが重なり、対象の変形を通り越して逆向きに変形します。対象は必要最小限（例: jawOpenのみ）に絞ることを推奨します。"
 
 # カスタムマッピング
 msgid "inspector.section.custom_mappings"

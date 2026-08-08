@@ -21,6 +21,7 @@ namespace ARKitBlendShapeGenerator
         private bool _showPreviewCategoryOriginal = true;
         private Vector2 _scrollPosition;
         private Vector2 _previewScrollPosition;
+        private Vector2 _mouthCancellationTargetScrollPosition;
         private int _cachedPreviewConfigRevision = -1;
         private int _cachedPreviewRendererInstanceId;
         private int _cachedPreviewMeshInstanceId;
@@ -95,6 +96,18 @@ namespace ARKitBlendShapeGenerator
             using (new EditorGUI.DisabledScope(!enableProceduralProperty.boolValue))
             {
                 EditorGUILayout.PropertyField(serializedObject.FindProperty("proceduralMouthIntensity"), G("prop.procedural_mouth_intensity"));
+            }
+
+            EditorGUILayout.Space();
+            EditorGUILayout.LabelField(S("inspector.section.mouth_cancellation"), EditorStyles.boldLabel);
+            EditorGUILayout.HelpBox(S("inspector.mouth_cancellation.description"), MessageType.Info);
+            var enableCancellationProperty = serializedObject.FindProperty("enableMouthCancellation");
+            EditorGUILayout.PropertyField(enableCancellationProperty, G("prop.enable_mouth_cancellation"));
+            if (enableCancellationProperty.boolValue)
+            {
+                EditorGUI.indentLevel++;
+                DrawMouthCancellationUI();
+                EditorGUI.indentLevel--;
             }
 
             EditorGUILayout.Space();
@@ -507,16 +520,16 @@ namespace ARKitBlendShapeGenerator
             EditorGUI.indentLevel++;
             for (int j = 0; j < mapping.sources.Count; j++)
             {
-                DrawSourceItem(mapping, j);
+                DrawSourceItem(mapping.sources, j);
             }
             EditorGUI.indentLevel--;
 
             EditorGUILayout.EndVertical();
         }
 
-        private void DrawSourceItem(CustomBlendShapeMapping mapping, int sourceIndex)
+        private void DrawSourceItem(List<BlendShapeSource> sources, int sourceIndex)
         {
-            var source = mapping.sources[sourceIndex];
+            var source = sources[sourceIndex];
 
             EditorGUILayout.BeginHorizontal();
 
@@ -585,11 +598,116 @@ namespace ARKitBlendShapeGenerator
             // 削除ボタン
             if (GUILayout.Button("－", GUILayout.Width(25)))
             {
-                mapping.sources.RemoveAt(sourceIndex);
+                sources.RemoveAt(sourceIndex);
                 MarkComponentChanged();
             }
 
             EditorGUILayout.EndHorizontal();
+        }
+
+        private void DrawMouthCancellationUI()
+        {
+            EditorGUILayout.PropertyField(
+                serializedObject.FindProperty("mouthCancellationStrength"),
+                G("prop.mouth_cancellation_strength"));
+
+            // 打ち消し対象（アバター側で常時適用しているBlendShape）
+            EditorGUILayout.Space(4);
+            EditorGUILayout.LabelField(S("mouth_cancellation.sources.label"), EditorStyles.miniBoldLabel);
+            EditorGUILayout.LabelField(S("mouth_cancellation.sources.hint"), EditorStyles.miniLabel);
+
+            if (_component.mouthCancellationSources == null)
+            {
+                _component.mouthCancellationSources = new List<BlendShapeSource>();
+            }
+
+            var sources = _component.mouthCancellationSources;
+            if (sources.Count == 0)
+            {
+                EditorGUILayout.LabelField(S("mouth_cancellation.sources.empty"), EditorStyles.miniLabel);
+            }
+
+            for (int i = 0; i < sources.Count; i++)
+            {
+                DrawSourceItem(sources, i);
+            }
+
+            if (GUILayout.Button(S("mouth_cancellation.sources.add")))
+            {
+                sources.Add(new BlendShapeSource());
+                MarkComponentChanged();
+            }
+
+            // 焼き込み先のARKit BlendShape
+            EditorGUILayout.Space(4);
+            EditorGUILayout.LabelField(S("mouth_cancellation.targets.label"), EditorStyles.miniBoldLabel);
+            DrawMouthCancellationTargets();
+        }
+
+        private void DrawMouthCancellationTargets()
+        {
+            if (_component.mouthCancellationTargets == null)
+            {
+                _component.mouthCancellationTargets = new List<string>();
+            }
+
+            var targets = _component.mouthCancellationTargets;
+            var selectableNames = ARKitBlendShapeNames.Mouth;
+
+            EditorGUILayout.BeginHorizontal();
+            if (GUILayout.Button(S("mouth_cancellation.targets.select_all"), EditorStyles.miniButton))
+            {
+                targets.Clear();
+                targets.AddRange(selectableNames);
+                MarkComponentChanged();
+            }
+            if (GUILayout.Button(S("mouth_cancellation.targets.clear"), EditorStyles.miniButton))
+            {
+                targets.Clear();
+                MarkComponentChanged();
+            }
+            EditorGUILayout.EndHorizontal();
+
+            EditorGUILayout.LabelField(
+                S("mouth_cancellation.targets.count", targets.Count, selectableNames.Length),
+                EditorStyles.miniLabel);
+
+            if (targets.Count == 0)
+            {
+                EditorGUILayout.HelpBox(S("mouth_cancellation.targets.none_warning"), MessageType.Warning);
+            }
+            else if (targets.Count > 1)
+            {
+                // 同時適用時は打ち消しが重なって過剰になるため、対象は絞ることを推奨する
+                EditorGUILayout.HelpBox(S("mouth_cancellation.targets.overshoot_warning"), MessageType.Warning);
+            }
+
+            _mouthCancellationTargetScrollPosition = EditorGUILayout.BeginScrollView(
+                _mouthCancellationTargetScrollPosition,
+                GUILayout.Height(150f));
+
+            foreach (var arkitName in selectableNames)
+            {
+                bool isSelected = targets.Contains(arkitName);
+                bool newSelected = EditorGUILayout.ToggleLeft(arkitName, isSelected);
+                if (newSelected == isSelected)
+                {
+                    continue;
+                }
+
+                if (newSelected)
+                {
+                    targets.Add(arkitName);
+                }
+                else
+                {
+                    targets.Remove(arkitName);
+                }
+
+                MarkComponentChanged();
+            }
+
+            EditorGUILayout.EndScrollView();
         }
 
         private void AddNewMapping()
