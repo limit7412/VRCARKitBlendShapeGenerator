@@ -408,7 +408,8 @@ namespace ARKitBlendShapeGenerator
             if (upperIndex == 0)
             {
                 // 最小ウェイトのフレームより下は、変形なし（0）との線形補間になる
-                float scale = upperWeight > Mathf.Epsilon ? targetWeight / upperWeight : 0f;
+                // （負ウェイトのフレームも扱えるよう、分母の判定は絶対値で行う）
+                float scale = Mathf.Abs(upperWeight) > Mathf.Epsilon ? targetWeight / upperWeight : 0f;
                 if (!Mathf.Approximately(scale, 1f))
                 {
                     for (int i = 0; i < vertexCount; i++)
