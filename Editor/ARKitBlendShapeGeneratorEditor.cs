@@ -799,6 +799,13 @@ namespace ARKitBlendShapeGenerator
         private void MarkComponentChanged()
         {
             EditorUtility.SetDirty(_component);
+            // Prefabインスタンス上での直接変更はSetDirtyだけではオーバーライドとして記録されず、
+            // シーンの再読み込み等で設定が失われるため明示的に記録する
+            if (PrefabUtility.IsPartOfPrefabInstance(_component))
+            {
+                PrefabUtility.RecordPrefabInstancePropertyModifications(_component);
+            }
+
             ARKitBlendShapeGeneratorPreviewState.NotifyComponentConfigurationChanged();
         }
 

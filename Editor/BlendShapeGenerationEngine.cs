@@ -312,15 +312,9 @@ namespace ARKitBlendShapeGenerator
                     continue;
                 }
 
-                int frameCount = sourceMesh.GetBlendShapeFrameCount(srcIndex);
-                if (frameCount == 0)
-                {
-                    continue;
-                }
-
-                // 打ち消し量はアバター側での適用量に合わせるため、生成強度（IntensityMultiplier）は掛けない
-                float adjustedWeight = -source.weight * strength;
-                if (Mathf.Abs(adjustedWeight) <= Mathf.Epsilon)
+                // アバター側での適用ウェイト（1.0 = ウェイト100）時点の変形を打ち消す
+                float targetWeight = source.weight * 100f;
+                if (Mathf.Abs(targetWeight) <= Mathf.Epsilon)
                 {
                     continue;
                 }
@@ -328,15 +322,26 @@ namespace ARKitBlendShapeGenerator
                 var srcDeltaV = new Vector3[vertexCount];
                 var srcDeltaN = new Vector3[vertexCount];
                 var srcDeltaT = new Vector3[vertexCount];
-                sourceMesh.GetBlendShapeFrameVertices(srcIndex, frameCount - 1, srcDeltaV, srcDeltaN, srcDeltaT);
+                if (!TryEvaluateBlendShapeAtWeight(
+                        sourceMesh,
+                        srcIndex,
+                        targetWeight,
+                        srcDeltaV,
+                        srcDeltaN,
+                        srcDeltaT))
+                {
+                    continue;
+                }
+
+                // 評価済みの変形をそのまま反転する（生成強度 IntensityMultiplier は掛けない）
+                float adjustedWeight = -strength;
 
                 for (int i = 0; i < vertexCount; i++)
                 {
-                    float sideMultiplier = 1.0f;
-                    if (options.EnableLeftRightSplit && source.side != BlendShapeSide.Both)
-                    {
-                        sideMultiplier = CalculateSideMultiplier(vertices[i].x, source.side, blendWidth);
-                    }
+                    // 打ち消し元の左右指定はアバター側での適用範囲を表すため、生成側の左右分割設定とは独立に適用する
+                    float sideMultiplier = source.side != BlendShapeSide.Both
+                        ? CalculateSideMultiplier(vertices[i].x, source.side, blendWidth)
+                        : 1.0f;
 
                     if (sideMultiplier <= 0.0f)
                     {
@@ -364,6 +369,81 @@ namespace ARKitBlendShapeGenerator
                 deltaNormals,
                 deltaTangents,
                 new HashSet<string>(targets));
+        }
+
+        /// <summary>
+        /// 指定ウェイト（0-100基準）時点のBlendShapeの変形を、フレーム間を補間して取得する。
+        /// フレームを持たない場合はfalse。
+        /// </summary>
+        private static bool TryEvaluateBlendShapeAtWeight(
+            Mesh sourceMesh,
+            int shapeIndex,
+            float targetWeight,
+            Vector3[] deltaVertices,
+            Vector3[] deltaNormals,
+            Vector3[] deltaTangents)
+        {
+            int frameCount = sourceMesh.GetBlendShapeFrameCount(shapeIndex);
+            if (frameCount == 0)
+            {
+                return false;
+            }
+
+            // フレームウェイトは昇順のため、目標ウェイト以上になる最初のフレームが上側の境界になる
+            int upperIndex = frameCount - 1;
+            for (int i = 0; i < frameCount; i++)
+            {
+                if (sourceMesh.GetBlendShapeFrameWeight(shapeIndex, i) >= targetWeight)
+                {
+                    upperIndex = i;
+                    break;
+                }
+            }
+
+            float upperWeight = sourceMesh.GetBlendShapeFrameWeight(shapeIndex, upperIndex);
+            sourceMesh.GetBlendShapeFrameVertices(shapeIndex, upperIndex, deltaVertices, deltaNormals, deltaTangents);
+
+            int vertexCount = sourceMesh.vertexCount;
+
+            if (upperIndex == 0)
+            {
+                // 最小ウェイトのフレームより下は、変形なし（0）との線形補間になる
+                float scale = upperWeight > Mathf.Epsilon ? targetWeight / upperWeight : 0f;
+                if (!Mathf.Approximately(scale, 1f))
+                {
+                    for (int i = 0; i < vertexCount; i++)
+                    {
+                        deltaVertices[i] *= scale;
+                        deltaNormals[i] *= scale;
+                        deltaTangents[i] *= scale;
+                    }
+                }
+
+                return true;
+            }
+
+            float lowerWeight = sourceMesh.GetBlendShapeFrameWeight(shapeIndex, upperIndex - 1);
+            float range = upperWeight - lowerWeight;
+            if (range <= Mathf.Epsilon)
+            {
+                return true;
+            }
+
+            var lowerDeltaV = new Vector3[vertexCount];
+            var lowerDeltaN = new Vector3[vertexCount];
+            var lowerDeltaT = new Vector3[vertexCount];
+            sourceMesh.GetBlendShapeFrameVertices(shapeIndex, upperIndex - 1, lowerDeltaV, lowerDeltaN, lowerDeltaT);
+
+            // 最終フレームを超えるウェイトはクランプせず、Unityの評価に合わせて外挿する
+            float t = (targetWeight - lowerWeight) / range;
+            for (int i = 0; i < vertexCount; i++)
+            {
+                deltaVertices[i] = lowerDeltaV[i] + ((deltaVertices[i] - lowerDeltaV[i]) * t);
+                deltaNormals[i] = lowerDeltaN[i] + ((deltaNormals[i] - lowerDeltaN[i]) * t);
+                deltaTangents[i] = lowerDeltaT[i] + ((deltaTangents[i] - lowerDeltaT[i]) * t);
+            }
+
+            return true;
         }
 
         private static void GenerateProceduralMouthShapes(
