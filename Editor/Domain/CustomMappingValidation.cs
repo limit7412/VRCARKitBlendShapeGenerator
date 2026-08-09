@@ -8,22 +8,31 @@ namespace ARKitBlendShapeGenerator.Domain
     {
         public static List<string> GetDuplicateArkitNames(List<CustomBlendShapeMapping> customMappings)
         {
+            return GetDuplicateArkitNames(customMappings?.Select(mapping => mapping?.arkitName));
+        }
+
+        /// <summary>
+        /// ARKit名の列挙から重複を抽出する。
+        /// SerializedProperty等、コンポーネントの実体を経由せずに検証する場合に使用する。
+        /// </summary>
+        public static List<string> GetDuplicateArkitNames(IEnumerable<string> arkitNames)
+        {
             var seen = new HashSet<string>();
             var duplicates = new HashSet<string>();
 
-            if (customMappings == null)
+            if (arkitNames == null)
             {
                 return new List<string>();
             }
 
-            foreach (var mapping in customMappings)
+            foreach (var name in arkitNames)
             {
-                if (mapping == null || string.IsNullOrWhiteSpace(mapping.arkitName))
+                if (string.IsNullOrWhiteSpace(name))
                 {
                     continue;
                 }
 
-                var arkitName = mapping.arkitName.Trim();
+                var arkitName = name.Trim();
                 if (!seen.Add(arkitName))
                 {
                     duplicates.Add(arkitName);

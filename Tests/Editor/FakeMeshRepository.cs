@@ -96,7 +96,16 @@ namespace ARKitBlendShapeGenerator.Tests
         /// <summary>1フレーム（weight=100）のシェイプを末尾に追加するテスト用ヘルパー</summary>
         public FakeMeshRepository AddShape(string name, params Vector3[] deltaVertices)
         {
-            AddBlendShapeFrame(name, 100f, deltaVertices, new Vector3[VertexCount], new Vector3[VertexCount]);
+            return AddShapeFrame(name, 100f, deltaVertices);
+        }
+
+        /// <summary>
+        /// 任意のフレームウェイトでシェイプ（または既存シェイプへの追加フレーム）を末尾に追加する。
+        /// 多フレームのシェイプはウェイト昇順で連続して追加する。
+        /// </summary>
+        public FakeMeshRepository AddShapeFrame(string name, float frameWeight, params Vector3[] deltaVertices)
+        {
+            AddBlendShapeFrame(name, frameWeight, deltaVertices, new Vector3[VertexCount], new Vector3[VertexCount]);
             return this;
         }
 

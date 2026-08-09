@@ -80,6 +80,18 @@ msgstr "Deformation Intensity"
 msgid "prop.procedural_mouth_intensity.tooltip"
 msgstr "Deformation intensity for procedural generation"
 
+msgid "prop.enable_mouth_cancellation"
+msgstr "Enable Cancellation"
+
+msgid "prop.enable_mouth_cancellation.tooltip"
+msgstr "Bake a cancelling deformation of the specified blend shapes into the generated mouth blend shapes"
+
+msgid "prop.mouth_cancellation_strength"
+msgstr "Cancellation Strength"
+
+msgid "prop.mouth_cancellation_strength.tooltip"
+msgstr "Overall multiplier for the cancellation (1.0 cancels exactly the specified amount)"
+
 msgid "prop.debug_mode"
 msgstr "Debug Mode"
 
@@ -92,6 +104,43 @@ msgstr "Procedural Mouth Generation"
 
 msgid "inspector.procedural_mouth.description"
 msgstr "Procedurally generates mouth-related blend shapes (mouthLeft/Right, jaw*, etc.) that cannot be derived from existing blend shapes, by moving vertices in the mouth region. Existing blend shapes are only used to detect the mouth region."
+
+# Mouth cancellation
+msgid "inspector.section.mouth_cancellation"
+msgstr "Mouth Cancellation"
+
+msgid "inspector.mouth_cancellation.description"
+msgstr "Bakes a cancelling deformation (inverted delta) of the specified blend shapes into the generated mouth blend shapes. Intended to keep an always-on mouth adjustment blend shape from stacking on top of face-tracked mouth movement.\nThis setting is unnecessary when the source blend shapes are already corrected (authored without the deformation you want to cancel)."
+
+msgid "mouth_cancellation.sources.label"
+msgstr "Blend Shapes to Cancel"
+
+msgid "mouth_cancellation.sources.hint"
+msgstr "The weight is how strongly the blend shape is applied on the avatar (1.0 = weight 100)."
+
+msgid "mouth_cancellation.sources.add"
+msgstr "Add Blend Shape to Cancel"
+
+msgid "mouth_cancellation.sources.empty"
+msgstr "(not set - no cancellation is applied)"
+
+msgid "mouth_cancellation.targets.label"
+msgstr "ARKit Blend Shapes to Bake Into"
+
+msgid "mouth_cancellation.targets.select_all"
+msgstr "Select All"
+
+msgid "mouth_cancellation.targets.clear"
+msgstr "Clear All"
+
+msgid "mouth_cancellation.targets.count"
+msgstr "Selected: {0}/{1}"
+
+msgid "mouth_cancellation.targets.none_warning"
+msgstr "No target is selected, so no cancellation is applied."
+
+msgid "mouth_cancellation.targets.overshoot_warning"
+msgstr "Multiple targets are selected. When the selected blend shapes are applied at the same time, the cancellations stack and deform past the original shape in the opposite direction. Keep the targets to the minimum needed (e.g. jawOpen only)."
 
 # Custom mappings
 msgid "inspector.section.custom_mappings"

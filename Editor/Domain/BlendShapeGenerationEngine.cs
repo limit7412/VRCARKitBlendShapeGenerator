@@ -13,6 +13,10 @@ namespace ARKitBlendShapeGenerator.Domain
         public bool OverwriteExisting { get; set; }
         public bool EnableProceduralMouthShapes { get; set; }
         public float ProceduralMouthIntensity { get; set; } = 1.0f;
+        public bool EnableMouthCancellation { get; set; }
+        public List<BlendShapeSource> MouthCancellationSources { get; set; }
+        public float MouthCancellationStrength { get; set; } = 1.0f;
+        public HashSet<string> MouthCancellationTargets { get; set; }
         public bool Debug { get; set; }
 
         public static BlendShapeGenerationOptions FromComponent(ARKitBlendShapeGeneratorComponent component)
@@ -25,8 +29,31 @@ namespace ARKitBlendShapeGenerator.Domain
                 OverwriteExisting = component.overwriteExisting,
                 EnableProceduralMouthShapes = component.enableProceduralMouthShapes,
                 ProceduralMouthIntensity = component.proceduralMouthIntensity,
+                EnableMouthCancellation = component.enableMouthCancellation,
+                MouthCancellationSources = component.mouthCancellationSources,
+                MouthCancellationStrength = component.mouthCancellationStrength,
+                MouthCancellationTargets = BuildTargetSet(component.mouthCancellationTargets),
                 Debug = component.debugMode
             };
+        }
+
+        private static HashSet<string> BuildTargetSet(List<string> targets)
+        {
+            var result = new HashSet<string>();
+            if (targets == null)
+            {
+                return result;
+            }
+
+            foreach (var target in targets)
+            {
+                if (!string.IsNullOrWhiteSpace(target))
+                {
+                    result.Add(target.Trim());
+                }
+            }
+
+            return result;
         }
     }
 
@@ -85,6 +112,34 @@ namespace ARKitBlendShapeGenerator.Domain
             {
                 ArkitName = arkitName;
                 Sources = sources;
+            }
+        }
+
+        /// <summary>
+        /// 生成した口関連BlendShapeに焼き込む打ち消し用のデルタ（対象BlendShapeの逆方向の変形）
+        /// </summary>
+        private sealed class MouthCancellationDelta
+        {
+            public readonly Vector3[] DeltaVertices;
+            public readonly Vector3[] DeltaNormals;
+            public readonly Vector3[] DeltaTangents;
+            public readonly HashSet<string> TargetArkitNames;
+
+            public MouthCancellationDelta(
+                Vector3[] deltaVertices,
+                Vector3[] deltaNormals,
+                Vector3[] deltaTangents,
+                HashSet<string> targetArkitNames)
+            {
+                DeltaVertices = deltaVertices;
+                DeltaNormals = deltaNormals;
+                DeltaTangents = deltaTangents;
+                TargetArkitNames = targetArkitNames;
+            }
+
+            public bool AppliesTo(string arkitName)
+            {
+                return !string.IsNullOrEmpty(arkitName) && TargetArkitNames.Contains(arkitName);
             }
         }
 
@@ -170,9 +225,18 @@ namespace ARKitBlendShapeGenerator.Domain
                 }
             }
 
+            var cancellation = BuildMouthCancellationDelta(sourceMesh, existingShapes, options, logger);
+
             foreach (var planned in plannedBlendShapes)
             {
-                if (TryAddBlendShape(sourceMesh, targetMesh, planned.ArkitName, planned.Sources, options, logger))
+                if (TryAddBlendShape(
+                        sourceMesh,
+                        targetMesh,
+                        planned.ArkitName,
+                        planned.Sources,
+                        options,
+                        cancellation,
+                        logger))
                 {
                     existingShapes[planned.ArkitName] = targetMesh.BlendShapeCount - 1;
                     generatedShapes.Add(planned.ArkitName);
@@ -181,7 +245,14 @@ namespace ARKitBlendShapeGenerator.Domain
 
             if (options.EnableProceduralMouthShapes)
             {
-                GenerateProceduralMouthShapes(sourceMesh, targetMesh, options, customMappedNames, generatedShapes, logger);
+                GenerateProceduralMouthShapes(
+                    sourceMesh,
+                    targetMesh,
+                    options,
+                    customMappedNames,
+                    generatedShapes,
+                    cancellation,
+                    logger);
             }
 
             // 生成・削除後の最終状態からインデックスを再構築する
@@ -198,12 +269,202 @@ namespace ARKitBlendShapeGenerator.Domain
             return new BlendShapeGenerationResult(generatedShapes, shapeIndices);
         }
 
+        /// <summary>
+        /// 打ち消し対象BlendShapeの逆方向デルタを合成する。
+        /// 対象や強度が未設定の場合はnull（打ち消しなし）。
+        /// </summary>
+        private static MouthCancellationDelta BuildMouthCancellationDelta(
+            IMeshRepository sourceMesh,
+            Dictionary<string, int> existingShapes,
+            BlendShapeGenerationOptions options,
+            IGenerationLogger logger)
+        {
+            if (!options.EnableMouthCancellation)
+            {
+                return null;
+            }
+
+            if (options.MouthCancellationSources == null || options.MouthCancellationSources.Count == 0)
+            {
+                return null;
+            }
+
+            var targets = options.MouthCancellationTargets;
+            if (targets == null || targets.Count == 0)
+            {
+                Log(logger, options, "Skip cancellation (no target shape selected)");
+                return null;
+            }
+
+            float strength = Mathf.Clamp01(options.MouthCancellationStrength);
+            if (strength <= Mathf.Epsilon)
+            {
+                return null;
+            }
+
+            int vertexCount = sourceMesh.VertexCount;
+            var deltaVertices = new Vector3[vertexCount];
+            var deltaNormals = new Vector3[vertexCount];
+            var deltaTangents = new Vector3[vertexCount];
+            var vertices = sourceMesh.GetVertices();
+            float blendWidth = Mathf.Max(0.0001f, options.BlendWidth);
+            bool hasDelta = false;
+
+            foreach (var source in options.MouthCancellationSources)
+            {
+                if (source == null || string.IsNullOrEmpty(source.blendShapeName))
+                {
+                    continue;
+                }
+
+                if (!TryGetSourceIndex(existingShapes, sourceMesh, source.blendShapeName, out int srcIndex))
+                {
+                    Log(logger, options, $"Warning: Cancellation source not found: {source.blendShapeName}");
+                    continue;
+                }
+
+                // アバター側での適用ウェイト（1.0 = ウェイト100）時点の変形を打ち消す
+                float targetWeight = source.weight * 100f;
+                if (Mathf.Abs(targetWeight) <= Mathf.Epsilon)
+                {
+                    continue;
+                }
+
+                var srcDeltaV = new Vector3[vertexCount];
+                var srcDeltaN = new Vector3[vertexCount];
+                var srcDeltaT = new Vector3[vertexCount];
+                if (!TryEvaluateBlendShapeAtWeight(
+                        sourceMesh,
+                        srcIndex,
+                        targetWeight,
+                        srcDeltaV,
+                        srcDeltaN,
+                        srcDeltaT))
+                {
+                    continue;
+                }
+
+                // 評価済みの変形をそのまま反転する（生成強度 IntensityMultiplier は掛けない）
+                float adjustedWeight = -strength;
+
+                for (int i = 0; i < vertexCount; i++)
+                {
+                    // 打ち消し元の左右指定はアバター側での適用範囲を表すため、生成側の左右分割設定とは独立に適用する
+                    float sideMultiplier = source.side != BlendShapeSide.Both
+                        ? CalculateSideMultiplier(vertices[i].x, source.side, blendWidth)
+                        : 1.0f;
+
+                    if (sideMultiplier <= 0.0f)
+                    {
+                        continue;
+                    }
+
+                    float finalWeight = adjustedWeight * sideMultiplier;
+                    deltaVertices[i] += srcDeltaV[i] * finalWeight;
+                    deltaNormals[i] += srcDeltaN[i] * finalWeight;
+                    deltaTangents[i] += srcDeltaT[i] * finalWeight;
+                }
+
+                hasDelta = true;
+            }
+
+            if (!hasDelta)
+            {
+                Log(logger, options, "Skip cancellation (no valid source)");
+                return null;
+            }
+
+            Log(logger, options, $"Cancellation targets: {string.Join(", ", targets.OrderBy(name => name))}");
+            return new MouthCancellationDelta(
+                deltaVertices,
+                deltaNormals,
+                deltaTangents,
+                new HashSet<string>(targets));
+        }
+
+        /// <summary>
+        /// 指定ウェイト（0-100基準）時点のBlendShapeの変形を、フレーム間を補間して取得する。
+        /// フレームを持たない場合はfalse。
+        /// </summary>
+        private static bool TryEvaluateBlendShapeAtWeight(
+            IMeshRepository sourceMesh,
+            int shapeIndex,
+            float targetWeight,
+            Vector3[] deltaVertices,
+            Vector3[] deltaNormals,
+            Vector3[] deltaTangents)
+        {
+            int frameCount = sourceMesh.GetBlendShapeFrameCount(shapeIndex);
+            if (frameCount == 0)
+            {
+                return false;
+            }
+
+            // フレームウェイトは昇順のため、目標ウェイト以上になる最初のフレームが上側の境界になる
+            int upperIndex = frameCount - 1;
+            for (int i = 0; i < frameCount; i++)
+            {
+                if (sourceMesh.GetBlendShapeFrameWeight(shapeIndex, i) >= targetWeight)
+                {
+                    upperIndex = i;
+                    break;
+                }
+            }
+
+            float upperWeight = sourceMesh.GetBlendShapeFrameWeight(shapeIndex, upperIndex);
+            sourceMesh.GetBlendShapeFrameVertices(shapeIndex, upperIndex, deltaVertices, deltaNormals, deltaTangents);
+
+            int vertexCount = sourceMesh.VertexCount;
+
+            if (upperIndex == 0)
+            {
+                // 最小ウェイトのフレームより下は、変形なし（0）との線形補間になる
+                // （負ウェイトのフレームも扱えるよう、分母の判定は絶対値で行う）
+                float scale = Mathf.Abs(upperWeight) > Mathf.Epsilon ? targetWeight / upperWeight : 0f;
+                if (!Mathf.Approximately(scale, 1f))
+                {
+                    for (int i = 0; i < vertexCount; i++)
+                    {
+                        deltaVertices[i] *= scale;
+                        deltaNormals[i] *= scale;
+                        deltaTangents[i] *= scale;
+                    }
+                }
+
+                return true;
+            }
+
+            float lowerWeight = sourceMesh.GetBlendShapeFrameWeight(shapeIndex, upperIndex - 1);
+            float range = upperWeight - lowerWeight;
+            if (range <= Mathf.Epsilon)
+            {
+                return true;
+            }
+
+            var lowerDeltaV = new Vector3[vertexCount];
+            var lowerDeltaN = new Vector3[vertexCount];
+            var lowerDeltaT = new Vector3[vertexCount];
+            sourceMesh.GetBlendShapeFrameVertices(shapeIndex, upperIndex - 1, lowerDeltaV, lowerDeltaN, lowerDeltaT);
+
+            // 最終フレームを超えるウェイトはクランプせず、Unityの評価に合わせて外挿する
+            float t = (targetWeight - lowerWeight) / range;
+            for (int i = 0; i < vertexCount; i++)
+            {
+                deltaVertices[i] = lowerDeltaV[i] + ((deltaVertices[i] - lowerDeltaV[i]) * t);
+                deltaNormals[i] = lowerDeltaN[i] + ((deltaNormals[i] - lowerDeltaN[i]) * t);
+                deltaTangents[i] = lowerDeltaT[i] + ((deltaTangents[i] - lowerDeltaT[i]) * t);
+            }
+
+            return true;
+        }
+
         private static void GenerateProceduralMouthShapes(
             IMeshRepository sourceMesh,
             IMeshRepository targetMesh,
             BlendShapeGenerationOptions options,
             HashSet<string> customMappedNames,
             List<string> generatedShapes,
+            MouthCancellationDelta cancellation,
             IGenerationLogger logger)
         {
             if (sourceMesh.VertexCount != targetMesh.VertexCount)
@@ -259,17 +520,33 @@ namespace ARKitBlendShapeGenerator.Domain
             }
 
             // 生成できなかったシェイプの既存データを消さないよう、先にデルタを確定させる
-            var plannedDeltas = new List<(string arkitName, Vector3[] deltaVertices)>();
+            var plannedDeltas = new List<(string arkitName, Vector3[] deltaVertices, Vector3[] deltaNormals, Vector3[] deltaTangents)>();
             foreach (var arkitName in namesToGenerate)
             {
-                if (ProceduralMouthShapeGenerator.TryBuildDeltaVertices(context, arkitName, options, out var deltaVertices))
-                {
-                    plannedDeltas.Add((arkitName, deltaVertices));
-                }
-                else
+                if (!ProceduralMouthShapeGenerator.TryBuildDeltaVertices(context, arkitName, options, out var deltaVertices))
                 {
                     namesToReplace.Remove(arkitName);
+                    continue;
                 }
+
+                // 手続き的生成は平行移動のみのため、打ち消しを焼き込まない限り法線・接線のデルタは不要
+                Vector3[] deltaNormals = null;
+                Vector3[] deltaTangents = null;
+                if (cancellation != null && cancellation.AppliesTo(arkitName))
+                {
+                    deltaNormals = new Vector3[deltaVertices.Length];
+                    deltaTangents = new Vector3[deltaVertices.Length];
+                    for (int i = 0; i < deltaVertices.Length; i++)
+                    {
+                        deltaVertices[i] += cancellation.DeltaVertices[i];
+                        deltaNormals[i] = cancellation.DeltaNormals[i];
+                        deltaTangents[i] = cancellation.DeltaTangents[i];
+                    }
+
+                    Log(logger, options, $"Applied cancellation (procedural): {arkitName}");
+                }
+
+                plannedDeltas.Add((arkitName, deltaVertices, deltaNormals, deltaTangents));
             }
 
             if (plannedDeltas.Count == 0)
@@ -286,15 +563,14 @@ namespace ARKitBlendShapeGenerator.Domain
                 }
             }
 
-            foreach (var (arkitName, deltaVertices) in plannedDeltas)
+            foreach (var (arkitName, deltaVertices, deltaNormals, deltaTangents) in plannedDeltas)
             {
-                // 平行移動のみのため法線・接線のデルタは不要（nullで省略可能）
                 targetMesh.AddBlendShapeFrame(
                     arkitName,
                     100f,
                     deltaVertices,
-                    null,
-                    null);
+                    deltaNormals,
+                    deltaTangents);
                 generatedShapes.Add(arkitName);
                 Log(logger, options, $"Generated (procedural): {arkitName}");
             }
@@ -467,6 +743,7 @@ namespace ARKitBlendShapeGenerator.Domain
             string arkitName,
             List<(int index, float weight, BlendShapeSide side)> sources,
             BlendShapeGenerationOptions options,
+            MouthCancellationDelta cancellation,
             IGenerationLogger logger)
         {
             int vertexCount = sourceMesh.VertexCount;
@@ -522,6 +799,19 @@ namespace ARKitBlendShapeGenerator.Domain
             if (sourceCount == 0)
             {
                 return false;
+            }
+
+            // 打ち消しのみのBlendShapeを作らないよう、ソースから生成できた場合だけ焼き込む
+            if (cancellation != null && cancellation.AppliesTo(arkitName))
+            {
+                for (int i = 0; i < vertexCount; i++)
+                {
+                    deltaVertices[i] += cancellation.DeltaVertices[i];
+                    deltaNormals[i] += cancellation.DeltaNormals[i];
+                    deltaTangents[i] += cancellation.DeltaTangents[i];
+                }
+
+                Log(logger, options, $"Applied cancellation: {arkitName}");
             }
 
             targetMesh.AddBlendShapeFrame(arkitName, 100f, deltaVertices, deltaNormals, deltaTangents);

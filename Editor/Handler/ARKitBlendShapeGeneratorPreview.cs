@@ -125,6 +125,9 @@ namespace ARKitBlendShapeGenerator.Handler
             private readonly bool _observedOverwriteExisting;
             private readonly bool _observedEnableProceduralMouthShapes;
             private readonly float _observedProceduralMouthIntensity;
+            private readonly bool _observedEnableMouthCancellation;
+            private readonly float _observedMouthCancellationStrength;
+            private readonly int _observedMouthCancellationSignature;
             private readonly int _observedTargetRendererInstanceId;
             private readonly int _observedCustomMappingsSignature;
             private readonly Dictionary<string, int> _shapeIndices = new Dictionary<string, int>();
@@ -150,6 +153,9 @@ namespace ARKitBlendShapeGenerator.Handler
                 bool observedOverwriteExisting = false;
                 bool observedEnableProceduralMouthShapes = false;
                 float observedProceduralMouthIntensity = 0f;
+                bool observedEnableMouthCancellation = false;
+                float observedMouthCancellationStrength = 0f;
+                int observedMouthCancellationSignature = 0;
                 int observedCustomMappingsSignature = 0;
                 SkinnedMeshRenderer observedTargetRenderer = null;
                 if (component != null)
@@ -161,6 +167,9 @@ namespace ARKitBlendShapeGenerator.Handler
                     observedOverwriteExisting = context.Observe(component, c => c.overwriteExisting);
                     observedEnableProceduralMouthShapes = context.Observe(component, c => c.enableProceduralMouthShapes);
                     observedProceduralMouthIntensity = context.Observe(component, c => c.proceduralMouthIntensity);
+                    observedEnableMouthCancellation = context.Observe(component, c => c.enableMouthCancellation);
+                    observedMouthCancellationStrength = context.Observe(component, c => c.mouthCancellationStrength);
+                    observedMouthCancellationSignature = BuildMouthCancellationSignature(component);
                     observedCustomMappingsSignature = BuildCustomMappingsSignature(component.customMappings);
                     observedTargetRenderer = context.Observe(component, c => c.targetRenderer);
                 }
@@ -171,6 +180,9 @@ namespace ARKitBlendShapeGenerator.Handler
                 _observedOverwriteExisting = observedOverwriteExisting;
                 _observedEnableProceduralMouthShapes = observedEnableProceduralMouthShapes;
                 _observedProceduralMouthIntensity = observedProceduralMouthIntensity;
+                _observedEnableMouthCancellation = observedEnableMouthCancellation;
+                _observedMouthCancellationStrength = observedMouthCancellationStrength;
+                _observedMouthCancellationSignature = observedMouthCancellationSignature;
                 _observedCustomMappingsSignature = observedCustomMappingsSignature;
                 _observedTargetRendererInstanceId = observedTargetRenderer != null ? observedTargetRenderer.GetInstanceID() : 0;
 
@@ -256,6 +268,24 @@ namespace ARKitBlendShapeGenerator.Handler
 
                 float currentProceduralMouthIntensity = context.Observe(_component, c => c.proceduralMouthIntensity);
                 if (!Mathf.Approximately(currentProceduralMouthIntensity, _observedProceduralMouthIntensity))
+                {
+                    return Task.FromResult<IRenderFilterNode>(null);
+                }
+
+                bool currentEnableMouthCancellation = context.Observe(_component, c => c.enableMouthCancellation);
+                if (currentEnableMouthCancellation != _observedEnableMouthCancellation)
+                {
+                    return Task.FromResult<IRenderFilterNode>(null);
+                }
+
+                float currentMouthCancellationStrength = context.Observe(_component, c => c.mouthCancellationStrength);
+                if (!Mathf.Approximately(currentMouthCancellationStrength, _observedMouthCancellationStrength))
+                {
+                    return Task.FromResult<IRenderFilterNode>(null);
+                }
+
+                int currentMouthCancellationSignature = BuildMouthCancellationSignature(_component);
+                if (currentMouthCancellationSignature != _observedMouthCancellationSignature)
                 {
                     return Task.FromResult<IRenderFilterNode>(null);
                 }
@@ -368,27 +398,62 @@ namespace ARKitBlendShapeGenerator.Handler
 
                         hash = (hash * 31) + (mapping.enabled ? 1 : 0);
                         hash = (hash * 31) + HashString(mapping.arkitName);
+                        hash = HashSources(hash, mapping.sources);
+                    }
 
-                        var sources = mapping.sources;
-                        if (sources == null)
+                    return hash;
+                }
+            }
+
+            private static int BuildMouthCancellationSignature(ARKitBlendShapeGeneratorComponent component)
+            {
+                unchecked
+                {
+                    int hash = 17;
+                    if (component == null)
+                    {
+                        return hash;
+                    }
+
+                    hash = HashSources(hash, component.mouthCancellationSources);
+
+                    var targets = component.mouthCancellationTargets;
+                    if (targets == null)
+                    {
+                        return (hash * 31) + 2;
+                    }
+
+                    hash = (hash * 31) + targets.Count;
+                    foreach (var target in targets)
+                    {
+                        hash = (hash * 31) + HashString(target);
+                    }
+
+                    return hash;
+                }
+            }
+
+            private static int HashSources(int hash, List<BlendShapeSource> sources)
+            {
+                unchecked
+                {
+                    if (sources == null)
+                    {
+                        return (hash * 31) + 2;
+                    }
+
+                    hash = (hash * 31) + sources.Count;
+                    foreach (var source in sources)
+                    {
+                        if (source == null)
                         {
-                            hash = (hash * 31) + 2;
+                            hash = (hash * 31) + 3;
                             continue;
                         }
 
-                        hash = (hash * 31) + sources.Count;
-                        foreach (var source in sources)
-                        {
-                            if (source == null)
-                            {
-                                hash = (hash * 31) + 3;
-                                continue;
-                            }
-
-                            hash = (hash * 31) + HashString(source.blendShapeName);
-                            hash = (hash * 31) + source.weight.GetHashCode();
-                            hash = (hash * 31) + (int)source.side;
-                        }
+                        hash = (hash * 31) + HashString(source.blendShapeName);
+                        hash = (hash * 31) + source.weight.GetHashCode();
+                        hash = (hash * 31) + (int)source.side;
                     }
 
                     return hash;
