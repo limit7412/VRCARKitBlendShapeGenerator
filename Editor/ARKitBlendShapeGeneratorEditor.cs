@@ -42,15 +42,26 @@ namespace ARKitBlendShapeGenerator
         private void OnEnable()
         {
             _component = (ARKitBlendShapeGeneratorComponent)target;
+            Undo.undoRedoPerformed += OnUndoRedoPerformed;
             InvalidatePreviewCategoryCache();
             RefreshBlendShapeList();
         }
 
         private void OnDisable()
         {
+            Undo.undoRedoPerformed -= OnUndoRedoPerformed;
             int componentId = _component != null ? _component.GetInstanceID() : 0;
             ARKitBlendShapeGeneratorPreviewState.ReleaseIfActive(componentId);
             InvalidatePreviewCategoryCache();
+        }
+
+        private void OnUndoRedoPerformed()
+        {
+            // Undo/Redoはインスペクタの描画を経由せずコンポーネントへ反映されるため、
+            // ApplyModifiedPropertiesの変更検出では設定変更を拾えない
+            InvalidatePreviewCategoryCache();
+            ARKitBlendShapeGeneratorPreviewState.NotifyComponentConfigurationChanged();
+            Repaint();
         }
 
         private void RefreshBlendShapeList()
