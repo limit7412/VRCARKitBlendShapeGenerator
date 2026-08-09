@@ -2,9 +2,10 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEditor;
 using UnityEngine;
+using ARKitBlendShapeGenerator.UseCase;
 using static ARKitBlendShapeGenerator.Localization;
 
-namespace ARKitBlendShapeGenerator
+namespace ARKitBlendShapeGenerator.Handler
 {
     /// <summary>
     /// 同一アバター内にARKitBlendShapeGeneratorComponentが複数配置された場合、
@@ -45,7 +46,7 @@ namespace ARKitBlendShapeGenerator
                 return;
             }
 
-            var primary = SelectPrimaryComponent(avatarRoot, components);
+            var primary = GenerateBlendShapesUseCase.SelectPrimaryComponent(avatarRoot, components);
             if (primary == component)
             {
                 PendingRemoval.Remove(instanceId);
@@ -71,7 +72,7 @@ namespace ARKitBlendShapeGenerator
                 var refreshed = avatarRoot.GetComponentsInChildren<ARKitBlendShapeGeneratorComponent>(true)
                     .Where(c => c != null)
                     .ToArray();
-                var refreshedPrimary = SelectPrimaryComponent(avatarRoot, refreshed);
+                var refreshedPrimary = GenerateBlendShapesUseCase.SelectPrimaryComponent(avatarRoot, refreshed);
 
                 if (refreshedPrimary != component)
                 {
@@ -116,27 +117,6 @@ namespace ARKitBlendShapeGenerator
             // 文字列指定のGetComponentは配列アロケーションなしで型名一致を判定できる
             // （EditorアセンブリはVRC SDKを参照していないため型名での判定が必要）
             return go != null && go.GetComponent("VRCAvatarDescriptor") != null;
-        }
-
-        private static ARKitBlendShapeGeneratorComponent SelectPrimaryComponent(
-            Transform avatarRoot,
-            ARKitBlendShapeGeneratorComponent[] components)
-        {
-            if (components == null || components.Length == 0)
-            {
-                return null;
-            }
-
-            if (avatarRoot != null)
-            {
-                var onRoot = components.FirstOrDefault(c => c != null && c.transform == avatarRoot);
-                if (onRoot != null)
-                {
-                    return onRoot;
-                }
-            }
-
-            return components[0];
         }
     }
 }

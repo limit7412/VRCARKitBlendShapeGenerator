@@ -3,9 +3,12 @@ using System.Linq;
 using UnityEngine;
 using UnityEditor;
 using nadena.dev.ndmf.ui;
+using ARKitBlendShapeGenerator.Domain;
+using ARKitBlendShapeGenerator.Handler;
+using ARKitBlendShapeGenerator.Infra;
 using static ARKitBlendShapeGenerator.Localization;
 
-namespace ARKitBlendShapeGenerator
+namespace ARKitBlendShapeGenerator.Presentation
 {
     [CustomEditor(typeof(ARKitBlendShapeGeneratorComponent))]
     public class ARKitBlendShapeGeneratorEditor : Editor
@@ -1162,7 +1165,7 @@ namespace ARKitBlendShapeGenerator
             }
 
             var processedAutoNames = new HashSet<string>();
-            foreach (var mapping in BlendShapeProcessor.GetMappingTable())
+            foreach (var mapping in ARKitMappingTable.GetMappings())
             {
                 if (mapping == null || string.IsNullOrEmpty(mapping.arkitName) || mapping.sources == null)
                 {

@@ -3,7 +3,7 @@ using System.Linq;
 using UnityEngine;
 using static ARKitBlendShapeGenerator.Localization;
 
-namespace ARKitBlendShapeGenerator
+namespace ARKitBlendShapeGenerator.Domain
 {
     internal sealed class BlendShapeGenerationOptions
     {
@@ -144,11 +144,12 @@ namespace ARKitBlendShapeGenerator
         }
 
         public static BlendShapeGenerationResult Generate(
-            Mesh sourceMesh,
-            Mesh targetMesh,
+            IMeshRepository sourceMesh,
+            IMeshRepository targetMesh,
             List<CustomBlendShapeMapping> customMappings,
             List<ARKitMapping> autoMappings,
-            BlendShapeGenerationOptions options)
+            BlendShapeGenerationOptions options,
+            IGenerationLogger logger)
         {
             if (sourceMesh == null || targetMesh == null)
             {
@@ -174,15 +175,14 @@ namespace ARKitBlendShapeGenerator
 
             if (CustomMappingValidation.HasDuplicateArkitNames(customMappings, out var duplicateArkitNames))
             {
-                Debug.LogError(
-                    "[ARKitGenerator] " + S("log.duplicate_abort", string.Join(", ", duplicateArkitNames)));
+                logger?.Error(S("log.duplicate_abort", string.Join(", ", duplicateArkitNames)));
                 return new BlendShapeGenerationResult(
                     new List<string>(),
                     new Dictionary<string, int>());
             }
 
             var existingShapes = new Dictionary<string, int>();
-            for (int i = 0; i < sourceMesh.blendShapeCount; i++)
+            for (int i = 0; i < sourceMesh.BlendShapeCount; i++)
             {
                 existingShapes[sourceMesh.GetBlendShapeName(i)] = i;
             }
@@ -197,7 +197,8 @@ namespace ARKitBlendShapeGenerator
                 options,
                 existingShapes,
                 customMappedNames,
-                plannedBlendShapes);
+                plannedBlendShapes,
+                logger);
 
             CollectAutoMappings(
                 sourceMesh,
@@ -205,7 +206,8 @@ namespace ARKitBlendShapeGenerator
                 options,
                 existingShapes,
                 customMappedNames,
-                plannedBlendShapes);
+                plannedBlendShapes,
+                logger);
 
             if (options.OverwriteExisting && plannedBlendShapes.Count > 0)
             {
@@ -218,18 +220,25 @@ namespace ARKitBlendShapeGenerator
                     int removedCount = RemoveBlendShapesByNames(targetMesh, namesToReplace);
                     if (removedCount > 0)
                     {
-                        Log(options, $"Replaced existing blendshapes: {string.Join(", ", namesToReplace.OrderBy(name => name))}");
+                        Log(logger, options, $"Replaced existing blendshapes: {string.Join(", ", namesToReplace.OrderBy(name => name))}");
                     }
                 }
             }
 
-            var cancellation = BuildMouthCancellationDelta(sourceMesh, existingShapes, options);
+            var cancellation = BuildMouthCancellationDelta(sourceMesh, existingShapes, options, logger);
 
             foreach (var planned in plannedBlendShapes)
             {
-                if (TryAddBlendShape(sourceMesh, targetMesh, planned.ArkitName, planned.Sources, options, cancellation))
+                if (TryAddBlendShape(
+                        sourceMesh,
+                        targetMesh,
+                        planned.ArkitName,
+                        planned.Sources,
+                        options,
+                        cancellation,
+                        logger))
                 {
-                    existingShapes[planned.ArkitName] = targetMesh.blendShapeCount - 1;
+                    existingShapes[planned.ArkitName] = targetMesh.BlendShapeCount - 1;
                     generatedShapes.Add(planned.ArkitName);
                 }
             }
@@ -242,12 +251,13 @@ namespace ARKitBlendShapeGenerator
                     options,
                     customMappedNames,
                     generatedShapes,
-                    cancellation);
+                    cancellation,
+                    logger);
             }
 
             // 生成・削除後の最終状態からインデックスを再構築する
             var shapeIndices = new Dictionary<string, int>();
-            for (int i = 0; i < targetMesh.blendShapeCount; i++)
+            for (int i = 0; i < targetMesh.BlendShapeCount; i++)
             {
                 var shapeName = targetMesh.GetBlendShapeName(i);
                 if (!string.IsNullOrEmpty(shapeName))
@@ -264,9 +274,10 @@ namespace ARKitBlendShapeGenerator
         /// 対象や強度が未設定の場合はnull（打ち消しなし）。
         /// </summary>
         private static MouthCancellationDelta BuildMouthCancellationDelta(
-            Mesh sourceMesh,
+            IMeshRepository sourceMesh,
             Dictionary<string, int> existingShapes,
-            BlendShapeGenerationOptions options)
+            BlendShapeGenerationOptions options,
+            IGenerationLogger logger)
         {
             if (!options.EnableMouthCancellation)
             {
@@ -281,7 +292,7 @@ namespace ARKitBlendShapeGenerator
             var targets = options.MouthCancellationTargets;
             if (targets == null || targets.Count == 0)
             {
-                Log(options, "Skip cancellation (no target shape selected)");
+                Log(logger, options, "Skip cancellation (no target shape selected)");
                 return null;
             }
 
@@ -291,11 +302,11 @@ namespace ARKitBlendShapeGenerator
                 return null;
             }
 
-            int vertexCount = sourceMesh.vertexCount;
+            int vertexCount = sourceMesh.VertexCount;
             var deltaVertices = new Vector3[vertexCount];
             var deltaNormals = new Vector3[vertexCount];
             var deltaTangents = new Vector3[vertexCount];
-            var vertices = sourceMesh.vertices;
+            var vertices = sourceMesh.GetVertices();
             float blendWidth = Mathf.Max(0.0001f, options.BlendWidth);
             bool hasDelta = false;
 
@@ -308,7 +319,7 @@ namespace ARKitBlendShapeGenerator
 
                 if (!TryGetSourceIndex(existingShapes, sourceMesh, source.blendShapeName, out int srcIndex))
                 {
-                    Log(options, $"Warning: Cancellation source not found: {source.blendShapeName}");
+                    Log(logger, options, $"Warning: Cancellation source not found: {source.blendShapeName}");
                     continue;
                 }
 
@@ -359,11 +370,11 @@ namespace ARKitBlendShapeGenerator
 
             if (!hasDelta)
             {
-                Log(options, "Skip cancellation (no valid source)");
+                Log(logger, options, "Skip cancellation (no valid source)");
                 return null;
             }
 
-            Log(options, $"Cancellation targets: {string.Join(", ", targets.OrderBy(name => name))}");
+            Log(logger, options, $"Cancellation targets: {string.Join(", ", targets.OrderBy(name => name))}");
             return new MouthCancellationDelta(
                 deltaVertices,
                 deltaNormals,
@@ -376,7 +387,7 @@ namespace ARKitBlendShapeGenerator
         /// フレームを持たない場合はfalse。
         /// </summary>
         private static bool TryEvaluateBlendShapeAtWeight(
-            Mesh sourceMesh,
+            IMeshRepository sourceMesh,
             int shapeIndex,
             float targetWeight,
             Vector3[] deltaVertices,
@@ -403,7 +414,7 @@ namespace ARKitBlendShapeGenerator
             float upperWeight = sourceMesh.GetBlendShapeFrameWeight(shapeIndex, upperIndex);
             sourceMesh.GetBlendShapeFrameVertices(shapeIndex, upperIndex, deltaVertices, deltaNormals, deltaTangents);
 
-            int vertexCount = sourceMesh.vertexCount;
+            int vertexCount = sourceMesh.VertexCount;
 
             if (upperIndex == 0)
             {
@@ -448,16 +459,17 @@ namespace ARKitBlendShapeGenerator
         }
 
         private static void GenerateProceduralMouthShapes(
-            Mesh sourceMesh,
-            Mesh targetMesh,
+            IMeshRepository sourceMesh,
+            IMeshRepository targetMesh,
             BlendShapeGenerationOptions options,
             HashSet<string> customMappedNames,
             List<string> generatedShapes,
-            MouthCancellationDelta cancellation)
+            MouthCancellationDelta cancellation,
+            IGenerationLogger logger)
         {
-            if (sourceMesh.vertexCount != targetMesh.vertexCount)
+            if (sourceMesh.VertexCount != targetMesh.VertexCount)
             {
-                Log(options, "Skip procedural (vertex count mismatch)");
+                Log(logger, options, "Skip procedural (vertex count mismatch)");
                 return;
             }
 
@@ -478,7 +490,7 @@ namespace ARKitBlendShapeGenerator
                 // （ソース未検出等で生成に失敗した場合もフォールバックしない）
                 if (customMappedNames != null && customMappedNames.Contains(arkitName))
                 {
-                    Log(options, $"Skip procedural (custom defined): {arkitName}");
+                    Log(logger, options, $"Skip procedural (custom defined): {arkitName}");
                     continue;
                 }
 
@@ -486,7 +498,7 @@ namespace ARKitBlendShapeGenerator
                 {
                     if (!options.OverwriteExisting)
                     {
-                        Log(options, $"Skip procedural (exists): {arkitName}");
+                        Log(logger, options, $"Skip procedural (exists): {arkitName}");
                         continue;
                     }
 
@@ -503,7 +515,7 @@ namespace ARKitBlendShapeGenerator
 
             if (!ProceduralMouthShapeGenerator.TryCreateContext(sourceMesh, out var context))
             {
-                Log(options, "Skip procedural (mouth region not found)");
+                Log(logger, options, "Skip procedural (mouth region not found)");
                 return;
             }
 
@@ -531,7 +543,7 @@ namespace ARKitBlendShapeGenerator
                         deltaTangents[i] = cancellation.DeltaTangents[i];
                     }
 
-                    Log(options, $"Applied cancellation (procedural): {arkitName}");
+                    Log(logger, options, $"Applied cancellation (procedural): {arkitName}");
                 }
 
                 plannedDeltas.Add((arkitName, deltaVertices, deltaNormals, deltaTangents));
@@ -547,7 +559,7 @@ namespace ARKitBlendShapeGenerator
                 int removedCount = RemoveBlendShapesByNames(targetMesh, namesToReplace);
                 if (removedCount > 0)
                 {
-                    Log(options, $"Replaced existing blendshapes (procedural): {string.Join(", ", namesToReplace.OrderBy(name => name))}");
+                    Log(logger, options, $"Replaced existing blendshapes (procedural): {string.Join(", ", namesToReplace.OrderBy(name => name))}");
                 }
             }
 
@@ -560,17 +572,18 @@ namespace ARKitBlendShapeGenerator
                     deltaNormals,
                     deltaTangents);
                 generatedShapes.Add(arkitName);
-                Log(options, $"Generated (procedural): {arkitName}");
+                Log(logger, options, $"Generated (procedural): {arkitName}");
             }
         }
 
         private static void CollectCustomMappings(
-            Mesh sourceMesh,
+            IMeshRepository sourceMesh,
             List<CustomBlendShapeMapping> customMappings,
             BlendShapeGenerationOptions options,
             Dictionary<string, int> existingShapes,
             HashSet<string> customMappedNames,
-            List<PlannedBlendShape> plannedBlendShapes)
+            List<PlannedBlendShape> plannedBlendShapes,
+            IGenerationLogger logger)
         {
             foreach (var mapping in customMappings)
             {
@@ -588,7 +601,7 @@ namespace ARKitBlendShapeGenerator
 
                 if (existingShapes.ContainsKey(mapping.arkitName) && !options.OverwriteExisting)
                 {
-                    Log(options, $"Skip custom (exists): {mapping.arkitName}");
+                    Log(logger, options, $"Skip custom (exists): {mapping.arkitName}");
                     continue;
                 }
 
@@ -606,13 +619,13 @@ namespace ARKitBlendShapeGenerator
                     }
                     else
                     {
-                        Log(options, $"Warning: Source not found: {source.blendShapeName} for {mapping.arkitName}");
+                        Log(logger, options, $"Warning: Source not found: {source.blendShapeName} for {mapping.arkitName}");
                     }
                 }
 
                 if (sources.Count == 0)
                 {
-                    Log(options, $"Skip custom (no valid source): {mapping.arkitName}");
+                    Log(logger, options, $"Skip custom (no valid source): {mapping.arkitName}");
                     continue;
                 }
 
@@ -621,12 +634,13 @@ namespace ARKitBlendShapeGenerator
         }
 
         private static void CollectAutoMappings(
-            Mesh sourceMesh,
+            IMeshRepository sourceMesh,
             List<ARKitMapping> autoMappings,
             BlendShapeGenerationOptions options,
             Dictionary<string, int> existingShapes,
             HashSet<string> customMappedNames,
-            List<PlannedBlendShape> plannedBlendShapes)
+            List<PlannedBlendShape> plannedBlendShapes,
+            IGenerationLogger logger)
         {
             var processedArkitNames = new HashSet<string>();
 
@@ -639,26 +653,26 @@ namespace ARKitBlendShapeGenerator
 
                 if (customMappedNames.Contains(mapping.arkitName))
                 {
-                    Log(options, $"Skip auto (custom defined): {mapping.arkitName}");
+                    Log(logger, options, $"Skip auto (custom defined): {mapping.arkitName}");
                     continue;
                 }
 
                 if (processedArkitNames.Contains(mapping.arkitName))
                 {
-                    Log(options, $"Skip auto (already generated in this pass): {mapping.arkitName}");
+                    Log(logger, options, $"Skip auto (already generated in this pass): {mapping.arkitName}");
                     continue;
                 }
 
                 if (existingShapes.ContainsKey(mapping.arkitName) && !options.OverwriteExisting)
                 {
-                    Log(options, $"Skip auto (exists in source): {mapping.arkitName}");
+                    Log(logger, options, $"Skip auto (exists in source): {mapping.arkitName}");
                     continue;
                 }
 
                 var sources = FindAutoSources(mapping.sources, existingShapes, sourceMesh);
                 if (sources.Count == 0)
                 {
-                    Log(options, $"Skip auto (no source): {mapping.arkitName}");
+                    Log(logger, options, $"Skip auto (no source): {mapping.arkitName}");
                     continue;
                 }
 
@@ -673,7 +687,7 @@ namespace ARKitBlendShapeGenerator
         private static List<(int index, float weight)> FindAutoSources(
             List<SourceMapping> sourceMappings,
             Dictionary<string, int> existingShapes,
-            Mesh sourceMesh)
+            IMeshRepository sourceMesh)
         {
             var result = new List<(int index, float weight)>();
 
@@ -699,7 +713,7 @@ namespace ARKitBlendShapeGenerator
 
         private static bool TryGetSourceIndex(
             Dictionary<string, int> existingShapes,
-            Mesh sourceMesh,
+            IMeshRepository sourceMesh,
             string sourceName,
             out int srcIndex)
         {
@@ -714,7 +728,7 @@ namespace ARKitBlendShapeGenerator
                 return false;
             }
 
-            if (index < 0 || index >= sourceMesh.blendShapeCount)
+            if (index < 0 || index >= sourceMesh.BlendShapeCount)
             {
                 return false;
             }
@@ -724,25 +738,26 @@ namespace ARKitBlendShapeGenerator
         }
 
         private static bool TryAddBlendShape(
-            Mesh sourceMesh,
-            Mesh targetMesh,
+            IMeshRepository sourceMesh,
+            IMeshRepository targetMesh,
             string arkitName,
             List<(int index, float weight, BlendShapeSide side)> sources,
             BlendShapeGenerationOptions options,
-            MouthCancellationDelta cancellation)
+            MouthCancellationDelta cancellation,
+            IGenerationLogger logger)
         {
-            int vertexCount = sourceMesh.vertexCount;
+            int vertexCount = sourceMesh.VertexCount;
             var deltaVertices = new Vector3[vertexCount];
             var deltaNormals = new Vector3[vertexCount];
             var deltaTangents = new Vector3[vertexCount];
-            var vertices = sourceMesh.vertices;
+            var vertices = sourceMesh.GetVertices();
 
             int sourceCount = 0;
             float blendWidth = Mathf.Max(0.0001f, options.BlendWidth);
 
             foreach (var (index, weight, side) in sources)
             {
-                if (index < 0 || index >= sourceMesh.blendShapeCount)
+                if (index < 0 || index >= sourceMesh.BlendShapeCount)
                 {
                     continue;
                 }
@@ -796,11 +811,11 @@ namespace ARKitBlendShapeGenerator
                     deltaTangents[i] += cancellation.DeltaTangents[i];
                 }
 
-                Log(options, $"Applied cancellation: {arkitName}");
+                Log(logger, options, $"Applied cancellation: {arkitName}");
             }
 
             targetMesh.AddBlendShapeFrame(arkitName, 100f, deltaVertices, deltaNormals, deltaTangents);
-            Log(options, $"Generated: {arkitName} from {sourceCount} source(s)");
+            Log(logger, options, $"Generated: {arkitName} from {sourceCount} source(s)");
             return true;
         }
 
@@ -842,7 +857,7 @@ namespace ARKitBlendShapeGenerator
             return 1.0f;
         }
 
-        private static HashSet<string> GetExistingBlendShapeNames(Mesh mesh)
+        private static HashSet<string> GetExistingBlendShapeNames(IMeshRepository mesh)
         {
             var result = new HashSet<string>();
             if (mesh == null)
@@ -850,7 +865,7 @@ namespace ARKitBlendShapeGenerator
                 return result;
             }
 
-            for (int i = 0; i < mesh.blendShapeCount; i++)
+            for (int i = 0; i < mesh.BlendShapeCount; i++)
             {
                 var shapeName = mesh.GetBlendShapeName(i);
                 if (!string.IsNullOrEmpty(shapeName))
@@ -862,20 +877,20 @@ namespace ARKitBlendShapeGenerator
             return result;
         }
 
-        private static int RemoveBlendShapesByNames(Mesh mesh, HashSet<string> shapeNamesToRemove)
+        private static int RemoveBlendShapesByNames(IMeshRepository mesh, HashSet<string> shapeNamesToRemove)
         {
             if (mesh == null || shapeNamesToRemove == null || shapeNamesToRemove.Count == 0)
             {
                 return 0;
             }
 
-            int blendShapeCount = mesh.blendShapeCount;
+            int blendShapeCount = mesh.BlendShapeCount;
             if (blendShapeCount == 0)
             {
                 return 0;
             }
 
-            int vertexCount = mesh.vertexCount;
+            int vertexCount = mesh.VertexCount;
             int removedCount = 0;
             var preserved = new List<BlendShapeData>(blendShapeCount);
 
@@ -941,11 +956,11 @@ namespace ARKitBlendShapeGenerator
             return removedCount;
         }
 
-        private static void Log(BlendShapeGenerationOptions options, string message)
+        private static void Log(IGenerationLogger logger, BlendShapeGenerationOptions options, string message)
         {
-            if (options != null && options.Debug)
+            if (logger != null && options != null && options.Debug)
             {
-                Debug.Log($"[ARKitGenerator] {message}");
+                logger.Debug(message);
             }
         }
     }
