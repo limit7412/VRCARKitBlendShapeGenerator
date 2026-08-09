@@ -47,6 +47,8 @@ Jerry's Templatesと組み合わせて使用することで、フェイストラ
 | **Overwrite Existing** | 既存のARKit BlendShapeを上書きする |
 | **Enable Procedural Mouth Shapes** | 既存シェイプキーから生成できない口周りのBlendShapeを頂点移動で自動生成する（デフォルト: 無効） |
 | **Procedural Mouth Intensity** | 手続き的生成の変形量係数（0.1〜2.0） |
+| **Enable Mouth Cancellation** | 生成した口関連BlendShapeに、指定したBlendShapeの打ち消し成分を焼き込む（デフォルト: 無効） |
+| **Mouth Cancellation Strength** | 打ち消し量の全体係数（0.0〜1.0） |
 | **Custom Mappings** | 自動マッピングできないBlendShapeを手動で指定 |
 | **Debug Mode** | デバッグログを出力する |
 
@@ -90,6 +92,21 @@ VRChat/MMDの標準的なBlendShape名（vrc.blink, まばたき, あ, い, う�
 - mouthUpperUpLeft/Right, mouthLowerDownLeft/Right
 
 シェイプキーから生成できた場合はそちらが優先され、手続き的生成はフォールバックとして動作します。デフォルトでは無効です。変形量は `Procedural Mouth Intensity` で調整できます。変形は口の前面（唇側）が最も大きく、奥の頂点ほど減衰するため、単純な平行移動よりも自然な動きになります。
+
+### 口の打ち消し
+
+`Enable Mouth Cancellation` を有効にすると、生成した口関連BlendShapeに、指定したBlendShapeの変形を打ち消す成分（逆方向のデルタ）を焼き込みます。
+口角調整などのBlendShapeを常時適用しているアバターで、その変形とフェイストラッキングによる口の動きが二重に適用されるのを防ぐ用途を想定しています。
+
+**生成元のBlendShapeの側で既に修正済み（打ち消したい変形を含まない形で作られている）の場合、この設定は不要です。**
+
+設定手順:
+
+1. `Enable Mouth Cancellation` を有効化
+2. 「打ち消すBlendShape」に対象のBlendShapeを追加し、重みにアバター側での適用量を指定（1.0 = ウェイト100）
+3. 「焼き込み先のARKit BlendShape」で、打ち消しを入れるARKit名を選択（デフォルト: `jawOpen`）
+
+BlendShapeは線形合成されるため、焼き込み先を複数選ぶと、それらが同時に適用されたときに打ち消しが重なって対象の変形を通り越し、逆向きに変形します。焼き込み先は必要最小限（多くの場合は `jawOpen` のみ）に絞ってください。打ち消し量は `Mouth Cancellation Strength` で弱めることもできます。
 
 ## ライセンス
 

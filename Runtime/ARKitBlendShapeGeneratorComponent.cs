@@ -47,6 +47,20 @@ namespace ARKitBlendShapeGenerator
         [Range(0.1f, 2.0f)]
         public float proceduralMouthIntensity = 1.0f;
 
+        [Header("Mouth Cancellation")]
+        [Tooltip("Bake a cancelling deformation (inverted delta) of the specified blend shapes into the generated mouth blend shapes")]
+        public bool enableMouthCancellation = false;
+
+        [Tooltip("Blend shapes to cancel out. Weight represents how strongly each one is applied on the avatar (1.0 = 100)")]
+        public List<BlendShapeSource> mouthCancellationSources = new List<BlendShapeSource>();
+
+        [Tooltip("Overall strength of the cancellation")]
+        [Range(0f, 1f)]
+        public float mouthCancellationStrength = 1.0f;
+
+        [Tooltip("ARKit mouth blend shapes the cancellation is baked into")]
+        public List<string> mouthCancellationTargets = new List<string> { "jawOpen" };
+
         [Header("Custom Mappings")]
         [Tooltip("Manually specify blend shapes that cannot be mapped automatically")]
         public List<CustomBlendShapeMapping> customMappings = new List<CustomBlendShapeMapping>();

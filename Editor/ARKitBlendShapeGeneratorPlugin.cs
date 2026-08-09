@@ -106,14 +106,8 @@ namespace ARKitBlendShapeGenerator
 
             var generator = new BlendShapeProcessor(
                 renderer,
-                component.intensityMultiplier,
-                component.enableLeftRightSplit,
-                component.blendWidth,
-                component.overwriteExisting,
                 component.customMappings,
-                component.debugMode,
-                component.enableProceduralMouthShapes,
-                component.proceduralMouthIntensity
+                BlendShapeGenerationOptions.FromComponent(component)
             );
 
             generator.Process();
@@ -128,14 +122,9 @@ namespace ARKitBlendShapeGenerator
         private readonly SkinnedMeshRenderer _renderer;
         private readonly Mesh _mesh;
         private readonly Mesh _originalMesh;  // 元のメッシュ（BlendShapeデータ取得用）
-        private readonly float _intensity;
-        private readonly bool _enableSplit;
-        private readonly float _blendWidth;
-        private readonly bool _overwrite;
         private readonly List<CustomBlendShapeMapping> _customMappings;
+        private readonly BlendShapeGenerationOptions _options;
         private readonly bool _debug;
-        private readonly bool _enableProceduralMouthShapes;
-        private readonly float _proceduralMouthIntensity;
 
         private List<string> _generatedShapes = new List<string>();
 
@@ -149,18 +138,30 @@ namespace ARKitBlendShapeGenerator
             bool debug,
             bool enableProceduralMouthShapes = false,
             float proceduralMouthIntensity = 1.0f)
+            : this(renderer, customMappings, new BlendShapeGenerationOptions
+            {
+                IntensityMultiplier = intensity,
+                EnableLeftRightSplit = enableSplit,
+                BlendWidth = blendWidth,
+                OverwriteExisting = overwrite,
+                EnableProceduralMouthShapes = enableProceduralMouthShapes,
+                ProceduralMouthIntensity = proceduralMouthIntensity,
+                Debug = debug
+            })
+        {
+        }
+
+        internal BlendShapeProcessor(
+            SkinnedMeshRenderer renderer,
+            List<CustomBlendShapeMapping> customMappings,
+            BlendShapeGenerationOptions options)
         {
             _renderer = renderer;
             _originalMesh = renderer.sharedMesh;  // 元のメッシュを保持
             _mesh = UnityEngine.Object.Instantiate(renderer.sharedMesh);
-            _intensity = intensity;
-            _enableSplit = enableSplit;
-            _blendWidth = blendWidth;
-            _overwrite = overwrite;
             _customMappings = customMappings ?? new List<CustomBlendShapeMapping>();
-            _debug = debug;
-            _enableProceduralMouthShapes = enableProceduralMouthShapes;
-            _proceduralMouthIntensity = proceduralMouthIntensity;
+            _options = options ?? new BlendShapeGenerationOptions();
+            _debug = _options.Debug;
         }
 
         public void Process()
@@ -173,16 +174,7 @@ namespace ARKitBlendShapeGenerator
                 _mesh,
                 _customMappings,
                 GetMappingTable(),
-                new BlendShapeGenerationOptions
-                {
-                    IntensityMultiplier = _intensity,
-                    EnableLeftRightSplit = _enableSplit,
-                    BlendWidth = _blendWidth,
-                    OverwriteExisting = _overwrite,
-                    EnableProceduralMouthShapes = _enableProceduralMouthShapes,
-                    ProceduralMouthIntensity = _proceduralMouthIntensity,
-                    Debug = _debug
-                });
+                _options);
             _generatedShapes = result.GeneratedShapes.ToList();
 
             // メッシュを適用
