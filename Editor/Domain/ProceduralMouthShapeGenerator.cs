@@ -118,10 +118,10 @@ namespace ARKitBlendShapeGenerator.Domain
         /// <summary>
         /// 口領域を検出してコンテキストを作成する。検出できない場合はfalse。
         /// </summary>
-        public static bool TryCreateContext(Mesh sourceMesh, out MouthRegionContext context)
+        public static bool TryCreateContext(IMeshRepository sourceMesh, out MouthRegionContext context)
         {
             context = null;
-            if (sourceMesh == null || sourceMesh.vertexCount == 0)
+            if (sourceMesh == null || sourceMesh.VertexCount == 0)
             {
                 return false;
             }
@@ -132,7 +132,7 @@ namespace ARKitBlendShapeGenerator.Domain
                 return false;
             }
 
-            int vertexCount = sourceMesh.vertexCount;
+            int vertexCount = sourceMesh.VertexCount;
             var maxDeltas = new float[vertexCount];
             var deltaVertices = new Vector3[vertexCount];
 
@@ -187,7 +187,7 @@ namespace ARKitBlendShapeGenerator.Domain
                 weights[i] = t * t * (3f - 2f * t);
             }
 
-            var vertices = sourceMesh.vertices;
+            var vertices = sourceMesh.GetVertices();
             bool hasCore = false;
             var min = Vector3.positiveInfinity;
             var max = Vector3.negativeInfinity;
@@ -379,10 +379,10 @@ namespace ARKitBlendShapeGenerator.Domain
             return true;
         }
 
-        private static List<int> FindMouthSourceIndices(Mesh sourceMesh)
+        private static List<int> FindMouthSourceIndices(IMeshRepository sourceMesh)
         {
             var nameToIndex = new Dictionary<string, int>();
-            for (int i = 0; i < sourceMesh.blendShapeCount; i++)
+            for (int i = 0; i < sourceMesh.BlendShapeCount; i++)
             {
                 var shapeName = sourceMesh.GetBlendShapeName(i);
                 if (!string.IsNullOrEmpty(shapeName) && !nameToIndex.ContainsKey(shapeName))

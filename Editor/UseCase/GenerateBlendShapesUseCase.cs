@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 using ARKitBlendShapeGenerator.Domain;
+using ARKitBlendShapeGenerator.Infra;
 using static ARKitBlendShapeGenerator.Localization;
 
 namespace ARKitBlendShapeGenerator.UseCase
@@ -112,6 +113,7 @@ namespace ARKitBlendShapeGenerator.UseCase
         /// <summary>
         /// sourceMeshのBlendShapeを元に、targetMeshへARKit BlendShapeを生成する
         /// （プレビューはこのメソッドを直接使用してプロキシメッシュへ生成する）
+        /// Infra実装（UnityMeshRepository / UnityDebugLogger）の組み立てはここで行う
         /// </summary>
         public static BlendShapeGenerationResult GenerateInto(
             Mesh sourceMesh,
@@ -119,12 +121,20 @@ namespace ARKitBlendShapeGenerator.UseCase
             List<CustomBlendShapeMapping> customMappings,
             BlendShapeGenerationOptions options)
         {
+            if (sourceMesh == null || targetMesh == null)
+            {
+                return new BlendShapeGenerationResult(
+                    new List<string>(),
+                    new Dictionary<string, int>());
+            }
+
             return BlendShapeGenerationEngine.Generate(
-                sourceMesh,
-                targetMesh,
+                new UnityMeshRepository(sourceMesh),
+                new UnityMeshRepository(targetMesh),
                 customMappings,
                 ARKitMappingTable.GetMappings(),
-                options);
+                options,
+                UnityDebugLogger.Instance);
         }
     }
 }
