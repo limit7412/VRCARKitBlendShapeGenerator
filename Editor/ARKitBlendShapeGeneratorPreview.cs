@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using nadena.dev.ndmf;
 using nadena.dev.ndmf.preview;
 using UnityEngine;
+using ARKitBlendShapeGenerator.Domain;
 using static ARKitBlendShapeGenerator.Localization;
 
 namespace ARKitBlendShapeGenerator
@@ -210,7 +211,7 @@ namespace ARKitBlendShapeGenerator
                     sourceMesh,
                     _generatedMesh,
                     customMappings,
-                    BlendShapeProcessor.GetMappingTable(),
+                    ARKitMappingTable.GetMappings(),
                     options);
 
                 CacheShapeIndices(_generatedMesh);

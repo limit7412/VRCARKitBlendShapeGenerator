@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
+using ARKitBlendShapeGenerator.Domain;
 using static ARKitBlendShapeGenerator.Localization;
 
 namespace ARKitBlendShapeGenerator
