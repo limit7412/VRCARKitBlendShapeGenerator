@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-namespace ARKitBlendShapeGenerator
+namespace ARKitBlendShapeGenerator.Domain
 {
     /// <summary>
     /// 既存シェイプキーの変形データに依存せず、頂点の平行移動で

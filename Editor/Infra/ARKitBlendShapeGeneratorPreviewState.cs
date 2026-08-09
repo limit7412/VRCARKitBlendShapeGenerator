@@ -3,7 +3,7 @@ using System.Linq;
 using nadena.dev.ndmf.preview;
 using UnityEngine;
 
-namespace ARKitBlendShapeGenerator
+namespace ARKitBlendShapeGenerator.Infra
 {
     internal static class ARKitBlendShapeGeneratorPreviewState
     {

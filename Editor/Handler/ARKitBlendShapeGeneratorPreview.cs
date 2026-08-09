@@ -6,9 +6,11 @@ using nadena.dev.ndmf;
 using nadena.dev.ndmf.preview;
 using UnityEngine;
 using ARKitBlendShapeGenerator.Domain;
+using ARKitBlendShapeGenerator.Infra;
+using ARKitBlendShapeGenerator.UseCase;
 using static ARKitBlendShapeGenerator.Localization;
 
-namespace ARKitBlendShapeGenerator
+namespace ARKitBlendShapeGenerator.Handler
 {
     /// <summary>
     /// NDMFプレビューシステム統合
@@ -49,7 +51,7 @@ namespace ARKitBlendShapeGenerator
                 .GetComponentsInChildren<ARKitBlendShapeGeneratorComponent>(avatarRoot, true)
                 .Where(c => c != null)
                 .ToArray();
-            var component = SelectPrimaryComponent(avatarRoot, components);
+            var component = GenerateBlendShapesUseCase.SelectPrimaryComponent(avatarRoot, components);
 
             if (component != null)
             {
@@ -68,24 +70,6 @@ namespace ARKitBlendShapeGenerator
                     yield return RenderGroup.For(renderer).WithData(component);
                 }
             }
-        }
-
-        private static ARKitBlendShapeGeneratorComponent SelectPrimaryComponent(
-            GameObject avatarRoot,
-            ARKitBlendShapeGeneratorComponent[] components)
-        {
-            if (components == null || components.Length == 0)
-            {
-                return null;
-            }
-
-            var onRoot = components.FirstOrDefault(c => c != null && c.gameObject == avatarRoot);
-            if (onRoot != null)
-            {
-                return onRoot;
-            }
-
-            return components[0];
         }
 
         public Task<IRenderFilterNode> Instantiate(
@@ -207,14 +191,13 @@ namespace ARKitBlendShapeGenerator
                     ? BlendShapeGenerationOptions.FromComponent(component)
                     : new BlendShapeGenerationOptions();
 
-                BlendShapeGenerationEngine.Generate(
+                var result = GenerateBlendShapesUseCase.GenerateInto(
                     sourceMesh,
                     _generatedMesh,
                     customMappings,
-                    ARKitMappingTable.GetMappings(),
                     options);
 
-                CacheShapeIndices(_generatedMesh);
+                CacheShapeIndices(result);
                 proxyRenderer.sharedMesh = _generatedMesh;
             }
 
@@ -349,24 +332,18 @@ namespace ARKitBlendShapeGenerator
                 _nextAppliedInteractiveIndices = swap;
             }
 
-            private void CacheShapeIndices(Mesh mesh)
+            private void CacheShapeIndices(BlendShapeGenerationResult result)
             {
                 _shapeIndices.Clear();
-                if (mesh == null)
+                if (result == null)
                 {
                     return;
                 }
 
-                for (int i = 0; i < mesh.blendShapeCount; i++)
+                // 生成結果のインデックス表（同名は後勝ちで最新indexが入っている）をそのまま使う
+                foreach (var kvp in result.ShapeIndices)
                 {
-                    string shapeName = mesh.GetBlendShapeName(i);
-                    if (string.IsNullOrEmpty(shapeName))
-                    {
-                        continue;
-                    }
-
-                    // 同名がある場合は後勝ちにして、overwriteExistingで再生成された最新indexを使う。
-                    _shapeIndices[shapeName] = i;
+                    _shapeIndices[kvp.Key] = kvp.Value;
                 }
             }
 

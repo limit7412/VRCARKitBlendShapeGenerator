@@ -2,7 +2,7 @@ using System.Collections.Generic;
 using System.Linq;
 using static ARKitBlendShapeGenerator.Localization;
 
-namespace ARKitBlendShapeGenerator
+namespace ARKitBlendShapeGenerator.Domain
 {
     internal static class CustomMappingValidation
     {

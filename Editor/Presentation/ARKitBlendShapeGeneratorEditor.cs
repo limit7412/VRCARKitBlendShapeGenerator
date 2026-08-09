@@ -4,9 +4,11 @@ using UnityEngine;
 using UnityEditor;
 using nadena.dev.ndmf.ui;
 using ARKitBlendShapeGenerator.Domain;
+using ARKitBlendShapeGenerator.Handler;
+using ARKitBlendShapeGenerator.Infra;
 using static ARKitBlendShapeGenerator.Localization;
 
-namespace ARKitBlendShapeGenerator
+namespace ARKitBlendShapeGenerator.Presentation
 {
     [CustomEditor(typeof(ARKitBlendShapeGeneratorComponent))]
     public class ARKitBlendShapeGeneratorEditor : Editor
