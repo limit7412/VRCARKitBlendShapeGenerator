@@ -65,9 +65,11 @@ Jerry's Templatesと組み合わせて使用することで、フェイストラ
 
 NDMFのプレビュー機能を使用して、生成結果をリアルタイムで確認できます。
 
-1. Unityメニュー > Tools > NDMFを開く
+1. Unityメニュー > Tools > NDM Framework > Configure Previews を開く
 2. 「Kx VRC ARKit BlendShape Generator」のプレビューを有効化
 3. 生成されるBlendShapeをシーンビューで確認
+
+コンポーネントのインスペクタにある「NDMF Preview」のON/OFFボタンからも同じ設定を切り替えられます。
 
 ## 対応BlendShape
 
