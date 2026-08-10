@@ -14,13 +14,14 @@ namespace ARKitBlendShapeGenerator.Handler
 {
     /// <summary>
     /// NDMFプレビューシステム統合
-    /// Tools > NDMf > Preview でON/OFFを切り替え可能
+    /// Tools > NDM Framework > Configure Previews、または
+    /// コンポーネントのインスペクタ上のトグルでON/OFFを切り替え可能
     /// </summary>
     public class ARKitBlendShapeGeneratorPreview : IRenderFilter
     {
         /// <summary>
         /// プレビューのON/OFFを制御するノード
-        /// NDMFのPreviewメニューに表示される
+        /// NDMFのConfigure Previewsウィンドウに表示される
         /// </summary>
         public static readonly TogglablePreviewNode EnableNode = TogglablePreviewNode.Create(
             () => "ARKit BlendShape Generator",
