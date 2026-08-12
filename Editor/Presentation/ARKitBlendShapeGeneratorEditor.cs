@@ -44,6 +44,9 @@ namespace ARKitBlendShapeGenerator.Presentation
         // 検索
         private string _searchFilter = "";
 
+        // マッピング行チェックボックスの幅
+        private const float MappingToggleWidth = 20f;
+
         // 名前選択ドロップダウンの状態（キーはSerializedPropertyのパス = 行ごとに保持する）
         private readonly Dictionary<string, AdvancedDropdownState> _dropdownStates =
             new Dictionary<string, AdvancedDropdownState>();
@@ -532,7 +535,11 @@ namespace ARKitBlendShapeGenerator.Presentation
             // ヘッダー行
             EditorGUILayout.BeginHorizontal();
 
-            bool newEnabled = EditorGUILayout.Toggle(enabledProperty.boolValue, GUILayout.Width(20));
+            int outerIndentLevel = EditorGUI.indentLevel;
+            EditorGUI.indentLevel = 0;
+
+            bool newEnabled = EditorGUILayout.Toggle(
+                enabledProperty.boolValue, GUILayout.Width(MappingToggleWidth));
             if (newEnabled != enabledProperty.boolValue)
             {
                 enabledProperty.boolValue = newEnabled;
@@ -557,6 +564,7 @@ namespace ARKitBlendShapeGenerator.Presentation
                 removed = true;
             }
 
+            EditorGUI.indentLevel = outerIndentLevel;
             EditorGUILayout.EndHorizontal();
 
             if (removed)
@@ -565,16 +573,14 @@ namespace ARKitBlendShapeGenerator.Presentation
                 return false;
             }
 
-            // ソースBlendShape
-            EditorGUI.indentLevel++;
+            // ソースBlendShape（ドロップダウンの左端をヘッダー行のARKit名に揃える）
             for (int j = 0; j < sourcesProperty.arraySize; j++)
             {
-                if (!DrawSourceItem(sourcesProperty, j))
+                if (!DrawSourceItem(sourcesProperty, j, MappingToggleWidth))
                 {
                     break;
                 }
             }
-            EditorGUI.indentLevel--;
 
             EditorGUILayout.EndVertical();
             return true;
@@ -583,7 +589,10 @@ namespace ARKitBlendShapeGenerator.Presentation
         /// <summary>
         /// ソースBlendShape1件を描画する。要素を削除した場合はfalse（呼び出し元は列挙を打ち切る）
         /// </summary>
-        private bool DrawSourceItem(SerializedProperty sourcesProperty, int sourceIndex)
+        private bool DrawSourceItem(
+            SerializedProperty sourcesProperty,
+            int sourceIndex,
+            float leadingSpace = 0f)
         {
             var sourceProperty = sourcesProperty.GetArrayElementAtIndex(sourceIndex);
             var blendShapeNameProperty = sourceProperty.FindPropertyRelative("blendShapeName");
@@ -591,6 +600,14 @@ namespace ARKitBlendShapeGenerator.Presentation
             var sideProperty = sourceProperty.FindPropertyRelative("side");
 
             EditorGUILayout.BeginHorizontal();
+
+            int outerIndentLevel = EditorGUI.indentLevel;
+            EditorGUI.indentLevel = 0;
+
+            if (leadingSpace > 0f)
+            {
+                GUILayout.Space(leadingSpace);
+            }
 
             // BlendShape名の選択
             if (_availableBlendShapes.Count > 0)
@@ -636,6 +653,8 @@ namespace ARKitBlendShapeGenerator.Presentation
                 removed = true;
             }
 
+            EditorGUI.indentLevel = outerIndentLevel;
+
             EditorGUILayout.EndHorizontal();
             return !removed;
         }
@@ -647,10 +666,14 @@ namespace ARKitBlendShapeGenerator.Presentation
         {
             var content = new GUIContent(label, label);
 
-            buttonRect = EditorGUI.IndentedRect(
-                EditorGUILayout.GetControlRect(false, EditorGUIUtility.singleLineHeight, EditorStyles.popup));
+            if (!EditorGUILayout.DropdownButton(content, FocusType.Keyboard, EditorStyles.popup))
+            {
+                buttonRect = Rect.zero;
+                return false;
+            }
 
-            return EditorGUI.DropdownButton(buttonRect, content, FocusType.Keyboard, EditorStyles.popup);
+            buttonRect = GUILayoutUtility.GetLastRect();
+            return true;
         }
 
         private void ShowBlendShapeDropdown(Rect buttonRect, SerializedProperty blendShapeNameProperty)
@@ -667,7 +690,7 @@ namespace ARKitBlendShapeGenerator.Presentation
                 isMissing ? currentValue : null,
                 CreateSelectionCallback(blendShapeNameProperty));
 
-            dropdown.Show(buttonRect);
+            dropdown.Open(buttonRect);
         }
 
         private void ShowArkitNameDropdown(
@@ -682,7 +705,7 @@ namespace ARKitBlendShapeGenerator.Presentation
                 GetArkitNamesUsedByOtherMappings(customMappingsProperty, mappingIndex),
                 CreateSelectionCallback(arkitNameProperty));
 
-            dropdown.Show(buttonRect);
+            dropdown.Open(buttonRect);
         }
 
         private AdvancedDropdownState GetDropdownState(SerializedProperty property)
