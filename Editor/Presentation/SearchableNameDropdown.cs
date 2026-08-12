@@ -1,5 +1,4 @@
 using System;
-using System.Reflection;
 using UnityEditor;
 using UnityEditor.IMGUI.Controls;
 using UnityEngine;
@@ -18,28 +17,8 @@ namespace ARKitBlendShapeGenerator.Presentation
             }
         }
 
-        // 内部のcloseOnSelectionを無効化し閉じる処理を独自に行う
-        private const BindingFlags MemberFlags =
-            BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public;
-
-        private static readonly FieldInfo WindowInstanceField =
-            typeof(AdvancedDropdown).GetField("m_WindowInstance", MemberFlags);
-
-        // 項目数に応じて変化するサイズの上限を設定
-        private static readonly PropertyInfo MaximumSizeProperty =
-            typeof(AdvancedDropdown).GetProperty("maximumSize", MemberFlags);
-
         // EditorWindow.maxSizeの既定値を設定
         private static readonly Vector2 MaximumWindowSize = new Vector2(4000f, 400f);
-
-        // 現在値の項目を開いた時点でハイライトする
-        private static readonly MethodInfo SetSelectedIndexMethod =
-            typeof(AdvancedDropdownState).GetMethod(
-                "SetSelectedIndex",
-                MemberFlags,
-                null,
-                new[] { typeof(AdvancedDropdownItem), typeof(int) },
-                null);
 
         private readonly AdvancedDropdownState _state;
         private readonly Action<string> _onSelected;
@@ -60,19 +39,7 @@ namespace ARKitBlendShapeGenerator.Presentation
             CurrentValue = currentValue;
             minimumSize = new Vector2(240f, 0f);
 
-            TrySetMaximumSize();
-        }
-
-        private void TrySetMaximumSize()
-        {
-            if (MaximumSizeProperty == null ||
-                !MaximumSizeProperty.CanWrite ||
-                MaximumSizeProperty.PropertyType != typeof(Vector2))
-            {
-                return;
-            }
-
-            MaximumSizeProperty.SetValue(this, MaximumWindowSize);
+            AdvancedDropdownReflection.TrySetMaximumSize(this, MaximumWindowSize);
         }
 
         public void Open(Rect buttonRect)
@@ -80,12 +47,20 @@ namespace ARKitBlendShapeGenerator.Presentation
             TrySelectCurrentValue();
 
             Show(buttonRect);
-            TryTakeOverSelectionHandling();
+            if (AdvancedDropdownReflection.TryOverrideSelectionHandling(
+                    this,
+                    OnWindowSelectionChanged,
+                    out var window))
+            {
+                _window = window;
+            }
         }
 
         private void TrySelectCurrentValue()
         {
-            if (SetSelectedIndexMethod == null || _state == null || string.IsNullOrEmpty(CurrentValue))
+            if (_state == null ||
+                string.IsNullOrEmpty(CurrentValue) ||
+                !AdvancedDropdownReflection.CanSetSelectedIndex)
             {
                 return;
             }
@@ -96,7 +71,7 @@ namespace ARKitBlendShapeGenerator.Presentation
             {
                 return;
             }
-            SetSelectedIndexMethod.Invoke(_state, new object[] { root, index });
+            AdvancedDropdownReflection.TrySetSelectedIndex(_state, root, index);
         }
 
         private static int IndexOfValue(AdvancedDropdownItem root, string value)
@@ -121,7 +96,7 @@ namespace ARKitBlendShapeGenerator.Presentation
         }
 
         /// <summary>
-        /// TryTakeOverSelectionHandling失敗時のフォールバック
+        /// 内部選択処理の引き継ぎに失敗した場合のフォールバック
         /// </summary>
         protected override void ItemSelected(AdvancedDropdownItem item)
         {
@@ -141,34 +116,6 @@ namespace ARKitBlendShapeGenerator.Presentation
 
             value = null;
             return false;
-        }
-
-        private void TryTakeOverSelectionHandling()
-        {
-            if (!(WindowInstanceField?.GetValue(this) is EditorWindow window))
-            {
-                return;
-            }
-
-            var windowType = window.GetType();
-            var closeOnSelection = windowType.GetProperty("closeOnSelection", MemberFlags);
-            var selectionChanged = windowType.GetEvent("selectionChanged", MemberFlags);
-
-            // プロパティ不一致時のフォールバック
-            if (closeOnSelection == null ||
-                !closeOnSelection.CanWrite ||
-                closeOnSelection.PropertyType != typeof(bool) ||
-                selectionChanged == null ||
-                selectionChanged.EventHandlerType != typeof(Action<AdvancedDropdownItem>))
-            {
-                return;
-            }
-
-            _window = window;
-            closeOnSelection.SetValue(window, false);
-            selectionChanged.AddEventHandler(
-                window,
-                new Action<AdvancedDropdownItem>(OnWindowSelectionChanged));
         }
 
         private void OnWindowSelectionChanged(AdvancedDropdownItem item)
