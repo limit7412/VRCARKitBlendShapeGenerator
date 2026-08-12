@@ -25,6 +25,13 @@ namespace ARKitBlendShapeGenerator.Presentation
         private static readonly FieldInfo WindowInstanceField =
             typeof(AdvancedDropdown).GetField("m_WindowInstance", MemberFlags);
 
+        // 項目数に応じて変化するサイズの上限を設定
+        private static readonly PropertyInfo MaximumSizeProperty =
+            typeof(AdvancedDropdown).GetProperty("maximumSize", MemberFlags);
+
+        // EditorWindow.maxSizeの既定値を設定
+        private static readonly Vector2 MaximumWindowSize = new Vector2(4000f, 400f);
+
         private readonly Action<string> _onSelected;
         private EditorWindow _window;
 
@@ -32,6 +39,20 @@ namespace ARKitBlendShapeGenerator.Presentation
         {
             _onSelected = onSelected;
             minimumSize = new Vector2(240f, 0f);
+
+            TrySetMaximumSize();
+        }
+
+        private void TrySetMaximumSize()
+        {
+            if (MaximumSizeProperty == null ||
+                !MaximumSizeProperty.CanWrite ||
+                MaximumSizeProperty.PropertyType != typeof(Vector2))
+            {
+                return;
+            }
+
+            MaximumSizeProperty.SetValue(this, MaximumWindowSize);
         }
 
         public void Open(Rect buttonRect)
