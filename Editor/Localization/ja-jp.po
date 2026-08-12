@@ -164,8 +164,14 @@ msgstr "マッピング: {0}/{1} 有効"
 msgid "custom_mappings.none_matching"
 msgstr "該当するマッピングはありません。"
 
-msgid "custom_mappings.no_available_names"
-msgstr "(利用可能なARKit名なし)"
+msgid "arkit_name.dropdown.title"
+msgstr "ARKit BlendShapeを選択"
+
+msgid "arkit_name.placeholder"
+msgstr "(選択してください)"
+
+msgid "arkit_name.used_suffix"
+msgstr " (使用済み)"
 
 msgid "presets.label"
 msgstr "プリセット"
@@ -214,6 +220,9 @@ msgstr "(選択してください)"
 
 msgid "source.not_found_suffix"
 msgstr " (未検出)"
+
+msgid "source.dropdown.title"
+msgstr "BlendShapeを選択"
 
 msgid "enum.side.both"
 msgstr "両側"
