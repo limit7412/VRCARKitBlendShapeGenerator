@@ -186,10 +186,15 @@ namespace ARKitBlendShapeGenerator.Domain
                     new Dictionary<string, int>());
             }
 
+            // 空名シェイプは生成対象にも照合キーにもしない（キー""での偶発的な一致を避ける）
             var existingShapes = new Dictionary<string, int>();
             for (int i = 0; i < sourceMesh.BlendShapeCount; i++)
             {
-                existingShapes[sourceMesh.GetBlendShapeName(i)] = i;
+                var existingName = sourceMesh.GetBlendShapeName(i);
+                if (!string.IsNullOrEmpty(existingName))
+                {
+                    existingShapes[existingName] = i;
+                }
             }
 
             var generatedShapes = new List<string>();
@@ -261,6 +266,8 @@ namespace ARKitBlendShapeGenerator.Domain
             }
 
             // 生成・削除後の最終状態からインデックスを再構築する
+            // 空名シェイプは名前で引けないためエントリを持たないが、iは実メッシュ上の位置のままなので
+            // 非空シェイプのインデックスは常に実体と一致する
             var shapeIndices = new Dictionary<string, int>();
             for (int i = 0; i < targetMesh.BlendShapeCount; i++)
             {
@@ -864,6 +871,10 @@ namespace ARKitBlendShapeGenerator.Domain
             return 1.0f;
         }
 
+        /// <summary>
+        /// メッシュ上の既存BlendShape名を集める。
+        /// 空名シェイプは生成・置き換えの対象にならないため含めない（保持自体は削除処理側で担保する）。
+        /// </summary>
         private static HashSet<string> GetExistingBlendShapeNames(IMeshRepository mesh)
         {
             var result = new HashSet<string>();
@@ -904,12 +915,11 @@ namespace ARKitBlendShapeGenerator.Domain
             for (int shapeIndex = 0; shapeIndex < blendShapeCount; shapeIndex++)
             {
                 string existingName = mesh.GetBlendShapeName(shapeIndex);
-                if (string.IsNullOrEmpty(existingName))
-                {
-                    continue;
-                }
 
-                if (shapeNamesToRemove.Contains(existingName))
+                // 空名シェイプは生成・照合の対象外だが、メッシュのデータとしては保持する。
+                // 削除対象は必ず非空のARKit名のため、空名が削除に該当することはない。
+                // （ここでpreservedに積まないと、ClearBlendShapes後の再構築で黙って消える）
+                if (!string.IsNullOrEmpty(existingName) && shapeNamesToRemove.Contains(existingName))
                 {
                     removedCount++;
                     continue;
