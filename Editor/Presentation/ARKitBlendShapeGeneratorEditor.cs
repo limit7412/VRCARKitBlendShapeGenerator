@@ -47,6 +47,9 @@ namespace ARKitBlendShapeGenerator.Presentation
         // マッピング行チェックボックスの幅
         private const float MappingToggleWidth = 20f;
 
+        // インデントレベル
+        private const float IndentWidth = 15f;
+
         private string _pendingSelectionPropertyPath;
         private string _pendingSelectionValue;
 
@@ -764,9 +767,12 @@ namespace ARKitBlendShapeGenerator.Presentation
                 EditorGUILayout.LabelField(S("mouth_cancellation.sources.empty"), EditorStyles.miniLabel);
             }
 
+            // DrawSourceItemは行内のインデントを無効にするため周囲の要素と揃うようにインデントさせる
+            float indentSpace = EditorGUI.indentLevel * IndentWidth;
+
             for (int i = 0; i < sourcesProperty.arraySize; i++)
             {
-                if (!DrawSourceItem(sourcesProperty, i))
+                if (!DrawSourceItem(sourcesProperty, i, indentSpace))
                 {
                     // 要素を削除したため、以降のインデックスがずれる。この描画パスは打ち切る
                     break;
