@@ -661,7 +661,14 @@ namespace ARKitBlendShapeGenerator.Presentation
         private static bool DrawDropdownButton(string label, out Rect buttonRect)
         {
             var content = new GUIContent(label, label);
-            buttonRect = GUILayoutUtility.GetRect(content, EditorStyles.popup, GUILayout.ExpandWidth(true));
+
+            // BlendShape名のラベルによって右側のコントロールが範囲外に押し出されるのを防ぐ
+            buttonRect = GUILayoutUtility.GetRect(
+                content,
+                EditorStyles.popup,
+                GUILayout.ExpandWidth(true),
+                GUILayout.MinWidth(EditorGUIUtility.fieldWidth));
+
             return EditorGUI.DropdownButton(buttonRect, content, FocusType.Keyboard, EditorStyles.popup);
         }
 
