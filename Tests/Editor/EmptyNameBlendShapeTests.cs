@@ -125,6 +125,37 @@ namespace ARKitBlendShapeGenerator.Tests
         }
 
         [Test]
+        public void Generate_MergesEmptyNamedShapes_WhenRemovalMakesThemAdjacent()
+        {
+            // 既知の制限: AddBlendShapeFrame は名前をキーにするため、同名シェイプを個別に再構築できない
+            // （直前と同名への追加は別シェイプではなく同一シェイプのフレーム追加になる）。
+            // 削除によって空名シェイプが隣接すると2つが1つへ統合され、デルタは残るが個数が減る。
+            // 名前を書き換えない方針では解消できないため、現状の挙動をここで固定化する。
+            var source = new FakeMeshRepository(TwoVertices())
+                .AddShape("vrc.blink", Vector3.up, Vector3.up);
+            // 構築時点では削除対象が間に挟まるため、空名シェイプは別々のシェイプになる
+            var target = new FakeMeshRepository(TwoVertices())
+                .AddShape("", Vector3.forward, Vector3.forward)
+                .AddShape("eyeBlinkLeft", Vector3.right, Vector3.right)
+                .AddShape("", Vector3.up, Vector3.up);
+            var options = CreateOptions();
+            options.OverwriteExisting = true;
+
+            Assert.That(target.CountShapes(""), Is.EqualTo(2), "前提: 削除前は空名シェイプが2つある");
+
+            BlendShapeGenerationEngine.Generate(
+                source, target, null, AutoMapping("eyeBlinkLeft", "vrc.blink"), options, null);
+
+            // 2つの空名シェイプが1つ（2フレーム）へ統合される
+            Assert.That(target.CountShapes(""), Is.EqualTo(1));
+            var merged = target.FindShape("");
+            Assert.That(merged.Frames.Count, Is.EqualTo(2));
+            // デルタ自体は各フレームとして保持され、失われはしない
+            Assert.That(merged.Frames[0].DeltaVertices[0], Is.EqualTo(Vector3.forward));
+            Assert.That(merged.Frames[1].DeltaVertices[0], Is.EqualTo(Vector3.up));
+        }
+
+        [Test]
         public void Generate_DoesNotUseEmptyNamedShape_AsSource()
         {
             // 空名は照合キーにしないため、ソース名が空の設定は「ソースなし」として扱われる
@@ -146,11 +177,13 @@ namespace ARKitBlendShapeGenerator.Tests
         [Test]
         public void Generate_DoesNotTreatEmptyNamedShape_AsExistingTarget()
         {
-            // 空名シェイプが「既存の生成先」と誤認されて生成がスキップされないこと
+            // 空名シェイプが「既存の生成先」と誤認されて生成がスキップされないこと。
+            // 対象メッシュにも空名シェイプを置き、保持と生成結果の両方を検証する
             var source = new FakeMeshRepository(TwoVertices())
                 .AddShape("", Vector3.forward, Vector3.forward)
                 .AddShape("vrc.blink", Vector3.up, Vector3.up);
-            var target = new FakeMeshRepository(TwoVertices());
+            var target = new FakeMeshRepository(TwoVertices())
+                .AddShape("", Vector3.forward, Vector3.forward);
             var customMappings = new List<CustomBlendShapeMapping>
             {
                 CustomMapping("eyeBlinkLeft", "vrc.blink"),
@@ -161,6 +194,11 @@ namespace ARKitBlendShapeGenerator.Tests
 
             Assert.That(result.GeneratedShapes, Is.EqualTo(new[] { "eyeBlinkLeft" }));
             Assert.That(target.FindShape("eyeBlinkLeft").Frames[0].DeltaVertices[0], Is.EqualTo(Vector3.up));
+            // 対象メッシュの空名シェイプはそのまま残り、生成分が末尾に追加される
+            Assert.That(target.Shapes.Count, Is.EqualTo(2));
+            Assert.That(target.CountShapes(""), Is.EqualTo(1));
+            Assert.That(target.FindShape("").Frames[0].DeltaVertices[0], Is.EqualTo(Vector3.forward));
+            Assert.That(result.ShapeIndices["eyeBlinkLeft"], Is.EqualTo(1));
         }
     }
 }

@@ -919,6 +919,10 @@ namespace ARKitBlendShapeGenerator.Domain
                 // 空名シェイプは生成・照合の対象外だが、メッシュのデータとしては保持する。
                 // 削除対象は必ず非空のARKit名のため、空名が削除に該当することはない。
                 // （ここでpreservedに積まないと、ClearBlendShapes後の再構築で黙って消える）
+                //
+                // 既知の制限: AddBlendShapeFrameは名前をキーにするため、同名シェイプを個別には
+                // 復元できない。削除によって同名（空名を含む）シェイプが隣接すると、それらは
+                // 1つのシェイプへ統合されデルタは各フレームとして残るが個数は減る。
                 if (!string.IsNullOrEmpty(existingName) && shapeNamesToRemove.Contains(existingName))
                 {
                     removedCount++;
