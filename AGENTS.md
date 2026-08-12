@@ -4,6 +4,12 @@
 
 Always review in Japanese.
 
+## document / comment
+
+コメントやドキュメンテーションなど日本語の文章を書くときは下記を読む
+  - .claude/skills/japanese-tech-writing
+  - .claude/skills/cognitive-rhythm-writing
+
 ## github
 
 - 機能実装時はデフォルトブランチへのPRを作成する
