@@ -26,7 +26,8 @@ namespace ARKitBlendShapeGenerator.Presentation
 
         protected override void ItemSelected(AdvancedDropdownItem item)
         {
-            if (item is ValueItem valueItem)
+            // 有効なアイテムのみ選択する
+            if (item is ValueItem valueItem && item.enabled)
             {
                 _onSelected?.Invoke(valueItem.Value);
             }
