@@ -47,9 +47,6 @@ namespace ARKitBlendShapeGenerator.Presentation
         // マッピング行チェックボックスの幅
         private const float MappingToggleWidth = 20f;
 
-        // 名前選択ドロップダウンの状態（キーはSerializedPropertyのパス = 行ごとに保持する）
-        private readonly Dictionary<string, AdvancedDropdownState> _dropdownStates =
-            new Dictionary<string, AdvancedDropdownState>();
         private string _pendingSelectionPropertyPath;
         private string _pendingSelectionValue;
 
@@ -67,7 +64,6 @@ namespace ARKitBlendShapeGenerator.Presentation
             int componentId = _component != null ? _component.GetInstanceID() : 0;
             ARKitBlendShapeGeneratorPreviewState.ReleaseIfActive(componentId);
             InvalidatePreviewCategoryCache();
-            _dropdownStates.Clear();
         }
 
         private void OnUndoRedoPerformed()
@@ -673,14 +669,10 @@ namespace ARKitBlendShapeGenerator.Presentation
         {
             RefreshBlendShapeList();
 
-            string currentValue = blendShapeNameProperty.stringValue;
-            bool isMissing = BlendShapeSearchDropdown.ResolveState(currentValue, _availableBlendShapes) ==
-                             BlendShapeSearchDropdown.SourceValueState.Missing;
-
             var dropdown = new BlendShapeSearchDropdown(
-                GetDropdownState(blendShapeNameProperty),
+                new AdvancedDropdownState(),
                 _availableBlendShapes,
-                isMissing ? currentValue : null,
+                blendShapeNameProperty.stringValue,
                 CreateSelectionCallback(blendShapeNameProperty));
 
             dropdown.Open(buttonRect);
@@ -693,24 +685,13 @@ namespace ARKitBlendShapeGenerator.Presentation
             SerializedProperty arkitNameProperty)
         {
             var dropdown = new ArkitNameSearchDropdown(
-                GetDropdownState(arkitNameProperty),
+                new AdvancedDropdownState(),
                 ARKitBlendShapeNames.GetAll(),
                 GetArkitNamesUsedByOtherMappings(customMappingsProperty, mappingIndex),
+                arkitNameProperty.stringValue,
                 CreateSelectionCallback(arkitNameProperty));
 
             dropdown.Open(buttonRect);
-        }
-
-        private AdvancedDropdownState GetDropdownState(SerializedProperty property)
-        {
-            string propertyPath = property.propertyPath;
-            if (!_dropdownStates.TryGetValue(propertyPath, out var state))
-            {
-                state = new AdvancedDropdownState();
-                _dropdownStates[propertyPath] = state;
-            }
-
-            return state;
         }
 
         private Action<string> CreateSelectionCallback(SerializedProperty property)

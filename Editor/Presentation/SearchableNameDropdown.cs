@@ -32,12 +32,32 @@ namespace ARKitBlendShapeGenerator.Presentation
         // EditorWindow.maxSizeの既定値を設定
         private static readonly Vector2 MaximumWindowSize = new Vector2(4000f, 400f);
 
+        // 現在値の項目を開いた時点でハイライトする
+        private static readonly MethodInfo SetSelectedIndexMethod =
+            typeof(AdvancedDropdownState).GetMethod(
+                "SetSelectedIndex",
+                MemberFlags,
+                null,
+                new[] { typeof(AdvancedDropdownItem), typeof(int) },
+                null);
+
+        private readonly AdvancedDropdownState _state;
         private readonly Action<string> _onSelected;
         private EditorWindow _window;
 
-        protected SearchableNameDropdown(AdvancedDropdownState state, Action<string> onSelected) : base(state)
+        /// <summary>
+        /// ハイライトする項目
+        /// </summary>
+        protected string CurrentValue { get; }
+
+        protected SearchableNameDropdown(
+            AdvancedDropdownState state,
+            string currentValue,
+            Action<string> onSelected) : base(state)
         {
+            _state = state;
             _onSelected = onSelected;
+            CurrentValue = currentValue;
             minimumSize = new Vector2(240f, 0f);
 
             TrySetMaximumSize();
@@ -57,8 +77,47 @@ namespace ARKitBlendShapeGenerator.Presentation
 
         public void Open(Rect buttonRect)
         {
+            TrySelectCurrentValue();
+
             Show(buttonRect);
             TryTakeOverSelectionHandling();
+        }
+
+        private void TrySelectCurrentValue()
+        {
+            if (SetSelectedIndexMethod == null || _state == null || string.IsNullOrEmpty(CurrentValue))
+            {
+                return;
+            }
+
+            var root = BuildRoot();
+            int index = IndexOfValue(root, CurrentValue);
+            if (index < 0)
+            {
+                return;
+            }
+            SetSelectedIndexMethod.Invoke(_state, new object[] { root, index });
+        }
+
+        private static int IndexOfValue(AdvancedDropdownItem root, string value)
+        {
+            if (root == null)
+            {
+                return -1;
+            }
+
+            int index = 0;
+            foreach (var child in root.children)
+            {
+                if (child is ValueItem valueItem && valueItem.Value == value)
+                {
+                    return index;
+                }
+
+                index++;
+            }
+
+            return -1;
         }
 
         /// <summary>

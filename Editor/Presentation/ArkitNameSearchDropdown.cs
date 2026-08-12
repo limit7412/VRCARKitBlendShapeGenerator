@@ -19,7 +19,8 @@ namespace ARKitBlendShapeGenerator.Presentation
             AdvancedDropdownState state,
             IReadOnlyList<string> arkitNames,
             ICollection<string> usedByOtherMappings,
-            Action<string> onSelected) : base(state, onSelected)
+            string currentValue,
+            Action<string> onSelected) : base(state, currentValue, onSelected)
         {
             _arkitNames = arkitNames ?? new List<string>();
             _usedByOtherMappings = usedByOtherMappings ?? new HashSet<string>();

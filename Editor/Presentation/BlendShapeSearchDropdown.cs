@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEditor.IMGUI.Controls;
 using static ARKitBlendShapeGenerator.Localization;
 
@@ -18,19 +19,17 @@ namespace ARKitBlendShapeGenerator.Presentation
         }
 
         private readonly IReadOnlyList<string> _blendShapeNames;
-        private readonly string _missingValue;
 
         public BlendShapeSearchDropdown(
             AdvancedDropdownState state,
             IReadOnlyList<string> blendShapeNames,
-            string missingValue,
-            Action<string> onSelected) : base(state, onSelected)
+            string currentValue,
+            Action<string> onSelected) : base(state, currentValue, onSelected)
         {
             _blendShapeNames = blendShapeNames ?? new List<string>();
-            _missingValue = missingValue;
         }
 
-        internal static SourceValueState ResolveState(string current, ICollection<string> availableBlendShapes)
+        internal static SourceValueState ResolveState(string current, IReadOnlyList<string> availableBlendShapes)
         {
             if (string.IsNullOrEmpty(current))
             {
@@ -42,7 +41,7 @@ namespace ARKitBlendShapeGenerator.Presentation
                 : SourceValueState.Missing;
         }
 
-        internal static string BuildButtonLabel(string current, ICollection<string> availableBlendShapes)
+        internal static string BuildButtonLabel(string current, IReadOnlyList<string> availableBlendShapes)
         {
             switch (ResolveState(current, availableBlendShapes))
             {
@@ -63,9 +62,9 @@ namespace ARKitBlendShapeGenerator.Presentation
 
             root.AddChild(new ValueItem(S("source.placeholder"), string.Empty) { id = nextId++ });
 
-            if (!string.IsNullOrEmpty(_missingValue))
+            if (ResolveState(CurrentValue, _blendShapeNames) == SourceValueState.Missing)
             {
-                root.AddChild(new ValueItem(_missingValue + S("source.not_found_suffix"), _missingValue)
+                root.AddChild(new ValueItem(CurrentValue + S("source.not_found_suffix"), CurrentValue)
                 {
                     id = nextId++,
                     enabled = false
