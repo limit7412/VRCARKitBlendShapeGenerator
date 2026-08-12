@@ -109,7 +109,7 @@ namespace ARKitBlendShapeGenerator.Presentation
             int index = 0;
             foreach (var child in root.children)
             {
-                if (child is ValueItem valueItem && valueItem.Value == value)
+                if (child is ValueItem valueItem && child.enabled && valueItem.Value == value)
                 {
                     return index;
                 }
