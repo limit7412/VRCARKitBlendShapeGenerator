@@ -125,12 +125,12 @@ namespace ARKitBlendShapeGenerator.Tests
         }
 
         [Test]
-        public void Generate_MergesEmptyNamedShapes_WhenRemovalMakesThemAdjacent()
+        public void Generate_AbortsOverwrite_WhenRebuildWouldMergeSameNamedShapes()
         {
-            // 既知の制限: AddBlendShapeFrame は名前をキーにするため、同名シェイプを個別に再構築できない
-            // （直前と同名への追加は別シェイプではなく同一シェイプのフレーム追加になる）。
-            // 削除によって空名シェイプが隣接すると2つが1つへ統合され、デルタは残るが個数が減る。
-            // 名前を書き換えない方針では解消できないため、現状の挙動をここで固定化する。
+            // 削除によって同名シェイプ（ここでは空名）が隣接する配置。
+            // AddBlendShapeFrame は名前をキーにし、同名シェイプのフレームウェイトは昇順を要求するため、
+            // 再構築すると2つ目の同一ウェイトのフレームが追加されずデルタが失われる。
+            // メッシュを壊さないよう、変更を加える前に検出して生成自体を中止する。
             var source = new FakeMeshRepository(TwoVertices())
                 .AddShape("vrc.blink", Vector3.up, Vector3.up);
             // 構築時点では削除対象が間に挟まるため、空名シェイプは別々のシェイプになる
@@ -143,16 +143,61 @@ namespace ARKitBlendShapeGenerator.Tests
 
             Assert.That(target.CountShapes(""), Is.EqualTo(2), "前提: 削除前は空名シェイプが2つある");
 
-            BlendShapeGenerationEngine.Generate(
+            var result = BlendShapeGenerationEngine.Generate(
                 source, target, null, AutoMapping("eyeBlinkLeft", "vrc.blink"), options, null);
 
-            // 2つの空名シェイプが1つ（2フレーム）へ統合される
+            Assert.That(result.GeneratedShapes, Is.Empty);
+
+            // メッシュは一切変更されない（ClearBlendShapesまで到達しない）
+            Assert.That(target.Shapes.Count, Is.EqualTo(3));
+            Assert.That(target.CountShapes(""), Is.EqualTo(2));
+            Assert.That(target.Shapes[0].Frames[0].DeltaVertices[0], Is.EqualTo(Vector3.forward));
+            Assert.That(target.Shapes[2].Frames[0].DeltaVertices[0], Is.EqualTo(Vector3.up));
+            // 置き換え対象も残したままにする
+            Assert.That(target.FindShape("eyeBlinkLeft").Frames[0].DeltaVertices[0], Is.EqualTo(Vector3.right));
+        }
+
+        [Test]
+        public void Generate_AbortsOverwrite_WhenSameNamedShapesAreAlreadyAdjacent()
+        {
+            // 同名の非空シェイプが隣接する場合も同じく中止する（空名固有の問題ではない）。
+            // FakeMeshRepositoryでは連続追加が統合されるため、間に別シェイプを挟んで構築する
+            var source = new FakeMeshRepository(TwoVertices())
+                .AddShape("vrc.blink", Vector3.up, Vector3.up);
+            var target = new FakeMeshRepository(TwoVertices())
+                .AddShape("dup", Vector3.forward, Vector3.forward)
+                .AddShape("eyeBlinkLeft", Vector3.right, Vector3.right)
+                .AddShape("dup", Vector3.up, Vector3.up);
+            var options = CreateOptions();
+            options.OverwriteExisting = true;
+
+            var result = BlendShapeGenerationEngine.Generate(
+                source, target, null, AutoMapping("eyeBlinkLeft", "vrc.blink"), options, null);
+
+            Assert.That(result.GeneratedShapes, Is.Empty);
+            Assert.That(target.Shapes.Count, Is.EqualTo(3));
+            Assert.That(target.CountShapes("dup"), Is.EqualTo(2));
+        }
+
+        [Test]
+        public void Generate_ProceedsWithOverwrite_WhenRemainingShapeNamesAreUnique()
+        {
+            // 同名シェイプが無ければ従来どおり上書きされる（中止判定が過剰に効かないこと）
+            var source = new FakeMeshRepository(TwoVertices())
+                .AddShape("vrc.blink", Vector3.up, Vector3.up);
+            var target = new FakeMeshRepository(TwoVertices())
+                .AddShape("", Vector3.forward, Vector3.forward)
+                .AddShape("eyeBlinkLeft", Vector3.right, Vector3.right);
+            var options = CreateOptions();
+            options.OverwriteExisting = true;
+
+            var result = BlendShapeGenerationEngine.Generate(
+                source, target, null, AutoMapping("eyeBlinkLeft", "vrc.blink"), options, null);
+
+            Assert.That(result.GeneratedShapes, Is.EqualTo(new[] { "eyeBlinkLeft" }));
+            Assert.That(target.CountShapes("eyeBlinkLeft"), Is.EqualTo(1));
+            Assert.That(target.FindShape("eyeBlinkLeft").Frames[0].DeltaVertices[0], Is.EqualTo(Vector3.up));
             Assert.That(target.CountShapes(""), Is.EqualTo(1));
-            var merged = target.FindShape("");
-            Assert.That(merged.Frames.Count, Is.EqualTo(2));
-            // デルタ自体は各フレームとして保持され、失われはしない
-            Assert.That(merged.Frames[0].DeltaVertices[0], Is.EqualTo(Vector3.forward));
-            Assert.That(merged.Frames[1].DeltaVertices[0], Is.EqualTo(Vector3.up));
         }
 
         [Test]

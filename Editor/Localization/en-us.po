@@ -367,6 +367,9 @@ msgstr "Generation was aborted because the same ARKit name is duplicated in the 
 msgid "log.duplicate_preview_stop"
 msgstr "The same ARKit name is duplicated in the custom mappings. Preview is suspended until the duplicates are resolved.\nDuplicates: {0}"
 
+msgid "log.overwrite_merge_abort"
+msgstr "Generation was aborted because the mesh has multiple blend shapes with the same name, and \"Overwrite existing\" would merge them into one and lose data.\nAffected: \"{0}\"\nMake the blend shape names unique, or turn off \"Overwrite existing\"."
+
 msgid "log.renderer_not_found"
 msgstr "SkinnedMeshRenderer not found."
 

@@ -367,6 +367,9 @@ msgstr "カスタムマッピングで同一ARKit名が重複しているため�
 msgid "log.duplicate_preview_stop"
 msgstr "カスタムマッピングで同一ARKit名が重複しています。重複を解消するまでプレビューを停止します。\n重複: {0}"
 
+msgid "log.overwrite_merge_abort"
+msgstr "メッシュに同名のシェイプキーが複数あり、「既存を上書き」を行うとそれらが1つに統合されてデータが失われるため、生成を中止しました。\n該当: \"{0}\"\nシェイプキー名を一意にするか、「既存を上書き」をオフにしてください。"
+
 msgid "log.renderer_not_found"
 msgstr "SkinnedMeshRendererが見つかりません。"
 
