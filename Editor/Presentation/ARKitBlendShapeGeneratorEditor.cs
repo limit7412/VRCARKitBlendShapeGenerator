@@ -1,7 +1,9 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 using UnityEditor;
+using UnityEditor.IMGUI.Controls;
 using nadena.dev.ndmf.ui;
 using ARKitBlendShapeGenerator.Domain;
 using ARKitBlendShapeGenerator.Handler;
@@ -42,6 +44,15 @@ namespace ARKitBlendShapeGenerator.Presentation
         // 検索
         private string _searchFilter = "";
 
+        // マッピング行チェックボックスの幅
+        private const float MappingToggleWidth = 20f;
+
+        // インデントレベル
+        private const float IndentWidth = 15f;
+
+        private string _pendingSelectionPropertyPath;
+        private string _pendingSelectionValue;
+
         private void OnEnable()
         {
             _component = (ARKitBlendShapeGeneratorComponent)target;
@@ -76,6 +87,7 @@ namespace ARKitBlendShapeGenerator.Presentation
         public override void OnInspectorGUI()
         {
             serializedObject.Update();
+            ApplyPendingDropdownSelection();
 
             // 言語切替 + ヘッダー
             LanguageSwitcher.DrawImmediate();
@@ -442,7 +454,9 @@ namespace ARKitBlendShapeGenerator.Presentation
             }
         }
 
-        private List<string> GetSelectableArkitNames(SerializedProperty customMappingsProperty, int mappingIndex)
+        private static HashSet<string> GetArkitNamesUsedByOtherMappings(
+            SerializedProperty customMappingsProperty,
+            int mappingIndex)
         {
             var usedByOthers = new HashSet<string>();
             for (int i = 0; i < customMappingsProperty.arraySize; i++)
@@ -460,27 +474,7 @@ namespace ARKitBlendShapeGenerator.Presentation
                 }
             }
 
-            var options = ARKitBlendShapeNames.GetAll()
-                .Where(name => !usedByOthers.Contains(name))
-                .ToList();
-
-            if (mappingIndex < 0 || mappingIndex >= customMappingsProperty.arraySize)
-            {
-                return options;
-            }
-
-            var currentName = customMappingsProperty.GetArrayElementAtIndex(mappingIndex)
-                .FindPropertyRelative("arkitName").stringValue;
-            if (!string.IsNullOrWhiteSpace(currentName))
-            {
-                var trimmedCurrentName = currentName.Trim();
-                if (!options.Contains(trimmedCurrentName))
-                {
-                    options.Insert(0, trimmedCurrentName);
-                }
-            }
-
-            return options;
+            return usedByOthers;
         }
 
         private string GetFirstUnusedArkitName(SerializedProperty customMappingsProperty)
@@ -540,32 +534,21 @@ namespace ARKitBlendShapeGenerator.Presentation
             // ヘッダー行
             EditorGUILayout.BeginHorizontal();
 
-            bool newEnabled = EditorGUILayout.Toggle(enabledProperty.boolValue, GUILayout.Width(20));
+            int outerIndentLevel = EditorGUI.indentLevel;
+            EditorGUI.indentLevel = 0;
+
+            bool newEnabled = EditorGUILayout.Toggle(
+                enabledProperty.boolValue, GUILayout.Width(MappingToggleWidth));
             if (newEnabled != enabledProperty.boolValue)
             {
                 enabledProperty.boolValue = newEnabled;
             }
 
-            // ARKit名のドロップダウン（同一ARKit名の重複は選択不可）
-            var selectableArkitNames = GetSelectableArkitNames(customMappingsProperty, index);
-            if (selectableArkitNames.Count == 0)
+            // ARKit名の選択
+            string arkitNameLabel = ArkitNameSearchDropdown.BuildButtonLabel(arkitNameProperty.stringValue);
+            if (DrawDropdownButton(arkitNameLabel, out var arkitNameRect))
             {
-                EditorGUILayout.LabelField(S("custom_mappings.no_available_names"));
-            }
-            else
-            {
-                string currentArkitName = string.IsNullOrWhiteSpace(arkitNameProperty.stringValue)
-                    ? null
-                    : arkitNameProperty.stringValue.Trim();
-                int currentIndex = selectableArkitNames.IndexOf(currentArkitName);
-                if (currentIndex < 0) currentIndex = 0;
-
-                int newIndex = EditorGUILayout.Popup(currentIndex, selectableArkitNames.ToArray());
-                string selectedArkitName = selectableArkitNames[newIndex];
-                if (!string.Equals(arkitNameProperty.stringValue, selectedArkitName))
-                {
-                    arkitNameProperty.stringValue = selectedArkitName;
-                }
+                ShowArkitNameDropdown(arkitNameRect, customMappingsProperty, index, arkitNameProperty);
             }
 
             if (GUILayout.Button("+", GUILayout.Width(25)))
@@ -580,6 +563,7 @@ namespace ARKitBlendShapeGenerator.Presentation
                 removed = true;
             }
 
+            EditorGUI.indentLevel = outerIndentLevel;
             EditorGUILayout.EndHorizontal();
 
             if (removed)
@@ -588,16 +572,14 @@ namespace ARKitBlendShapeGenerator.Presentation
                 return false;
             }
 
-            // ソースBlendShape
-            EditorGUI.indentLevel++;
+            // ソースBlendShape（ドロップダウンの左端をヘッダー行のARKit名に揃える）
             for (int j = 0; j < sourcesProperty.arraySize; j++)
             {
-                if (!DrawSourceItem(sourcesProperty, j))
+                if (!DrawSourceItem(sourcesProperty, j, MappingToggleWidth))
                 {
                     break;
                 }
             }
-            EditorGUI.indentLevel--;
 
             EditorGUILayout.EndVertical();
             return true;
@@ -606,7 +588,10 @@ namespace ARKitBlendShapeGenerator.Presentation
         /// <summary>
         /// ソースBlendShape1件を描画する。要素を削除した場合はfalse（呼び出し元は列挙を打ち切る）
         /// </summary>
-        private bool DrawSourceItem(SerializedProperty sourcesProperty, int sourceIndex)
+        private bool DrawSourceItem(
+            SerializedProperty sourcesProperty,
+            int sourceIndex,
+            float leadingSpace = 0f)
         {
             var sourceProperty = sourcesProperty.GetArrayElementAtIndex(sourceIndex);
             var blendShapeNameProperty = sourceProperty.FindPropertyRelative("blendShapeName");
@@ -615,37 +600,22 @@ namespace ARKitBlendShapeGenerator.Presentation
 
             EditorGUILayout.BeginHorizontal();
 
-            // BlendShape名のドロップダウン
+            int outerIndentLevel = EditorGUI.indentLevel;
+            EditorGUI.indentLevel = 0;
+
+            if (leadingSpace > 0f)
+            {
+                GUILayout.Space(leadingSpace);
+            }
+
+            // BlendShape名の選択
             if (_availableBlendShapes.Count > 0)
             {
-                string notFoundSuffix = S("source.not_found_suffix");
-                var options = new List<string> { S("source.placeholder") };
-                options.AddRange(_availableBlendShapes);
-
-                int currentIdx = _availableBlendShapes.IndexOf(blendShapeNameProperty.stringValue) + 1;
-
-                // リストにない名前が設定されている場合は末尾に追加して表示
-                if (currentIdx == 0 && !string.IsNullOrEmpty(blendShapeNameProperty.stringValue))
+                string label = BlendShapeSearchDropdown.BuildButtonLabel(
+                    blendShapeNameProperty.stringValue, _availableBlendShapes);
+                if (DrawDropdownButton(label, out var buttonRect))
                 {
-                    options.Add(blendShapeNameProperty.stringValue + notFoundSuffix);
-                    currentIdx = options.Count - 1;
-                }
-
-                int newIdx = EditorGUILayout.Popup(currentIdx, options.ToArray());
-
-                if (newIdx > 0 && newIdx < options.Count)
-                {
-                    // 「(未検出)」付きの項目が選択された場合は元の名前を維持
-                    string selectedName = options[newIdx];
-                    if (selectedName.EndsWith(notFoundSuffix))
-                    {
-                        selectedName = selectedName.Replace(notFoundSuffix, "");
-                    }
-
-                    if (blendShapeNameProperty.stringValue != selectedName)
-                    {
-                        blendShapeNameProperty.stringValue = selectedName;
-                    }
+                    ShowBlendShapeDropdown(buttonRect, blendShapeNameProperty);
                 }
             }
             else
@@ -682,8 +652,90 @@ namespace ARKitBlendShapeGenerator.Presentation
                 removed = true;
             }
 
+            EditorGUI.indentLevel = outerIndentLevel;
+
             EditorGUILayout.EndHorizontal();
             return !removed;
+        }
+
+        /// <summary>
+        /// ドロップダウンを開くボタンを描画する。押された場合はtrue（buttonRectは表示位置として使う）
+        /// </summary>
+        private static bool DrawDropdownButton(string label, out Rect buttonRect)
+        {
+            var content = new GUIContent(label, label);
+
+            // BlendShape名のラベルによって右側のコントロールが範囲外に押し出されるのを防ぐ
+            buttonRect = GUILayoutUtility.GetRect(
+                content,
+                EditorStyles.popup,
+                GUILayout.ExpandWidth(true),
+                GUILayout.MinWidth(EditorGUIUtility.fieldWidth));
+
+            return EditorGUI.DropdownButton(buttonRect, content, FocusType.Keyboard, EditorStyles.popup);
+        }
+
+        private void ShowBlendShapeDropdown(Rect buttonRect, SerializedProperty blendShapeNameProperty)
+        {
+            RefreshBlendShapeList();
+
+            var dropdown = new BlendShapeSearchDropdown(
+                new AdvancedDropdownState(),
+                _availableBlendShapes,
+                blendShapeNameProperty.stringValue,
+                CreateSelectionCallback(blendShapeNameProperty));
+
+            dropdown.Open(buttonRect);
+        }
+
+        private void ShowArkitNameDropdown(
+            Rect buttonRect,
+            SerializedProperty customMappingsProperty,
+            int mappingIndex,
+            SerializedProperty arkitNameProperty)
+        {
+            var dropdown = new ArkitNameSearchDropdown(
+                new AdvancedDropdownState(),
+                ARKitBlendShapeNames.GetAll(),
+                GetArkitNamesUsedByOtherMappings(customMappingsProperty, mappingIndex),
+                arkitNameProperty.stringValue,
+                CreateSelectionCallback(arkitNameProperty));
+
+            dropdown.Open(buttonRect);
+        }
+
+        private Action<string> CreateSelectionCallback(SerializedProperty property)
+        {
+            string propertyPath = property.propertyPath;
+
+            return selectedValue =>
+            {
+                if (this == null)
+                {
+                    return;
+                }
+
+                _pendingSelectionPropertyPath = propertyPath;
+                _pendingSelectionValue = selectedValue;
+                Repaint();
+            };
+        }
+
+        private void ApplyPendingDropdownSelection()
+        {
+            if (_pendingSelectionPropertyPath == null)
+            {
+                return;
+            }
+
+            var property = serializedObject.FindProperty(_pendingSelectionPropertyPath);
+            if (property != null && property.propertyType == SerializedPropertyType.String)
+            {
+                property.stringValue = _pendingSelectionValue;
+            }
+
+            _pendingSelectionPropertyPath = null;
+            _pendingSelectionValue = null;
         }
 
         private static void AppendSourceElement(SerializedProperty sourcesProperty)
@@ -715,9 +767,12 @@ namespace ARKitBlendShapeGenerator.Presentation
                 EditorGUILayout.LabelField(S("mouth_cancellation.sources.empty"), EditorStyles.miniLabel);
             }
 
+            // DrawSourceItemは行内のインデントを無効にするため周囲の要素と揃うようにインデントさせる
+            float indentSpace = EditorGUI.indentLevel * IndentWidth;
+
             for (int i = 0; i < sourcesProperty.arraySize; i++)
             {
-                if (!DrawSourceItem(sourcesProperty, i))
+                if (!DrawSourceItem(sourcesProperty, i, indentSpace))
                 {
                     // 要素を削除したため、以降のインデックスがずれる。この描画パスは打ち切る
                     break;

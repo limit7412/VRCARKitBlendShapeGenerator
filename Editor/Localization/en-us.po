@@ -164,8 +164,14 @@ msgstr "Mappings: {0}/{1} enabled"
 msgid "custom_mappings.none_matching"
 msgstr "No mappings match the filter."
 
-msgid "custom_mappings.no_available_names"
-msgstr "(no available ARKit names)"
+msgid "arkit_name.dropdown.title"
+msgstr "Select ARKit BlendShape"
+
+msgid "arkit_name.placeholder"
+msgstr "(select)"
+
+msgid "arkit_name.used_suffix"
+msgstr " (in use)"
 
 msgid "presets.label"
 msgstr "Presets"
@@ -214,6 +220,9 @@ msgstr "(select)"
 
 msgid "source.not_found_suffix"
 msgstr " (not found)"
+
+msgid "source.dropdown.title"
+msgstr "Select BlendShape"
 
 msgid "enum.side.both"
 msgstr "Both"
