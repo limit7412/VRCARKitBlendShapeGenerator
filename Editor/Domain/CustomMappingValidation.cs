@@ -14,6 +14,10 @@ namespace ARKitBlendShapeGenerator.Domain
         /// <summary>
         /// ARKit名の列挙から重複を抽出する。
         /// SerializedProperty等、コンポーネントの実体を経由せずに検証する場合に使用する。
+        ///
+        /// 名前は一切加工せず完全一致で比較する。生成側も同じ規則で名前を扱うため、
+        /// ここだけTrimすると「重複扱いなのに別々に生成される」といった食い違いが生じる。
+        /// 空白のみは未設定として無視する。
         /// </summary>
         public static List<string> GetDuplicateArkitNames(IEnumerable<string> arkitNames)
         {
@@ -25,14 +29,13 @@ namespace ARKitBlendShapeGenerator.Domain
                 return new List<string>();
             }
 
-            foreach (var name in arkitNames)
+            foreach (var arkitName in arkitNames)
             {
-                if (string.IsNullOrWhiteSpace(name))
+                if (string.IsNullOrWhiteSpace(arkitName))
                 {
                     continue;
                 }
 
-                var arkitName = name.Trim();
                 if (!seen.Add(arkitName))
                 {
                     duplicates.Add(arkitName);
@@ -59,7 +62,6 @@ namespace ARKitBlendShapeGenerator.Domain
 
             var names = duplicateArkitNames
                 .Where(name => !string.IsNullOrWhiteSpace(name))
-                .Select(name => name.Trim())
                 .Distinct()
                 .OrderBy(name => name)
                 .ToList();

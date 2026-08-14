@@ -28,7 +28,8 @@ namespace ARKitBlendShapeGenerator.Presentation
 
         internal static string BuildButtonLabel(string current)
         {
-            return string.IsNullOrWhiteSpace(current) ? S("arkit_name.placeholder") : current.Trim();
+            // 設定値は加工せずそのまま見せる（Trimして表示すると、実際に生成される名前と食い違う）
+            return string.IsNullOrWhiteSpace(current) ? S("arkit_name.placeholder") : current;
         }
 
         protected override AdvancedDropdownItem BuildRoot()

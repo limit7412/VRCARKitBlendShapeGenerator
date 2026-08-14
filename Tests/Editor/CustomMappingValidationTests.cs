@@ -24,18 +24,32 @@ namespace ARKitBlendShapeGenerator.Tests
         }
 
         [Test]
-        public void GetDuplicateArkitNames_DetectsDuplicates_IgnoringSurroundingWhitespace()
+        public void GetDuplicateArkitNames_DetectsDuplicates_ByExactName()
         {
             var mappings = new List<CustomBlendShapeMapping>
             {
                 Mapping("eyeBlinkLeft"),
-                Mapping(" eyeBlinkLeft "),
+                Mapping("eyeBlinkLeft"),
                 Mapping("jawOpen"),
             };
 
             Assert.That(
                 CustomMappingValidation.GetDuplicateArkitNames(mappings),
                 Is.EqualTo(new[] { "eyeBlinkLeft" }));
+        }
+
+        [Test]
+        public void GetDuplicateArkitNames_TreatsSurroundingWhitespaceAsDifferentName()
+        {
+            // 名前は加工せず完全一致で比較する。生成側も同じ規則なので、
+            // " eyeBlinkLeft " は別名として別のシェイプを作る（重複ではない）
+            var mappings = new List<CustomBlendShapeMapping>
+            {
+                Mapping("eyeBlinkLeft"),
+                Mapping(" eyeBlinkLeft "),
+            };
+
+            Assert.That(CustomMappingValidation.GetDuplicateArkitNames(mappings), Is.Empty);
         }
 
         [Test]

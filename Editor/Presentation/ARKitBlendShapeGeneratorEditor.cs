@@ -439,7 +439,8 @@ namespace ARKitBlendShapeGenerator.Presentation
         }
 
         /// <summary>
-        /// カスタムマッピングに設定済みのARKit名を列挙する（空白のみの要素は除外）
+        /// カスタムマッピングに設定済みのARKit名を列挙する（空白のみの要素は除外）。
+        /// 名前は加工しない。生成側と同じ規則で扱わないと、重複判定や使用済み判定が実挙動とずれる
         /// </summary>
         private static IEnumerable<string> EnumerateArkitNames(SerializedProperty customMappingsProperty)
         {
@@ -449,7 +450,7 @@ namespace ARKitBlendShapeGenerator.Presentation
                     .FindPropertyRelative("arkitName").stringValue;
                 if (!string.IsNullOrWhiteSpace(arkitName))
                 {
-                    yield return arkitName.Trim();
+                    yield return arkitName;
                 }
             }
         }
@@ -470,7 +471,7 @@ namespace ARKitBlendShapeGenerator.Presentation
                     .FindPropertyRelative("arkitName").stringValue;
                 if (!string.IsNullOrWhiteSpace(arkitName))
                 {
-                    usedByOthers.Add(arkitName.Trim());
+                    usedByOthers.Add(arkitName);
                 }
             }
 
@@ -1193,7 +1194,10 @@ namespace ARKitBlendShapeGenerator.Presentation
 
             foreach (var mapping in customMappings)
             {
-                if (mapping == null || !mapping.enabled || string.IsNullOrEmpty(mapping.arkitName))
+                // 生成側（CollectCustomMappings）と同じ空判定にする。
+                // ここだけIsNullOrEmptyだと、生成されない空白のみの名前が
+                // 空欄のスライダーとしてプレビューに並んでしまう
+                if (mapping == null || !mapping.enabled || string.IsNullOrWhiteSpace(mapping.arkitName))
                 {
                     continue;
                 }

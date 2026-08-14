@@ -37,6 +37,11 @@ namespace ARKitBlendShapeGenerator.Domain
             };
         }
 
+        /// <summary>
+        /// 打ち消し対象のARKit名の集合を作る。
+        /// 名前は加工せず、AppliesToでの照合も完全一致で行う（ここでTrimすると
+        /// インスペクタの選択状態と実際の打ち消し対象が食い違う）。空白のみは未設定として無視する。
+        /// </summary>
         private static HashSet<string> BuildTargetSet(List<string> targets)
         {
             var result = new HashSet<string>();
@@ -49,7 +54,7 @@ namespace ARKitBlendShapeGenerator.Domain
             {
                 if (!string.IsNullOrWhiteSpace(target))
                 {
-                    result.Add(target.Trim());
+                    result.Add(target);
                 }
             }
 
@@ -587,7 +592,9 @@ namespace ARKitBlendShapeGenerator.Domain
         {
             foreach (var mapping in customMappings)
             {
-                if (mapping == null || !mapping.enabled || string.IsNullOrEmpty(mapping.arkitName))
+                // 生成する名前として使うため、空白のみは未設定として扱う
+                // （重複判定側も空白のみを無視するので、判定を素通りして生成されるのを防ぐ）
+                if (mapping == null || !mapping.enabled || string.IsNullOrWhiteSpace(mapping.arkitName))
                 {
                     continue;
                 }

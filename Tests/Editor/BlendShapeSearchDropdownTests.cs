@@ -42,5 +42,35 @@ namespace ARKitBlendShapeGenerator.Tests
                 BlendShapeSearchDropdown.ResolveState("まばたき", null),
                 Is.EqualTo(BlendShapeSearchDropdown.SourceValueState.Missing));
         }
+
+        [Test]
+        public void ResolveState_ReturnsMissing_WhenValueHasSurroundingWhitespace()
+        {
+            // 生成側と同じく完全一致で照合するため未検出になる。
+            // 表示と実挙動が一致することが重要で、ここで救済すると設定値の誤りが隠れる
+            Assert.That(
+                BlendShapeSearchDropdown.ResolveState(" まばたき ", Available),
+                Is.EqualTo(BlendShapeSearchDropdown.SourceValueState.Missing));
+        }
+
+        [Test]
+        public void ResolveState_ReturnsFound_WhenMeshNameItselfHasSurroundingWhitespace()
+        {
+            // メッシュ側に空白付きの名前が実在すれば、そのまま指定できる
+            var available = new List<string> { " まばたき " };
+            Assert.That(
+                BlendShapeSearchDropdown.ResolveState(" まばたき ", available),
+                Is.EqualTo(BlendShapeSearchDropdown.SourceValueState.Found));
+        }
+
+        [Test]
+        public void ResolveState_KeepsInternalSpaces()
+        {
+            // メッシュ由来の名前は加工しないため、名前中間のスペースはそのまま一致する
+            var available = new List<string> { "mouth smile" };
+            Assert.That(
+                BlendShapeSearchDropdown.ResolveState("mouth smile", available),
+                Is.EqualTo(BlendShapeSearchDropdown.SourceValueState.Found));
+        }
     }
 }
