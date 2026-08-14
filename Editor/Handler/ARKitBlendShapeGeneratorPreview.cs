@@ -63,9 +63,21 @@ namespace ARKitBlendShapeGenerator.Handler
                     // targetRenderer未設定時は子要素をフォールバック対象にする
                     // レンダラーの列挙はComputeContext経由で行い（変更監視のため）、
                     // どれを選ぶかの判断は他経路と共通のTargetRendererResolverに委ねる
-                    renderer = TargetRendererResolver.SelectFallback(
-                        component.transform,
-                        context.GetComponentsInChildren<SkinnedMeshRenderer>(component.gameObject, true));
+                    // 監視の登録と選択で二度走査するため、ここで確定させる
+                    var candidates = context
+                        .GetComponentsInChildren<SkinnedMeshRenderer>(component.gameObject, true)
+                        .ToArray();
+
+                    // フォールバックは名前も選択条件に含むため、候補の改名にも追従させる
+                    foreach (var candidate in candidates)
+                    {
+                        if (TargetRendererResolver.IsNameSearchTarget(component.transform, candidate))
+                        {
+                            context.Observe(candidate.gameObject, go => go.name);
+                        }
+                    }
+
+                    renderer = TargetRendererResolver.SelectFallback(component.transform, candidates);
                 }
 
                 if (renderer != null && context.Observe(renderer, r => r.sharedMesh) != null)

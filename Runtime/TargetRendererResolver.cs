@@ -75,8 +75,7 @@ namespace ARKitBlendShapeGenerator
                     firstFound = candidate;
                 }
 
-                // 名前検索の対象は直下の子のみ（Reset時の実装がtransform.Findだったため）
-                if (root == null || candidate.transform.parent != root)
+                if (!IsNameSearchTarget(root, candidate))
                 {
                     continue;
                 }
@@ -90,6 +89,20 @@ namespace ARKitBlendShapeGenerator
             }
 
             return preferred != null ? preferred : firstFound;
+        }
+
+        /// <summary>
+        /// 候補が名前検索の対象になるか判定する
+        /// 名前検索の対象は直下の子のみ（Reset時の実装がtransform.Findだったため）
+        ///
+        /// 候補の名前を変更監視の対象に含める必要があるNDMFプレビューと、
+        /// 判定条件を共有するために切り出している
+        /// </summary>
+        public static bool IsNameSearchTarget(Transform root, SkinnedMeshRenderer candidate)
+        {
+            return root != null
+                && candidate != null
+                && candidate.transform.parent == root;
         }
     }
 }

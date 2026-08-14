@@ -208,6 +208,32 @@ namespace ARKitBlendShapeGenerator.Tests
         }
 
         [Test]
+        public void IsNameSearchTarget_ReturnsTrue_ForDirectChild()
+        {
+            var component = CreateRoot();
+            var body = AddRenderer(component.transform, "Body");
+
+            // 名前は判定に含まない。直下の子であれば改名後にBodyになり得るため監視対象になる
+            var hair = AddRenderer(component.transform, "Hair");
+
+            Assert.That(TargetRendererResolver.IsNameSearchTarget(component.transform, body), Is.True);
+            Assert.That(TargetRendererResolver.IsNameSearchTarget(component.transform, hair), Is.True);
+        }
+
+        [Test]
+        public void IsNameSearchTarget_ReturnsFalse_ForGrandchildAndNullArguments()
+        {
+            var component = CreateRoot();
+            var container = new GameObject("Armature");
+            container.transform.SetParent(component.transform, false);
+            var grandchild = AddRenderer(container.transform, "Body");
+
+            Assert.That(TargetRendererResolver.IsNameSearchTarget(component.transform, grandchild), Is.False);
+            Assert.That(TargetRendererResolver.IsNameSearchTarget(null, grandchild), Is.False);
+            Assert.That(TargetRendererResolver.IsNameSearchTarget(component.transform, null), Is.False);
+        }
+
+        [Test]
         public void SelectFallback_ReturnsNull_WhenCandidatesAreNull()
         {
             var component = CreateRoot();
