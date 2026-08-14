@@ -42,7 +42,7 @@ msgid "prop.target_renderer"
 msgstr "対象Renderer"
 
 msgid "prop.target_renderer.tooltip"
-msgstr "対象のSkinnedMeshRenderer（空の場合はBodyを自動検出）"
+msgstr "対象のSkinnedMeshRenderer（空の場合は直下のBody/Face/Headを優先し、無ければ子孫の最初のSkinnedMeshRendererを使用）"
 
 msgid "prop.intensity_multiplier"
 msgstr "強度係数"
@@ -54,13 +54,13 @@ msgid "prop.enable_left_right_split"
 msgstr "左右分割"
 
 msgid "prop.enable_left_right_split.tooltip"
-msgstr "左右分割を有効にする（まばたき等を左右別々に生成）"
+msgstr "左右分割を有効にする（まばたき等を左右別々に生成）。OFFにするとカスタムマッピングのSide指定も無視され、両側に適用されます。"
 
 msgid "prop.blend_width"
 msgstr "グラデーション幅"
 
 msgid "prop.blend_width.tooltip"
-msgstr "左右分割時のグラデーション幅（中央付近で左右をブレンドする範囲）"
+msgstr "左右分割時のグラデーション幅（中央付近で左右をブレンドする範囲。メッシュローカル座標のX幅）"
 
 msgid "prop.overwrite_existing"
 msgstr "既存を上書き"
@@ -84,7 +84,7 @@ msgid "prop.enable_mouth_cancellation"
 msgstr "打ち消しを有効化"
 
 msgid "prop.enable_mouth_cancellation.tooltip"
-msgstr "生成した口関連BlendShapeに、指定したBlendShapeの変形を打ち消す成分を焼き込む"
+msgstr "生成した口関連BlendShapeに、指定したBlendShapeの変形を打ち消す成分（逆方向のデルタ）を焼き込む"
 
 msgid "prop.mouth_cancellation_strength"
 msgstr "打ち消し強度"
@@ -233,6 +233,9 @@ msgstr "左のみ"
 msgid "enum.side.right_only"
 msgstr "右のみ"
 
+msgid "enum.side.tooltip"
+msgstr "ソースを適用する左右の範囲。左のみ＝アバターから見て左半分（メッシュローカル座標のX<0）、右のみ＝右半分（X>0）。左右分割がOFFのときは無視されます。"
+
 # プレビュー
 msgid "inspector.section.preview"
 msgstr "プレビュー"
@@ -266,13 +269,13 @@ msgid "inspector.section.auto_mappings"
 msgstr "自動マッピング一覧（参照用）"
 
 msgid "auto_mappings.description"
-msgstr "以下のBlendShapeは自動的にマッピングされます。\nカスタムマッピングで同じARKit名を指定した場合、カスタム設定が優先されます。"
+msgstr "以下のBlendShapeは自動的にマッピングされます。\nシェイプキー名は完全一致で照合します（大文字小文字・空白も区別）。\n各行の左側に並ぶ左右別のシェイプキーが優先され、見つからない場合は右側の両側用シェイプキーを左右に分割して生成します。\nカスタムマッピングで同じARKit名を指定した場合、カスタム設定（有効なもの）が優先されます。"
 
 msgid "auto_mappings.fold.eye"
 msgstr "目 (Eye)"
 
 msgid "auto_mappings.fold.eye_look"
-msgstr "視線 (Eye Look) ※通常は手動設定が必要"
+msgstr "視線 (Eye Look) ※該当シェイプキーが無いアバターが多く手動設定が必要"
 
 msgid "auto_mappings.fold.brow"
 msgstr "眉毛 (Brow)"
@@ -290,58 +293,91 @@ msgid "auto_mappings.fold.tongue"
 msgstr "舌 (Tongue)"
 
 msgid "auto_mappings.row.eye_blink"
-msgstr "← vrc.blink_left/right, まばたき, ウィンク"
+msgstr "← vrc.blink_left/right, blink_left/right, Blink_L/R / vrc.blink, まばたき, ウィンク・ウィンク右, blink"
 
 msgid "auto_mappings.row.eye_squint"
-msgstr "← 笑い, にこり, ><"
+msgstr "← Squint_L/R, squint_left/right / 笑い, にこり, ><, 笑い目 (70%)"
 
 msgid "auto_mappings.row.eye_wide"
-msgstr "← びっくり, 見開き"
+msgstr "← Wide_L/R, wide_left/right / びっくり, 見開き, 驚き"
 
-msgid "auto_mappings.row.manual"
-msgstr "← (手動設定推奨)"
+msgid "auto_mappings.row.eye_look_up"
+msgstr "← EyeUp_L/R, eye_up_L/R / 目上"
+
+msgid "auto_mappings.row.eye_look_down"
+msgstr "← EyeDown_L/R, eye_down_L/R / 目下"
 
 msgid "auto_mappings.row.eye_look_in"
-msgstr "← より目"
+msgstr "← EyeIn_L/R, eye_in_L/R / より目"
+
+msgid "auto_mappings.row.eye_look_out"
+msgstr "← EyeOut_L/R, eye_out_L/R（両目用からの分割には未対応）"
 
 msgid "auto_mappings.row.brow_down"
-msgstr "← 怒り, 真面目, 困る"
+msgstr "← BrowDown_L/R / 怒り, 真面目, 困る"
 
 msgid "auto_mappings.row.brow_inner_up"
-msgstr "← 困る, 上, 悲しい"
+msgstr "← 困る, 上, 悲しい, BrowInnerUp"
 
 msgid "auto_mappings.row.brow_outer_up"
-msgstr "← 上, 驚き"
+msgstr "← BrowOuterUp_L/R / 上, 驚き"
 
 msgid "auto_mappings.row.jaw_open"
-msgstr "← vrc.v_aa, あ (70%)"
+msgstr "← vrc.v_aa, あ, a/A (70%)"
 
 msgid "auto_mappings.row.mouth_funnel"
-msgstr "← vrc.v_ou, う"
+msgstr "← vrc.v_ou, う, u/U"
 
 msgid "auto_mappings.row.mouth_pucker"
-msgstr "← vrc.v_ou, う, ω (120%)"
+msgstr "← vrc.v_ou, う, ω, u/U (120%)"
 
 msgid "auto_mappings.row.mouth_smile"
-msgstr "← にやり, ∧, にっこり"
+msgstr "← Smile_L/R / にやり, ∧, にっこり"
 
 msgid "auto_mappings.row.mouth_frown"
-msgstr "← への字, 悲しみ"
+msgstr "← Frown_L/R / への字, 悲しみ"
 
-msgid "auto_mappings.row.procedural"
-msgstr "← 手続き的生成（口領域を頂点移動）"
+msgid "auto_mappings.row.mouth_left_right"
+msgstr "← 口左・口右, MouthLeft/MouthRight"
+
+msgid "auto_mappings.row.mouth_upper_up"
+msgstr "← vrc.v_ih, い, i/I"
+
+msgid "auto_mappings.row.mouth_lower_down"
+msgstr "← vrc.v_aa, あ, a/A (60%)"
+
+msgid "auto_mappings.row.mouth_close"
+msgstr "← vrc.v_nn, ん, n/N"
+
+msgid "auto_mappings.row.mouth_shrug_upper"
+msgstr "← vrc.v_ch, え, e/E"
+
+msgid "auto_mappings.row.mouth_shrug_lower"
+msgstr "← vrc.v_oh, お, o/O (50%)"
+
+msgid "auto_mappings.row.mouth_press"
+msgstr "← むっ, MouthPress"
+
+msgid "auto_mappings.row.mouth_stretch"
+msgstr "← vrc.v_ih, い, i"
+
+msgid "auto_mappings.row.jaw_direction"
+msgstr "← JawLeft/JawRight/JawForward"
+
+msgid "auto_mappings.row.procedural_fallback"
+msgstr "（無い場合は手続き的生成: 要有効化）"
 
 msgid "auto_mappings.row.cheek_puff"
-msgstr "← ぷく, 膨らみ"
+msgstr "← ぷく, 膨らみ, CheekPuff"
 
 msgid "auto_mappings.row.cheek_squint"
-msgstr "← 笑い, にこり"
+msgstr "← CheekSquint_L/R / 笑い, にこり (80%)"
 
 msgid "auto_mappings.row.nose_sneer"
-msgstr "← 怒り"
+msgstr "← NoseSneer_L/R / 怒り"
 
 msgid "auto_mappings.row.tongue_out"
-msgstr "← べー, 舌"
+msgstr "← べー, 舌, TongueOut"
 
 # デバッグ
 msgid "debug.show_all_meshes"

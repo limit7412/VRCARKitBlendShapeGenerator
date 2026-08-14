@@ -42,8 +42,8 @@ Jerry's Templatesと組み合わせて使用することで、フェイストラ
 | ---- | ---- |
 | **Target Renderer** | 対象のSkinnedMeshRenderer（空の場合はBody/Face/Headを自動検出） |
 | **Intensity Multiplier** | 生成時の強度係数（0.5〜1.5推奨） |
-| **Enable Left Right Split** | 左右分割を有効化（まばたき等を左右別々に生成） |
-| **Blend Width** | 左右分割時のグラデーション幅（中央付近で左右をブレンドする範囲、0.001〜0.1） |
+| **Enable Left Right Split** | 左右分割を有効化（まばたき等を左右別々に生成）。OFFにするとカスタムマッピングのSide指定も無視され、両側に適用される |
+| **Blend Width** | 左右分割時のグラデーション幅（中央付近で左右をブレンドする範囲、0.001〜0.1。メッシュローカル座標のX幅） |
 | **Overwrite Existing** | 既存のARKit BlendShapeを上書きする |
 | **Enable Procedural Mouth Shapes** | 既存シェイプキーから生成できない口周りのBlendShapeを頂点移動で自動生成する（デフォルト: 無効） |
 | **Procedural Mouth Intensity** | 手続き的生成の変形量係数（0.1〜2.0） |
@@ -65,6 +65,10 @@ Target Renderer が空のときは、コンポーネントの直下にある `Bo
 3. ARKit名（例: `eyeBlinkLeft`）とソースBlendShapeを指定
 4. 必要に応じてWeight（重み）とSide（左右フィルタ）を調整
 
+ソースBlendShapeの名前はシェイプキー名との完全一致で照合します（大文字小文字や前後の空白も区別されます）。
+Sideは適用する頂点の範囲を表し、「左のみ」はアバターから見て左半分（メッシュローカル座標のX < 0）、「右のみ」は右半分（X > 0）に適用されます。
+`Enable Left Right Split` がOFFのときはSideの指定は無視され、ソースが両側に適用されます。
+
 ### NDMFプレビュー
 
 NDMFのプレビュー機能を使用して、生成結果をリアルタイムで確認できます。
@@ -80,13 +84,16 @@ NDMFのプレビュー機能を使用して、生成結果をリアルタイム�
 以下のARKit BlendShapeを自動生成します：
 
 - **目**: eyeBlinkLeft/Right, eyeSquintLeft/Right, eyeWideLeft/Right
+- **視線**: eyeLookUpLeft/Right, eyeLookDownLeft/Right, eyeLookInLeft/Right, eyeLookOutLeft/Right
 - **眉**: browDownLeft/Right, browInnerUp, browOuterUpLeft/Right
-- **口**: jawOpen, mouthFunnel, mouthPucker, mouthSmileLeft/Right, etc.
+- **口**: jawOpen, jawLeft/Right/Forward, mouthFunnel, mouthPucker, mouthSmileLeft/Right, mouthFrownLeft/Right, mouthLeft/Right, mouthUpperUpLeft/Right, mouthLowerDownLeft/Right, mouthStretchLeft/Right, mouthClose, mouthShrugUpper/Lower, mouthPress
 - **頬**: cheekPuff, cheekSquintLeft/Right
 - **鼻**: noseSneerLeft/Right
 - **舌**: tongueOut
 
 VRChat/MMDの標準的なBlendShape名（vrc.blink, まばたき, あ, い, う等）から自動的にマッピングされます。
+対応するシェイプキーがアバターに無いものは生成されません。視線（Eye Look）は `EyeUp_L` や `目上` といったシェイプキーを持つアバターが少ないため、多くの場合はカスタムマッピングでの手動設定が必要です。
+インスペクタの「自動マッピング一覧（参照用）」に、ARKit名ごとの対応シェイプキー名が表示されます。
 
 ### 口の手続き的生成
 

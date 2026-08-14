@@ -638,7 +638,13 @@ namespace ARKitBlendShapeGenerator.Presentation
             }
 
             // 左右適用範囲
-            var sideLabels = new[] { S("enum.side.both"), S("enum.side.left_only"), S("enum.side.right_only") };
+            var sideTooltip = S("enum.side.tooltip");
+            var sideLabels = new[]
+            {
+                new GUIContent(S("enum.side.both"), sideTooltip),
+                new GUIContent(S("enum.side.left_only"), sideTooltip),
+                new GUIContent(S("enum.side.right_only"), sideTooltip),
+            };
             int newSide = EditorGUILayout.Popup(sideProperty.enumValueIndex, sideLabels, GUILayout.Width(70));
             if (newSide != sideProperty.enumValueIndex)
             {
@@ -1307,6 +1313,15 @@ namespace ARKitBlendShapeGenerator.Presentation
             return categories;
         }
 
+        /// <summary>
+        /// 手続き的生成のフォールバックがあるARKit BlendShapeの説明文を組み立てる
+        /// （シェイプキーからの生成が成立した場合はそちらが優先される）
+        /// </summary>
+        private static string WithProceduralFallback(string rowKey)
+        {
+            return S(rowKey) + S("auto_mappings.row.procedural_fallback");
+        }
+
         private void DrawAutoMappingsInfo()
         {
             EditorGUILayout.HelpBox(S("auto_mappings.description"), MessageType.Info);
@@ -1327,10 +1342,10 @@ namespace ARKitBlendShapeGenerator.Presentation
             if (_foldEyeLook)
             {
                 EditorGUI.indentLevel++;
-                EditorGUILayout.LabelField("eyeLookUpLeft/Right", S("auto_mappings.row.manual"));
-                EditorGUILayout.LabelField("eyeLookDownLeft/Right", S("auto_mappings.row.manual"));
+                EditorGUILayout.LabelField("eyeLookUpLeft/Right", S("auto_mappings.row.eye_look_up"));
+                EditorGUILayout.LabelField("eyeLookDownLeft/Right", S("auto_mappings.row.eye_look_down"));
                 EditorGUILayout.LabelField("eyeLookInLeft/Right", S("auto_mappings.row.eye_look_in"));
-                EditorGUILayout.LabelField("eyeLookOutLeft/Right", S("auto_mappings.row.manual"));
+                EditorGUILayout.LabelField("eyeLookOutLeft/Right", S("auto_mappings.row.eye_look_out"));
                 EditorGUI.indentLevel--;
             }
 
@@ -1355,8 +1370,15 @@ namespace ARKitBlendShapeGenerator.Presentation
                 EditorGUILayout.LabelField("mouthPucker", S("auto_mappings.row.mouth_pucker"));
                 EditorGUILayout.LabelField("mouthSmileLeft/Right", S("auto_mappings.row.mouth_smile"));
                 EditorGUILayout.LabelField("mouthFrownLeft/Right", S("auto_mappings.row.mouth_frown"));
-                EditorGUILayout.LabelField("mouthLeft/Right", S("auto_mappings.row.procedural"));
-                EditorGUILayout.LabelField("jawLeft/Right/Forward", S("auto_mappings.row.procedural"));
+                EditorGUILayout.LabelField("mouthPress", S("auto_mappings.row.mouth_press"));
+                EditorGUILayout.LabelField("mouthClose", S("auto_mappings.row.mouth_close"));
+                EditorGUILayout.LabelField("mouthStretchLeft/Right", S("auto_mappings.row.mouth_stretch"));
+                EditorGUILayout.LabelField("mouthLeft/Right", WithProceduralFallback("auto_mappings.row.mouth_left_right"));
+                EditorGUILayout.LabelField("jawLeft/Right/Forward", WithProceduralFallback("auto_mappings.row.jaw_direction"));
+                EditorGUILayout.LabelField("mouthUpperUpLeft/Right", WithProceduralFallback("auto_mappings.row.mouth_upper_up"));
+                EditorGUILayout.LabelField("mouthLowerDownLeft/Right", WithProceduralFallback("auto_mappings.row.mouth_lower_down"));
+                EditorGUILayout.LabelField("mouthShrugUpper", WithProceduralFallback("auto_mappings.row.mouth_shrug_upper"));
+                EditorGUILayout.LabelField("mouthShrugLower", WithProceduralFallback("auto_mappings.row.mouth_shrug_lower"));
                 EditorGUI.indentLevel--;
             }
 

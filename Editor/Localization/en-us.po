@@ -42,7 +42,7 @@ msgid "prop.target_renderer"
 msgstr "Target Renderer"
 
 msgid "prop.target_renderer.tooltip"
-msgstr "Target SkinnedMeshRenderer (auto-detects the Body mesh when empty)"
+msgstr "Target SkinnedMeshRenderer (when empty, a direct child named Body/Face/Head is preferred, otherwise the first SkinnedMeshRenderer among the descendants)"
 
 msgid "prop.intensity_multiplier"
 msgstr "Intensity Multiplier"
@@ -54,13 +54,13 @@ msgid "prop.enable_left_right_split"
 msgstr "Left/Right Split"
 
 msgid "prop.enable_left_right_split.tooltip"
-msgstr "Generate left/right variants separately (e.g. blink)"
+msgstr "Generate left/right variants separately (e.g. blink). When off, the Side setting of custom mappings is ignored as well and every source is applied to both sides."
 
 msgid "prop.blend_width"
 msgstr "Blend Width"
 
 msgid "prop.blend_width.tooltip"
-msgstr "Width of the gradient around the center where left and right are blended when splitting"
+msgstr "Width of the gradient around the center where left and right are blended when splitting (in mesh local X units)"
 
 msgid "prop.overwrite_existing"
 msgstr "Overwrite Existing"
@@ -84,7 +84,7 @@ msgid "prop.enable_mouth_cancellation"
 msgstr "Enable Cancellation"
 
 msgid "prop.enable_mouth_cancellation.tooltip"
-msgstr "Bake a cancelling deformation of the specified blend shapes into the generated mouth blend shapes"
+msgstr "Bake a cancelling deformation (inverted delta) of the specified blend shapes into the generated mouth blend shapes"
 
 msgid "prop.mouth_cancellation_strength"
 msgstr "Cancellation Strength"
@@ -233,6 +233,9 @@ msgstr "Left Only"
 msgid "enum.side.right_only"
 msgstr "Right Only"
 
+msgid "enum.side.tooltip"
+msgstr "Which half the source is applied to. Left Only = the avatar's left half (mesh local X < 0), Right Only = the right half (X > 0). Ignored while Left/Right Split is off."
+
 # Preview
 msgid "inspector.section.preview"
 msgstr "Preview"
@@ -266,13 +269,13 @@ msgid "inspector.section.auto_mappings"
 msgstr "Auto Mapping List (Reference)"
 
 msgid "auto_mappings.description"
-msgstr "The following blend shapes are mapped automatically.\nIf the same ARKit name is specified in a custom mapping, the custom mapping takes precedence."
+msgstr "The following blend shapes are mapped automatically.\nBlend shape names are matched exactly (case and whitespace sensitive).\nThe left/right specific shape keys listed first take precedence; when none is found, the shared shape key listed after them is split into left and right.\nIf the same ARKit name is specified in an enabled custom mapping, the custom mapping takes precedence."
 
 msgid "auto_mappings.fold.eye"
 msgstr "Eye"
 
 msgid "auto_mappings.fold.eye_look"
-msgstr "Eye Look (usually requires manual setup)"
+msgstr "Eye Look (most avatars lack these shape keys and need manual setup)"
 
 msgid "auto_mappings.fold.brow"
 msgstr "Brow"
@@ -290,58 +293,91 @@ msgid "auto_mappings.fold.tongue"
 msgstr "Tongue"
 
 msgid "auto_mappings.row.eye_blink"
-msgstr "← vrc.blink_left/right, まばたき, ウィンク"
+msgstr "← vrc.blink_left/right, blink_left/right, Blink_L/R / vrc.blink, まばたき, ウィンク・ウィンク右, blink"
 
 msgid "auto_mappings.row.eye_squint"
-msgstr "← 笑い, にこり, ><"
+msgstr "← Squint_L/R, squint_left/right / 笑い, にこり, ><, 笑い目 (70%)"
 
 msgid "auto_mappings.row.eye_wide"
-msgstr "← びっくり, 見開き"
+msgstr "← Wide_L/R, wide_left/right / びっくり, 見開き, 驚き"
 
-msgid "auto_mappings.row.manual"
-msgstr "← (manual setup recommended)"
+msgid "auto_mappings.row.eye_look_up"
+msgstr "← EyeUp_L/R, eye_up_L/R / 目上"
+
+msgid "auto_mappings.row.eye_look_down"
+msgstr "← EyeDown_L/R, eye_down_L/R / 目下"
 
 msgid "auto_mappings.row.eye_look_in"
-msgstr "← より目"
+msgstr "← EyeIn_L/R, eye_in_L/R / より目"
+
+msgid "auto_mappings.row.eye_look_out"
+msgstr "← EyeOut_L/R, eye_out_L/R (no fallback from a shared shape key)"
 
 msgid "auto_mappings.row.brow_down"
-msgstr "← 怒り, 真面目, 困る"
+msgstr "← BrowDown_L/R / 怒り, 真面目, 困る"
 
 msgid "auto_mappings.row.brow_inner_up"
-msgstr "← 困る, 上, 悲しい"
+msgstr "← 困る, 上, 悲しい, BrowInnerUp"
 
 msgid "auto_mappings.row.brow_outer_up"
-msgstr "← 上, 驚き"
+msgstr "← BrowOuterUp_L/R / 上, 驚き"
 
 msgid "auto_mappings.row.jaw_open"
-msgstr "← vrc.v_aa, あ (70%)"
+msgstr "← vrc.v_aa, あ, a/A (70%)"
 
 msgid "auto_mappings.row.mouth_funnel"
-msgstr "← vrc.v_ou, う"
+msgstr "← vrc.v_ou, う, u/U"
 
 msgid "auto_mappings.row.mouth_pucker"
-msgstr "← vrc.v_ou, う, ω (120%)"
+msgstr "← vrc.v_ou, う, ω, u/U (120%)"
 
 msgid "auto_mappings.row.mouth_smile"
-msgstr "← にやり, ∧, にっこり"
+msgstr "← Smile_L/R / にやり, ∧, にっこり"
 
 msgid "auto_mappings.row.mouth_frown"
-msgstr "← への字, 悲しみ"
+msgstr "← Frown_L/R / への字, 悲しみ"
 
-msgid "auto_mappings.row.procedural"
-msgstr "← procedural generation (moves mouth-region vertices)"
+msgid "auto_mappings.row.mouth_left_right"
+msgstr "← 口左・口右, MouthLeft/MouthRight"
+
+msgid "auto_mappings.row.mouth_upper_up"
+msgstr "← vrc.v_ih, い, i/I"
+
+msgid "auto_mappings.row.mouth_lower_down"
+msgstr "← vrc.v_aa, あ, a/A (60%)"
+
+msgid "auto_mappings.row.mouth_close"
+msgstr "← vrc.v_nn, ん, n/N"
+
+msgid "auto_mappings.row.mouth_shrug_upper"
+msgstr "← vrc.v_ch, え, e/E"
+
+msgid "auto_mappings.row.mouth_shrug_lower"
+msgstr "← vrc.v_oh, お, o/O (50%)"
+
+msgid "auto_mappings.row.mouth_press"
+msgstr "← むっ, MouthPress"
+
+msgid "auto_mappings.row.mouth_stretch"
+msgstr "← vrc.v_ih, い, i"
+
+msgid "auto_mappings.row.jaw_direction"
+msgstr "← JawLeft/JawRight/JawForward"
+
+msgid "auto_mappings.row.procedural_fallback"
+msgstr " (procedural generation when missing; requires the option to be enabled)"
 
 msgid "auto_mappings.row.cheek_puff"
-msgstr "← ぷく, 膨らみ"
+msgstr "← ぷく, 膨らみ, CheekPuff"
 
 msgid "auto_mappings.row.cheek_squint"
-msgstr "← 笑い, にこり"
+msgstr "← CheekSquint_L/R / 笑い, にこり (80%)"
 
 msgid "auto_mappings.row.nose_sneer"
-msgstr "← 怒り"
+msgstr "← NoseSneer_L/R / 怒り"
 
 msgid "auto_mappings.row.tongue_out"
-msgstr "← べー, 舌"
+msgstr "← べー, 舌, TongueOut"
 
 # Debug
 msgid "debug.show_all_meshes"

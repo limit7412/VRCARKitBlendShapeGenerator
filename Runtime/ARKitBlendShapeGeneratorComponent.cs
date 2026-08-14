@@ -21,7 +21,7 @@ namespace ARKitBlendShapeGenerator
         // インスペクタ表示用の文言はEditorアセンブリ側でローカライズされる
         // （以下の属性はカスタムエディタが無効な場合のフォールバック表示）
         [Header("Target")]
-        [Tooltip("Target SkinnedMeshRenderer (auto-detects the Body mesh when empty)")]
+        [Tooltip("Target SkinnedMeshRenderer (when empty, a direct child named Body/Face/Head is preferred, otherwise the first SkinnedMeshRenderer among the descendants)")]
         public SkinnedMeshRenderer targetRenderer;
 
         [Header("Generation")]
@@ -29,10 +29,10 @@ namespace ARKitBlendShapeGenerator
         [Range(0.1f, 2.0f)]
         public float intensityMultiplier = 1.0f;
 
-        [Tooltip("Generate left/right variants separately (e.g. blink)")]
+        [Tooltip("Generate left/right variants separately (e.g. blink). When off, the Side setting of custom mappings is ignored as well and every source is applied to both sides")]
         public bool enableLeftRightSplit = true;
 
-        [Tooltip("Width of the gradient around the center where left and right are blended when splitting")]
+        [Tooltip("Width of the gradient around the center where left and right are blended when splitting (in mesh local X units)")]
         [Range(0.001f, 0.1f)]
         public float blendWidth = 0.02f;
 
@@ -54,7 +54,7 @@ namespace ARKitBlendShapeGenerator
         [Tooltip("Blend shapes to cancel out. Weight represents how strongly each one is applied on the avatar (1.0 = 100)")]
         public List<BlendShapeSource> mouthCancellationSources = new List<BlendShapeSource>();
 
-        [Tooltip("Overall strength of the cancellation")]
+        [Tooltip("Overall multiplier for the cancellation (1.0 cancels exactly the specified amount)")]
         [Range(0f, 1f)]
         public float mouthCancellationStrength = 1.0f;
 
@@ -159,7 +159,7 @@ namespace ARKitBlendShapeGenerator
         [Range(-2f, 2f)]
         public float weight = 1.0f;
 
-        [Tooltip("Side to apply (for using one side of a non-split blend shape)")]
+        [Tooltip("Side to apply (for using one side of a non-split blend shape). Ignored while Left/Right Split is off")]
         public BlendShapeSide side = BlendShapeSide.Both;
     }
 
@@ -170,9 +170,9 @@ namespace ARKitBlendShapeGenerator
     {
         [Tooltip("Apply to both sides")]
         Both,
-        [Tooltip("Apply to the left side (X > 0) only")]
+        [Tooltip("Apply to the avatar's left half (mesh local X < 0) only")]
         LeftOnly,
-        [Tooltip("Apply to the right side (X < 0) only")]
+        [Tooltip("Apply to the avatar's right half (mesh local X > 0) only")]
         RightOnly
     }
 
