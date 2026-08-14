@@ -1194,7 +1194,10 @@ namespace ARKitBlendShapeGenerator.Presentation
 
             foreach (var mapping in customMappings)
             {
-                if (mapping == null || !mapping.enabled || string.IsNullOrEmpty(mapping.arkitName))
+                // 生成側（CollectCustomMappings）と同じ空判定にする。
+                // ここだけIsNullOrEmptyだと、生成されない空白のみの名前が
+                // 空欄のスライダーとしてプレビューに並んでしまう
+                if (mapping == null || !mapping.enabled || string.IsNullOrWhiteSpace(mapping.arkitName))
                 {
                     continue;
                 }
