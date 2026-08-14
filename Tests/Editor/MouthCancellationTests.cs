@@ -130,6 +130,64 @@ namespace ARKitBlendShapeGenerator.Tests
         }
 
         [Test]
+        public void Generate_ExtrapolatesCancellationSource_AboveHighestFrameWeight()
+        {
+            // 多フレーム（50→+0.2, 100→+1.0）の打ち消し元をweight150で評価すると、
+            // 最終フレームでクランプせず外挿して +1.8 になる。
+            var source = new FakeMeshRepository(TwoVertices())
+                .AddShape("あ", Vector3.up, Vector3.up)
+                .AddShapeFrame("口開き", 50f, new Vector3(0f, 0.2f, 0f), new Vector3(0f, 0.2f, 0f))
+                .AddShapeFrame("口開き", 100f, new Vector3(0f, 1.0f, 0f), new Vector3(0f, 1.0f, 0f));
+            var target = new FakeMeshRepository(TwoVertices());
+
+            BlendShapeGenerationEngine.Generate(
+                source, target, null, AutoMapping("jawOpen", "あ"),
+                CreateOptions("口開き", 1.5f, "jawOpen"), null);
+
+            var shape = target.FindShape("jawOpen");
+            // 生成デルタ(+1.0) + 打ち消し(-1.8) = -0.8
+            Assert.That(shape.Frames[0].DeltaVertices[0].y, Is.EqualTo(-0.8f).Within(0.0001f));
+        }
+
+        [Test]
+        public void Generate_EvaluatesCancellationSource_AtNegativeWeight()
+        {
+            // 打ち消し元をマイナス方向に適用しているアバターを想定する。
+            // 評価ウェイト-50での変形は-0.2となり、その逆方向（+0.2）が焼き込まれる。
+            var source = new FakeMeshRepository(TwoVertices())
+                .AddShape("あ", Vector3.up, Vector3.up)
+                .AddShape("口開き", new Vector3(0f, 0.4f, 0f), new Vector3(0f, 0.4f, 0f));
+            var target = new FakeMeshRepository(TwoVertices());
+
+            BlendShapeGenerationEngine.Generate(
+                source, target, null, AutoMapping("jawOpen", "あ"),
+                CreateOptions("口開き", -0.5f, "jawOpen"), null);
+
+            var shape = target.FindShape("jawOpen");
+            // 生成デルタ(+1.0) + 打ち消し(+0.2) = +1.2
+            Assert.That(shape.Frames[0].DeltaVertices[0].y, Is.EqualTo(1.2f).Within(0.0001f));
+        }
+
+        [Test]
+        public void Generate_EvaluatesCancellationSource_WithNegativeFrameWeight()
+        {
+            // フレームウェイトが負のシェイプキー。評価ウェイト-50は
+            // 変形なし(0)とweight-100フレームの補間になり、デルタは半分。
+            var source = new FakeMeshRepository(TwoVertices())
+                .AddShape("あ", Vector3.up, Vector3.up)
+                .AddShapeFrame("口開き", -100f, new Vector3(0f, 0.4f, 0f), new Vector3(0f, 0.4f, 0f));
+            var target = new FakeMeshRepository(TwoVertices());
+
+            BlendShapeGenerationEngine.Generate(
+                source, target, null, AutoMapping("jawOpen", "あ"),
+                CreateOptions("口開き", -0.5f, "jawOpen"), null);
+
+            var shape = target.FindShape("jawOpen");
+            // 生成デルタ(+1.0) + 打ち消し(-0.4 * 0.5) = +0.8
+            Assert.That(shape.Frames[0].DeltaVertices[0].y, Is.EqualTo(0.8f).Within(0.0001f));
+        }
+
+        [Test]
         public void Generate_AppliesCancellationStrength()
         {
             var source = new FakeMeshRepository(TwoVertices())

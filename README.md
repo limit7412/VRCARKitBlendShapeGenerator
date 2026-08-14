@@ -114,6 +114,32 @@ VRChat/MMDの標準的なBlendShape名（vrc.blink, まばたき, あ, い, う�
 
 BlendShapeは線形合成されるため、焼き込み先を複数選ぶと、それらが同時に適用されたときに打ち消しが重なって対象の変形を通り越し、逆向きに変形します。焼き込み先は必要最小限（多くの場合は `jawOpen` のみ）に絞ってください。打ち消し量は `Mouth Cancellation Strength` で弱めることもできます。
 
+## 開発
+
+### テスト
+
+生成ロジックのテストは `Tests/Editor` にEditModeテストとして置いています。
+メッシュの読み書きは `IMeshRepository` 越しに行っているため、テストでは `UnityEngine.Mesh` を使わずインメモリ実装（`FakeMeshRepository`）へ差し替えて検証します。
+
+テストはCIでは実行していません。
+`Editor/` `Runtime/` を変更したときは、PRを出す前に手元で実行してください。
+
+1. このリポジトリをUnityプロジェクトの `Packages/` 以下へ配置する（VCC/ALCOM経由で導入したものは書き換えられないため、開発時はクローンを直接置く）
+2. `Packages/manifest.json` の `testables` にパッケージ名を追加する
+
+    ```json
+    {
+      "dependencies": { },
+      "testables": [ "com.qazx7412.kx-vrc-arkit-blendshape-generator" ]
+    }
+    ```
+
+3. Unityメニュー > Window > General > Test Runner を開く
+4. EditModeタブで `ARKitBlendShapeGenerator.Editor.Tests` を実行する
+
+`testables` へ追加しないとテストアセンブリがコンパイルされず、Test Runnerの一覧にも現れません。
+テストは配布物には含みません（リリース用のzipへ入れるのは `package.json` と `Runtime/` `Editor/` だけです）。
+
 ## ライセンス
 
 MIT License

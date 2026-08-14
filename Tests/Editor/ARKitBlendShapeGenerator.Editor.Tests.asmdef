@@ -5,7 +5,8 @@
         "UnityEngine.TestRunner",
         "UnityEditor.TestRunner",
         "ARKitBlendShapeGenerator.Editor",
-        "ARKitBlendShapeGenerator.Runtime"
+        "ARKitBlendShapeGenerator.Runtime",
+        "VRC.SDKBase"
     ],
     "includePlatforms": [
         "Editor"
