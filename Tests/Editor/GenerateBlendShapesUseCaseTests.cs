@@ -99,7 +99,7 @@ namespace ARKitBlendShapeGenerator.Tests
         }
 
         [Test]
-        public void SelectPrimaryComponent_SkipsNullEntries()
+        public void SelectPrimaryComponent_SkipsNullEntries_WhileSearchingAvatarRoot()
         {
             var root = CreateComponent("Avatar");
 
@@ -107,7 +107,24 @@ namespace ARKitBlendShapeGenerator.Tests
                 root.transform,
                 new List<ARKitBlendShapeGeneratorComponent> { null, root });
 
+            // nullを踏んでもTransformの比較へ進まず、後続のルート直付けを見つける
             Assert.That(primary, Is.SameAs(root));
+        }
+
+        [Test]
+        public void SelectPrimaryComponent_ReturnsFirstEntryAsIs_WhenNoComponentIsOnAvatarRoot()
+        {
+            var avatarRoot = new GameObject("Avatar");
+            _created.Add(avatarRoot);
+            var face = CreateComponent("Face");
+
+            var primary = GenerateBlendShapesUseCase.SelectPrimaryComponent(
+                avatarRoot.transform,
+                new List<ARKitBlendShapeGeneratorComponent> { null, face });
+
+            // ルート直付けが無いときのフォールバックは先頭をそのまま返す。
+            // nullを除くのは呼び出し側の責務で、現在の呼び出し3経路はいずれも渡す前に除いている
+            Assert.That(primary, Is.Null);
         }
 
         [Test]
