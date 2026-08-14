@@ -1217,10 +1217,16 @@ namespace ARKitBlendShapeGenerator.Presentation
                 return categories;
             }
 
+            // 空名シェイプは名前で指定できずウェイト操作も効かないため、プレビュー対象から除外する
+            // （メッシュ上のデータとしてはそのまま保持される）
             var sourceShapeNames = new HashSet<string>();
             for (int i = 0; i < targetRenderer.sharedMesh.blendShapeCount; i++)
             {
-                sourceShapeNames.Add(targetRenderer.sharedMesh.GetBlendShapeName(i));
+                var shapeName = targetRenderer.sharedMesh.GetBlendShapeName(i);
+                if (!string.IsNullOrEmpty(shapeName))
+                {
+                    sourceShapeNames.Add(shapeName);
+                }
             }
 
             var processedAutoNames = new HashSet<string>();
