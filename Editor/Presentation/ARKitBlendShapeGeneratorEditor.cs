@@ -593,7 +593,8 @@ namespace ARKitBlendShapeGenerator.Presentation
         private bool DrawSourceItem(
             SerializedProperty sourcesProperty,
             int sourceIndex,
-            float leadingSpace = 0f)
+            float leadingSpace = 0f,
+            string sideTooltipKey = "enum.side.tooltip")
         {
             var sourceProperty = sourcesProperty.GetArrayElementAtIndex(sourceIndex);
             var blendShapeNameProperty = sourceProperty.FindPropertyRelative("blendShapeName");
@@ -638,7 +639,7 @@ namespace ARKitBlendShapeGenerator.Presentation
             }
 
             // 左右適用範囲
-            var sideTooltip = S("enum.side.tooltip");
+            var sideTooltip = S(sideTooltipKey);
             var sideLabels = new[]
             {
                 new GUIContent(S("enum.side.both"), sideTooltip),
@@ -780,7 +781,8 @@ namespace ARKitBlendShapeGenerator.Presentation
 
             for (int i = 0; i < sourcesProperty.arraySize; i++)
             {
-                if (!DrawSourceItem(sourcesProperty, i, indentSpace))
+                // 打ち消し元のSideは左右分割の設定と独立に適用されるため、別の説明を出す
+                if (!DrawSourceItem(sourcesProperty, i, indentSpace, "enum.side.cancellation.tooltip"))
                 {
                     // 要素を削除したため、以降のインデックスがずれる。この描画パスは打ち切る
                     break;

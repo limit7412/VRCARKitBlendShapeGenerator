@@ -236,6 +236,9 @@ msgstr "Right Only"
 msgid "enum.side.tooltip"
 msgstr "Which half the source is applied to. Left Only = the avatar's left half (mesh local X < 0), Right Only = the right half (X > 0). Ignored while Left/Right Split is off."
 
+msgid "enum.side.cancellation.tooltip"
+msgstr "Which half the cancellation is applied to. Left Only = the avatar's left half (mesh local X < 0), Right Only = the right half (X > 0). It represents how the blend shape is applied on the avatar, so it takes effect regardless of the Left/Right Split setting."
+
 # Preview
 msgid "inspector.section.preview"
 msgstr "Preview"
@@ -269,7 +272,7 @@ msgid "inspector.section.auto_mappings"
 msgstr "Auto Mapping List (Reference)"
 
 msgid "auto_mappings.description"
-msgstr "The following blend shapes are mapped automatically.\nBlend shape names are matched exactly (case and whitespace sensitive).\nThe left/right specific shape keys listed first take precedence; when none is found, the shared shape key listed after them is split into left and right.\nIf the same ARKit name is specified in an enabled custom mapping, the custom mapping takes precedence."
+msgstr "The following blend shapes are mapped automatically.\nBlend shape names are matched exactly (case and whitespace sensitive).\nThe left/right specific shape keys listed first take precedence. When none is found, the shared shape key listed after them is split into left and right only while Left/Right Split is on; when it is off, the same unsplit deformation is applied to both ARKit names.\nIf the same ARKit name is specified in an enabled custom mapping, the custom mapping takes precedence."
 
 msgid "auto_mappings.fold.eye"
 msgstr "Eye"

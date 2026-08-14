@@ -159,7 +159,7 @@ namespace ARKitBlendShapeGenerator
         [Range(-2f, 2f)]
         public float weight = 1.0f;
 
-        [Tooltip("Side to apply (for using one side of a non-split blend shape). Ignored while Left/Right Split is off")]
+        [Tooltip("Side to apply (for using one side of a non-split blend shape). In custom mappings it is ignored while Left/Right Split is off; on cancellation sources it applies regardless of that setting")]
         public BlendShapeSide side = BlendShapeSide.Both;
     }
 

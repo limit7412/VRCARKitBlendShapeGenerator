@@ -117,6 +117,7 @@ VRChat/MMDの標準的なBlendShape名（vrc.blink, まばたき, あ, い, う�
 
 1. `Enable Mouth Cancellation` を有効化
 2. 「打ち消すBlendShape」に対象のBlendShapeを追加し、重みにアバター側での適用量を指定（1.0 = ウェイト100）
+    - Sideはアバター側での適用範囲を表すため、`Enable Left Right Split` がOFFでも指定どおりに適用されます（カスタムマッピングのSideとは扱いが異なります）
 3. 「焼き込み先のARKit BlendShape」で、打ち消しを入れるARKit名を選択（デフォルト: `jawOpen`）
 
 BlendShapeは線形合成されるため、焼き込み先を複数選ぶと、それらが同時に適用されたときに打ち消しが重なって対象の変形を通り越し、逆向きに変形します。焼き込み先は必要最小限（多くの場合は `jawOpen` のみ）に絞ってください。打ち消し量は `Mouth Cancellation Strength` で弱めることもできます。
