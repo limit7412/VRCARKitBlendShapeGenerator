@@ -219,50 +219,67 @@ namespace ARKitBlendShapeGenerator.Domain
                 plannedBlendShapes,
                 logger);
 
-            if (options.OverwriteExisting && plannedBlendShapes.Count > 0)
-            {
-                var namesToReplace = new HashSet<string>(
-                    plannedBlendShapes.Select(planned => planned.ArkitName));
-                namesToReplace.IntersectWith(GetExistingBlendShapeNames(targetMesh));
-
-                if (namesToReplace.Count > 0)
-                {
-                    if (!TryRemoveBlendShapesByNames(
-                            targetMesh,
-                            namesToReplace,
-                            out int removedCount,
-                            out var mergedShapeName))
-                    {
-                        // 上書きするとメッシュ側の同名シェイプが統合されてデータを失うため、
-                        // メッシュを変更しないまま生成全体を中止する
-                        logger?.Error(S("log.overwrite_merge_abort", mergedShapeName));
-                        return new BlendShapeGenerationResult(
-                            new List<string>(),
-                            BuildShapeIndices(targetMesh));
-                    }
-
-                    if (removedCount > 0)
-                    {
-                        Log(logger, options, $"Replaced existing blendshapes: {string.Join(", ", namesToReplace.OrderBy(name => name))}");
-                    }
-                }
-            }
-
             var cancellation = BuildMouthCancellationDelta(sourceMesh, existingShapes, options, logger);
 
+            // メッシュへ書き込む前に生成内容を全て確定させる。
+            // 置き換えは削除+末尾追加ではなく元の位置への差し替えで行うため、先に materialize する必要がある
+            var builtShapes = new List<BlendShapeData>();
             foreach (var planned in plannedBlendShapes)
             {
-                if (TryAddBlendShape(
+                if (TryBuildBlendShape(
                         sourceMesh,
-                        targetMesh,
                         planned.ArkitName,
                         planned.Sources,
                         options,
                         cancellation,
-                        logger))
+                        logger,
+                        out var built))
                 {
-                    existingShapes[planned.ArkitName] = targetMesh.BlendShapeCount - 1;
-                    generatedShapes.Add(planned.ArkitName);
+                    builtShapes.Add(built);
+                }
+            }
+
+            if (builtShapes.Count > 0)
+            {
+                var targetExistingNames = GetExistingBlendShapeNames(targetMesh);
+                var replacements = new Dictionary<string, BlendShapeData>();
+                var appended = new List<BlendShapeData>();
+
+                foreach (var built in builtShapes)
+                {
+                    if (options.OverwriteExisting && targetExistingNames.Contains(built.Name))
+                    {
+                        replacements[built.Name] = built;
+                    }
+                    else
+                    {
+                        appended.Add(built);
+                    }
+                }
+
+                if (!TryReplaceBlendShapesInPlace(targetMesh, replacements, out var mergedShapeName))
+                {
+                    // 元から同名シェイプが隣接しているメッシュは再構築でデータを失うため、
+                    // メッシュを変更しないまま生成全体を中止する
+                    logger?.Error(S("log.overwrite_merge_abort", mergedShapeName));
+                    return new BlendShapeGenerationResult(
+                        new List<string>(),
+                        BuildShapeIndices(targetMesh));
+                }
+
+                if (replacements.Count > 0)
+                {
+                    Log(logger, options, $"Replaced existing blendshapes: {string.Join(", ", replacements.Keys.OrderBy(name => name))}");
+                }
+
+                foreach (var built in appended)
+                {
+                    AppendBlendShape(targetMesh, built);
+                }
+
+                foreach (var built in builtShapes)
+                {
+                    generatedShapes.Add(built.Name);
                 }
             }
 
@@ -586,35 +603,50 @@ namespace ARKitBlendShapeGenerator.Domain
                 return;
             }
 
-            if (namesToReplace.Count > 0)
+            // 通常の生成と同じく、置き換えは元の位置へ差し替える（削除+末尾追加だと
+            // 隙間で同名シェイプが隣接して統合される）
+            var replacements = new Dictionary<string, BlendShapeData>();
+            var appended = new List<BlendShapeData>();
+            foreach (var (arkitName, deltaVertices, deltaNormals, deltaTangents) in plannedDeltas)
             {
-                if (!TryRemoveBlendShapesByNames(
-                        targetMesh,
-                        namesToReplace,
-                        out int removedCount,
-                        out var mergedShapeName))
-                {
-                    // 手続き的生成は補助機能のため、メッシュを守って生成を見送る
-                    Log(logger, options, $"Skip procedural (replacement would merge duplicate shape: {mergedShapeName})");
-                    return;
-                }
+                var built = new BlendShapeData(
+                    arkitName,
+                    new List<BlendShapeFrameData>
+                    {
+                        new BlendShapeFrameData(100f, deltaVertices, deltaNormals, deltaTangents),
+                    });
 
-                if (removedCount > 0)
+                if (namesToReplace.Contains(arkitName))
                 {
-                    Log(logger, options, $"Replaced existing blendshapes (procedural): {string.Join(", ", namesToReplace.OrderBy(name => name))}");
+                    replacements[arkitName] = built;
+                }
+                else
+                {
+                    appended.Add(built);
                 }
             }
 
-            foreach (var (arkitName, deltaVertices, deltaNormals, deltaTangents) in plannedDeltas)
+            if (!TryReplaceBlendShapesInPlace(targetMesh, replacements, out var mergedShapeName))
             {
-                targetMesh.AddBlendShapeFrame(
-                    arkitName,
-                    100f,
-                    deltaVertices,
-                    deltaNormals,
-                    deltaTangents);
-                generatedShapes.Add(arkitName);
-                Log(logger, options, $"Generated (procedural): {arkitName}");
+                // 手続き的生成は補助機能のため、メッシュを守って生成を見送る
+                Log(logger, options, $"Skip procedural (replacement would merge duplicate shape: {mergedShapeName})");
+                return;
+            }
+
+            if (replacements.Count > 0)
+            {
+                Log(logger, options, $"Replaced existing blendshapes (procedural): {string.Join(", ", replacements.Keys.OrderBy(name => name))}");
+            }
+
+            foreach (var built in appended)
+            {
+                AppendBlendShape(targetMesh, built);
+            }
+
+            foreach (var planned in plannedDeltas)
+            {
+                generatedShapes.Add(planned.arkitName);
+                Log(logger, options, $"Generated (procedural): {planned.arkitName}");
             }
         }
 
@@ -781,15 +813,20 @@ namespace ARKitBlendShapeGenerator.Domain
             return true;
         }
 
-        private static bool TryAddBlendShape(
+        /// <summary>
+        /// 生成するBlendShapeのデルタを計算する。メッシュへの書き込みは行わない。
+        /// 書き込み前に全て確定させることで、置き換え対象を元の位置へ差し替えられる
+        /// </summary>
+        private static bool TryBuildBlendShape(
             IMeshRepository sourceMesh,
-            IMeshRepository targetMesh,
             string arkitName,
             List<(int index, float weight, BlendShapeSide side)> sources,
             BlendShapeGenerationOptions options,
             MouthCancellationDelta cancellation,
-            IGenerationLogger logger)
+            IGenerationLogger logger,
+            out BlendShapeData built)
         {
+            built = null;
             int vertexCount = sourceMesh.VertexCount;
             var deltaVertices = new Vector3[vertexCount];
             var deltaNormals = new Vector3[vertexCount];
@@ -858,9 +895,27 @@ namespace ARKitBlendShapeGenerator.Domain
                 Log(logger, options, $"Applied cancellation: {arkitName}");
             }
 
-            targetMesh.AddBlendShapeFrame(arkitName, 100f, deltaVertices, deltaNormals, deltaTangents);
+            built = new BlendShapeData(
+                arkitName,
+                new List<BlendShapeFrameData>
+                {
+                    new BlendShapeFrameData(100f, deltaVertices, deltaNormals, deltaTangents),
+                });
             Log(logger, options, $"Generated: {arkitName} from {sourceCount} source(s)");
             return true;
+        }
+
+        private static void AppendBlendShape(IMeshRepository mesh, BlendShapeData shape)
+        {
+            foreach (var frame in shape.Frames)
+            {
+                mesh.AddBlendShapeFrame(
+                    shape.Name,
+                    frame.Weight,
+                    frame.DeltaVertices,
+                    frame.DeltaNormals,
+                    frame.DeltaTangents);
+            }
         }
 
         /// <summary>
@@ -926,23 +981,27 @@ namespace ARKitBlendShapeGenerator.Domain
         }
 
         /// <summary>
-        /// 指定した名前のBlendShapeを取り除く（ClearBlendShapes後に残りを再構築する）。
+        /// 指定した名前のBlendShapeを、その場で新しいデルタへ差し替える（ClearBlendShapes後に全体を再構築する）。
         ///
-        /// 再構築すると同名シェイプが統合されてデータを失う配置の場合はメッシュを一切変更せず、
-        /// falseを返して呼び出し元に中止させる。AddBlendShapeFrameは名前をキーにするうえ、
+        /// 削除して末尾へ追加し直すのではなく元の位置へ書き戻すのは、削除で空いた隙間によって
+        /// 同名シェイプが隣接するのを防ぐため。AddBlendShapeFrameは名前をキーにするうえ、
         /// 同名シェイプのフレームウェイトは昇順でなければならないため、同名シェイプが隣接すると
         /// 後続の同一ウェイトのフレームが追加されずデルタが失われる。
+        /// 並びを変えないので、隣接が新たに生じることはない。
+        ///
+        /// 元から同名シェイプが隣接しているメッシュ（FBXインポート等、このAPIを経由せずに
+        /// 作られたもの）だけは再構築でデータを失うため、メッシュを変更せずfalseを返す。
+        ///
+        /// 同じ名前のシェイプが複数ある場合は、そのすべてを置き換える。
         /// </summary>
-        private static bool TryRemoveBlendShapesByNames(
+        private static bool TryReplaceBlendShapesInPlace(
             IMeshRepository mesh,
-            HashSet<string> shapeNamesToRemove,
-            out int removedCount,
+            Dictionary<string, BlendShapeData> replacements,
             out string mergedShapeName)
         {
-            removedCount = 0;
             mergedShapeName = null;
 
-            if (mesh == null || shapeNamesToRemove == null || shapeNamesToRemove.Count == 0)
+            if (mesh == null || replacements == null || replacements.Count == 0)
             {
                 return true;
             }
@@ -954,18 +1013,20 @@ namespace ARKitBlendShapeGenerator.Domain
             }
 
             int vertexCount = mesh.VertexCount;
-            var preserved = new List<BlendShapeData>(blendShapeCount);
+            var rebuilt = new List<BlendShapeData>(blendShapeCount);
+            bool replacedAny = false;
 
             for (int shapeIndex = 0; shapeIndex < blendShapeCount; shapeIndex++)
             {
                 string existingName = mesh.GetBlendShapeName(shapeIndex);
 
-                // 空名シェイプは生成・照合の対象外だが、メッシュのデータとしては保持する。
-                // 削除対象は必ず非空のARKit名のため、空名が削除に該当することはない。
-                // （ここでpreservedに積まないと、ClearBlendShapes後の再構築で黙って消える）
-                if (!string.IsNullOrEmpty(existingName) && shapeNamesToRemove.Contains(existingName))
+                // 空名シェイプは生成・照合の対象外だが、メッシュのデータとしては保持する
+                // （ここでrebuiltに積まないと、ClearBlendShapes後の再構築で黙って消える）
+                if (!string.IsNullOrEmpty(existingName) &&
+                    replacements.TryGetValue(existingName, out var replacement))
                 {
-                    removedCount++;
+                    rebuilt.Add(replacement);
+                    replacedAny = true;
                     continue;
                 }
 
@@ -992,34 +1053,26 @@ namespace ARKitBlendShapeGenerator.Domain
                         deltaTangents));
                 }
 
-                preserved.Add(new BlendShapeData(existingName, frames));
+                rebuilt.Add(new BlendShapeData(existingName, frames));
             }
 
-            if (removedCount == 0)
+            if (!replacedAny)
             {
                 return true;
             }
 
-            // 再構築で同名シェイプが隣り合うとデータを失うため、メッシュへ触れる前に検出して中止する
-            mergedShapeName = FindAdjacentDuplicateName(preserved);
+            // 並びを変えないため、同名の隣接は元のメッシュに元からあった場合しか生じない。
+            // その場合だけは再構築でデータを失うため、メッシュへ触れる前に中止する
+            mergedShapeName = FindAdjacentDuplicateName(rebuilt);
             if (mergedShapeName != null)
             {
-                removedCount = 0;
                 return false;
             }
 
             mesh.ClearBlendShapes();
-            foreach (var shape in preserved)
+            foreach (var shape in rebuilt)
             {
-                foreach (var frame in shape.Frames)
-                {
-                    mesh.AddBlendShapeFrame(
-                        shape.Name,
-                        frame.Weight,
-                        frame.DeltaVertices,
-                        frame.DeltaNormals,
-                        frame.DeltaTangents);
-                }
+                AppendBlendShape(mesh, shape);
             }
 
             return true;
@@ -1029,13 +1082,13 @@ namespace ARKitBlendShapeGenerator.Domain
         /// 再構築したときに統合されてしまう同名シェイプ（隣り合う同名の並び）を探す。
         /// 見つからなければnull。空名も統合の対象になるため同様に扱う
         /// </summary>
-        private static string FindAdjacentDuplicateName(List<BlendShapeData> preserved)
+        private static string FindAdjacentDuplicateName(List<BlendShapeData> shapes)
         {
-            for (int i = 1; i < preserved.Count; i++)
+            for (int i = 1; i < shapes.Count; i++)
             {
-                if (string.Equals(preserved[i - 1].Name, preserved[i].Name))
+                if (string.Equals(shapes[i - 1].Name, shapes[i].Name))
                 {
-                    return preserved[i].Name;
+                    return shapes[i].Name;
                 }
             }
 
