@@ -439,7 +439,8 @@ namespace ARKitBlendShapeGenerator.Presentation
         }
 
         /// <summary>
-        /// カスタムマッピングに設定済みのARKit名を列挙する（空白のみの要素は除外）
+        /// カスタムマッピングに設定済みのARKit名を列挙する（空白のみの要素は除外）。
+        /// 名前は加工しない。生成側と同じ規則で扱わないと、重複判定や使用済み判定が実挙動とずれる
         /// </summary>
         private static IEnumerable<string> EnumerateArkitNames(SerializedProperty customMappingsProperty)
         {
@@ -449,7 +450,7 @@ namespace ARKitBlendShapeGenerator.Presentation
                     .FindPropertyRelative("arkitName").stringValue;
                 if (!string.IsNullOrWhiteSpace(arkitName))
                 {
-                    yield return arkitName.Trim();
+                    yield return arkitName;
                 }
             }
         }
@@ -470,7 +471,7 @@ namespace ARKitBlendShapeGenerator.Presentation
                     .FindPropertyRelative("arkitName").stringValue;
                 if (!string.IsNullOrWhiteSpace(arkitName))
                 {
-                    usedByOthers.Add(arkitName.Trim());
+                    usedByOthers.Add(arkitName);
                 }
             }
 
