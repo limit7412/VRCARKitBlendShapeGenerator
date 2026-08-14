@@ -7,12 +7,12 @@ name: Test
 # VPM依存（VRChat SDK / NDMF）はUnity Package Managerでは解決できないため、
 # vrc-getで先に入れてからテストランナーを回す。
 #
-# 実行にはUnityライセンスのsecret登録が必要:
-#   UNITY_LICENSE  … ライセンスファイル(.ulf)の中身。Personalライセンスの取得手順は
-#                     https://game.ci/docs/github/activation を参照
-#   UNITY_EMAIL    … Unityアカウントのメールアドレス
-#   UNITY_PASSWORD … Unityアカウントのパスワード
-# UNITY_LICENSEが未設定の場合、テストジョブはスキップされる（フォークからのPRを含む）。
+# 実行にはUnityライセンスのsecret登録が必要。ライセンスの種類で使うsecretが違う:
+#   Personal … UNITY_LICENSE（ライセンスファイル(.ulf)の中身）+ UNITY_EMAIL + UNITY_PASSWORD
+#   Pro/Plus … UNITY_SERIAL + UNITY_EMAIL + UNITY_PASSWORD
+# 取得手順は https://game.ci/docs/github/activation を参照。
+# UNITY_LICENSEを登録するとそちらで認証するため、シリアルを使う場合は登録しない。
+# どちらも未設定の場合、テストジョブはスキップされる（フォークからのPRを含む）。
 
 on:
   pull_request:
@@ -57,12 +57,13 @@ jobs:
       - id: check
         env:
           UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+          UNITY_SERIAL: ${{ secrets.UNITY_SERIAL }}
         run: |
-          if [ -n "$UNITY_LICENSE" ]; then
+          if [ -n "$UNITY_LICENSE" ] || [ -n "$UNITY_SERIAL" ]; then
             echo "available=true" >> "$GITHUB_OUTPUT"
           else
             echo "available=false" >> "$GITHUB_OUTPUT"
-            echo "::notice::UNITY_LICENSE が未設定のためEditModeテストをスキップします"
+            echo "::notice::UNITY_LICENSE / UNITY_SERIAL が未設定のためEditModeテストをスキップします"
           fi
 
   test:
@@ -162,6 +163,7 @@ jobs:
         uses: game-ci/unity-test-runner@v4
         env:
           UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+          UNITY_SERIAL: ${{ secrets.UNITY_SERIAL }}
           UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
           UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
         with:

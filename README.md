@@ -148,15 +148,23 @@ CIでも実行されますが（後述）、Unityライセンスのsecretが未�
 このリポジトリはUnityプロジェクトではないため、ワークフローは実行のたびに最小のUnityプロジェクトを組み立て、その `Packages/` へこのリポジトリを置きます。
 VPM依存（VRChat SDK / NDMF）はUnity Package Managerでは解決できないので、[vrc-get](https://github.com/vrc-get/vrc-get)で先に導入してから[game-ci](https://game.ci/)のテストランナーを回します。
 
-実行にはリポジトリのsecretsへ以下の登録が必要です。
+実行にはリポジトリのsecretsへUnityライセンスの登録が必要です。
+ライセンスの種類で使うsecretが違います。取得手順は[game-ciのドキュメント](https://game.ci/docs/github/activation)を参照してください。
 
 | secret | 内容 |
 | ---- | ---- |
-| `UNITY_LICENSE` | ライセンスファイル（`.ulf`）の中身。取得手順は[game-ciのドキュメント](https://game.ci/docs/github/activation)を参照 |
-| `UNITY_EMAIL` | Unityアカウントのメールアドレス |
-| `UNITY_PASSWORD` | Unityアカウントのパスワード |
+| `UNITY_EMAIL` | Unityアカウントのメールアドレス（どちらの種類でも必要） |
+| `UNITY_PASSWORD` | Unityアカウントのパスワード（どちらの種類でも必要） |
+| `UNITY_LICENSE` | Personalの場合。ライセンスファイル（`.ulf`）の中身 |
+| `UNITY_SERIAL` | Pro/Plusの場合。シリアル |
 
-`UNITY_LICENSE` が未設定のときはテストジョブがスキップされ、ワークフローは失敗しません。
+`UNITY_LICENSE` を登録するとそちらで認証するため、シリアルを使う場合は登録しないでください。
+
+`.ulf` は認証ファイル（`.alf`）を作った**Unityのバージョンに紐づきます**。
+別のバージョンで作ったものを登録すると、ログインには成功したうえで `Code 20110 (serial invalid)` で認証に失敗します。
+このリポジトリのCIは 2022.3.6f1 で動かすため、`.alf` も同じバージョンで作ってください。
+
+どちらのsecretも未設定のときはテストジョブがスキップされ、ワークフローは失敗しません。
 フォークからのPRはsecretsを受け取れないため、同様にスキップされます。
 
 ## ライセンス
