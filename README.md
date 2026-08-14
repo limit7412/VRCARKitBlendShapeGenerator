@@ -42,7 +42,7 @@ Jerry's Templatesと組み合わせて使用することで、フェイストラ
 | ---- | ---- |
 | **Target Renderer** | 対象のSkinnedMeshRenderer（空の場合はBody/Face/Headを自動検出） |
 | **Intensity Multiplier** | 生成時の強度係数（0.5〜1.5推奨） |
-| **Enable Left Right Split** | 左右分割を有効化（まばたき等を左右別々に生成）。OFFにするとカスタムマッピングのSide指定も無視され、両側に適用される |
+| **Enable Left Right Split** | 頂点のX座標による左右分割を行う（まばたき等を左右別々に生成）。OFFにするとカスタムマッピングのSide指定も無視され、両側に適用される |
 | **Blend Width** | 左右分割時のグラデーション幅（中央付近で左右をブレンドする範囲、0.001〜0.1。メッシュローカル座標で中心から片側への幅を指定するため、グラデーション全体は指定値の2倍） |
 | **Overwrite Existing** | 既存のARKit BlendShapeを上書きする |
 | **Enable Procedural Mouth Shapes** | 既存シェイプキーから生成できない口周りのBlendShapeを頂点移動で自動生成する（デフォルト: 無効） |
@@ -67,7 +67,9 @@ Target Renderer が空のときは、コンポーネントの直下にある `Bo
 
 ソースBlendShapeの名前はシェイプキー名との完全一致で照合します（大文字小文字や前後の空白も区別されます）。
 Sideは適用する頂点の範囲を表し、「左のみ」はアバターから見て左半分（メッシュローカル座標のX < 0）、「右のみ」は右半分（X > 0）に適用されます。
-`Enable Left Right Split` がOFFのときはSideの指定は無視され、ソースが両側に適用されます。
+`Enable Left Right Split` は生成全体で頂点のX座標による左右分割を行うかどうかのスイッチです。
+OFFのときはカスタムマッピングのSideも無視され、ソースが両側に適用されます。
+無視されていることが分かるよう、OFFのあいだSideのドロップダウンは非活性で表示されます（設定値そのものは保持され、ONに戻すとまた効きます）。
 
 ### NDMFプレビュー
 

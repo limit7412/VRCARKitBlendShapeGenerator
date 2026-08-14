@@ -54,7 +54,7 @@ msgid "prop.enable_left_right_split"
 msgstr "Left/Right Split"
 
 msgid "prop.enable_left_right_split.tooltip"
-msgstr "Generate left/right variants separately (e.g. blink). When off, the Side setting of custom mappings is ignored as well and every source is applied to both sides."
+msgstr "Split by the vertex X coordinate to generate left/right variants separately (e.g. blink). When off, the Side setting of custom mappings is ignored as well and every source is applied to both sides (the Side dropdown is shown disabled)."
 
 msgid "prop.blend_width"
 msgstr "Blend Width"
@@ -235,6 +235,9 @@ msgstr "Right Only"
 
 msgid "enum.side.tooltip"
 msgstr "Which half the source is applied to. Left Only = the avatar's left half (mesh local X < 0), Right Only = the right half (X > 0). Ignored while Left/Right Split is off."
+
+msgid "enum.side.split_off.tooltip"
+msgstr "Left/Right Split is off, so this setting is ignored during generation (the value itself is kept). Turn Left/Right Split on to apply it."
 
 msgid "enum.side.cancellation.tooltip"
 msgstr "Which half the cancellation is applied to. Left Only = the avatar's left half (mesh local X < 0), Right Only = the right half (X > 0). It represents how the blend shape is applied on the avatar, so it takes effect regardless of the Left/Right Split setting."

@@ -29,7 +29,7 @@ namespace ARKitBlendShapeGenerator
         [Range(0.1f, 2.0f)]
         public float intensityMultiplier = 1.0f;
 
-        [Tooltip("Generate left/right variants separately (e.g. blink). When off, the Side setting of custom mappings is ignored as well and every source is applied to both sides")]
+        [Tooltip("Split by the vertex X coordinate to generate left/right variants separately (e.g. blink). When off, the Side setting of custom mappings is ignored as well and every source is applied to both sides")]
         public bool enableLeftRightSplit = true;
 
         [Tooltip("Width of the gradient around the center where left and right are blended when splitting (the distance from the center to one side in mesh local X, so the whole gradient spans twice this value)")]

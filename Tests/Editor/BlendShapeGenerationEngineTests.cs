@@ -36,7 +36,11 @@ namespace ARKitBlendShapeGenerator.Tests
             };
         }
 
-        private static CustomBlendShapeMapping CustomMapping(string arkitName, string sourceName, float weight)
+        private static CustomBlendShapeMapping CustomMapping(
+            string arkitName,
+            string sourceName,
+            float weight,
+            BlendShapeSide side = BlendShapeSide.Both)
         {
             return new CustomBlendShapeMapping
             {
@@ -44,7 +48,7 @@ namespace ARKitBlendShapeGenerator.Tests
                 enabled = true,
                 sources = new List<BlendShapeSource>
                 {
-                    new BlendShapeSource { blendShapeName = sourceName, weight = weight, side = BlendShapeSide.Both },
+                    new BlendShapeSource { blendShapeName = sourceName, weight = weight, side = side },
                 },
             };
         }
@@ -98,6 +102,58 @@ namespace ARKitBlendShapeGenerator.Tests
             // LeftOnlyはX<0側にのみ適用される（X=-1は全適用、X=+1は適用なし）
             Assert.That(shape.Frames[0].DeltaVertices[0], Is.EqualTo(Vector3.up));
             Assert.That(shape.Frames[0].DeltaVertices[1], Is.EqualTo(Vector3.zero));
+        }
+
+        [Test]
+        public void Generate_AppliesCustomMappingSide_WhenLeftRightSplitEnabled()
+        {
+            var source = new FakeMeshRepository(TwoVertices())
+                .AddShape("wink", Vector3.up, Vector3.up);
+            var target = new FakeMeshRepository(TwoVertices());
+            var options = CreateOptions();
+            options.EnableLeftRightSplit = true;
+
+            BlendShapeGenerationEngine.Generate(
+                source,
+                target,
+                new List<CustomBlendShapeMapping>
+                {
+                    CustomMapping("eyeBlinkLeft", "wink", 1.0f, BlendShapeSide.LeftOnly),
+                },
+                null,
+                options,
+                null);
+
+            var shape = target.FindShape("eyeBlinkLeft");
+            Assert.That(shape.Frames[0].DeltaVertices[0], Is.EqualTo(Vector3.up));
+            Assert.That(shape.Frames[0].DeltaVertices[1], Is.EqualTo(Vector3.zero));
+        }
+
+        [Test]
+        public void Generate_IgnoresCustomMappingSide_WhenLeftRightSplitDisabled()
+        {
+            var source = new FakeMeshRepository(TwoVertices())
+                .AddShape("wink", Vector3.up, Vector3.up);
+            var target = new FakeMeshRepository(TwoVertices());
+            var options = CreateOptions();
+            options.EnableLeftRightSplit = false;
+
+            BlendShapeGenerationEngine.Generate(
+                source,
+                target,
+                new List<CustomBlendShapeMapping>
+                {
+                    CustomMapping("eyeBlinkLeft", "wink", 1.0f, BlendShapeSide.LeftOnly),
+                },
+                null,
+                options,
+                null);
+
+            // 左右分割は生成全体のスイッチで、カスタムマッピングのSideもここで止まる
+            // （インスペクタ側はこの状態のときSideのドロップダウンを非活性にして無視されることを示す）
+            var shape = target.FindShape("eyeBlinkLeft");
+            Assert.That(shape.Frames[0].DeltaVertices[0], Is.EqualTo(Vector3.up));
+            Assert.That(shape.Frames[0].DeltaVertices[1], Is.EqualTo(Vector3.up));
         }
 
         [Test]
