@@ -272,7 +272,7 @@ msgid "inspector.section.auto_mappings"
 msgstr "Auto Mapping List (Reference)"
 
 msgid "auto_mappings.description"
-msgstr "The following blend shapes are mapped automatically.\nBlend shape names are matched exactly (case and whitespace sensitive).\nThe left/right specific shape keys listed first take precedence; when none is found, the shared shape key listed after them is used. While Left/Right Split is on the shared shape key is split into left and right, and while it is off it is applied as-is without splitting.\nIf the same ARKit name is specified in an enabled custom mapping, the custom mapping takes precedence."
+msgstr "The following blend shapes are mapped automatically.\nBlend shape names are matched exactly (case and whitespace sensitive).\nFor each ARKit name the candidates are searched from left to right and the first one found is used. The left and right ARKit names are searched independently, so when their candidates differ (ウィンク and ウィンク右, for example) only one side may be generated.\nThe candidates after the slash are split into left and right by Side only while Left/Right Split is on; while it is off they are applied as-is.\nIf the same ARKit name is specified in an enabled custom mapping, the custom mapping takes precedence."
 
 msgid "auto_mappings.fold.eye"
 msgstr "Eye"
