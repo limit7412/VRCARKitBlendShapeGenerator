@@ -121,8 +121,8 @@ BlendShapeは線形合成されるため、焼き込み先を複数選ぶと、�
 生成ロジックのテストは `Tests/Editor` にEditModeテストとして置いています。
 メッシュの読み書きは `IMeshRepository` 越しに行っているため、テストでは `UnityEngine.Mesh` を使わずインメモリ実装（`FakeMeshRepository`）へ差し替えて検証します。
 
-テストはCIでは実行していません。
 `Editor/` `Runtime/` を変更したときは、PRを出す前に手元で実行してください。
+CIでも実行されますが（後述）、Unityライセンスのsecretが未設定のリポジトリやフォークではスキップされます。
 
 1. このリポジトリをUnityプロジェクトの `Packages/` 以下へ配置する（VCC/ALCOM経由で導入したものは書き換えられないため、開発時はクローンを直接置く）
 2. `Packages/manifest.json` の `testables` にパッケージ名を追加する
@@ -139,6 +139,25 @@ BlendShapeは線形合成されるため、焼き込み先を複数選ぶと、�
 
 `testables` へ追加しないとテストアセンブリがコンパイルされず、Test Runnerの一覧にも現れません。
 テストは配布物には含みません（リリース用のzipへ入れるのは `package.json` と `Runtime/` `Editor/` だけです）。
+
+### CIでのテスト実行
+
+`.github/workflows/test.yml` が、`Editor/` `Runtime/` `Tests/` `package.json` を変更したPRでEditModeテストを実行します。
+結果は「EditMode Test Results」チェックとしてPRに出ます。
+
+このリポジトリはUnityプロジェクトではないため、ワークフローは実行のたびに最小のUnityプロジェクトを組み立て、その `Packages/` へこのリポジトリを置きます。
+VPM依存（VRChat SDK / NDMF）はUnity Package Managerでは解決できないので、[vrc-get](https://github.com/vrc-get/vrc-get)で先に導入してから[game-ci](https://game.ci/)のテストランナーを回します。
+
+実行にはリポジトリのsecretsへ以下の登録が必要です。
+
+| secret | 内容 |
+| ---- | ---- |
+| `UNITY_LICENSE` | ライセンスファイル（`.ulf`）の中身。取得手順は[game-ciのドキュメント](https://game.ci/docs/github/activation)を参照 |
+| `UNITY_EMAIL` | Unityアカウントのメールアドレス |
+| `UNITY_PASSWORD` | Unityアカウントのパスワード |
+
+`UNITY_LICENSE` が未設定のときはテストジョブがスキップされ、ワークフローは失敗しません。
+フォークからのPRはsecretsを受け取れないため、同様にスキップされます。
 
 ## ライセンス
 
