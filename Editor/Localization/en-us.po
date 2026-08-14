@@ -60,7 +60,7 @@ msgid "prop.blend_width"
 msgstr "Blend Width"
 
 msgid "prop.blend_width.tooltip"
-msgstr "Width of the gradient around the center where left and right are blended when splitting (in mesh local X units)"
+msgstr "Width of the gradient around the center where left and right are blended when splitting (the distance from the center to one side in mesh local X, so the whole gradient spans twice this value)"
 
 msgid "prop.overwrite_existing"
 msgstr "Overwrite Existing"

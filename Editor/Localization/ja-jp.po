@@ -60,7 +60,7 @@ msgid "prop.blend_width"
 msgstr "グラデーション幅"
 
 msgid "prop.blend_width.tooltip"
-msgstr "左右分割時のグラデーション幅（中央付近で左右をブレンドする範囲。メッシュローカル座標のX幅）"
+msgstr "左右分割時のグラデーション幅（中央付近で左右をブレンドする範囲。メッシュローカル座標で中心から片側への幅を指定するため、グラデーション全体は指定値の2倍になる）"
 
 msgid "prop.overwrite_existing"
 msgstr "既存を上書き"
