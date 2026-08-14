@@ -246,7 +246,9 @@ namespace ARKitBlendShapeGenerator.Tests
         [Test]
         public void Generate_KeepsShapeOrder_WhenOverwriteEnabled()
         {
-            // 再構築後も残ったシェイプの並びは元のまま、生成したシェイプが末尾へ追加される
+            // 上書きは削除+末尾追加ではなく元の位置での差し替えで行うため、置き換えた
+            // シェイプは末尾へ移動せず元の位置に留まる。並びを変えないことが、同名シェイプを
+            // 隣接させずに済ませる仕組みそのものになっている（#50）
             var source = new FakeMeshRepository(TwoVertices())
                 .AddShape("vrc.blink", Vector3.up, Vector3.up);
             var target = new FakeMeshRepository(TwoVertices())
@@ -260,8 +262,10 @@ namespace ARKitBlendShapeGenerator.Tests
                 source, target, null, AutoMapping("eyeBlinkLeft", 1.0f, "vrc.blink"), options, null);
 
             Assert.That(result.ShapeIndices["笑い"], Is.EqualTo(0));
-            Assert.That(result.ShapeIndices["怒り"], Is.EqualTo(1));
-            Assert.That(result.ShapeIndices["eyeBlinkLeft"], Is.EqualTo(2));
+            Assert.That(result.ShapeIndices["eyeBlinkLeft"], Is.EqualTo(1));
+            Assert.That(result.ShapeIndices["怒り"], Is.EqualTo(2));
+            // 差し替えなので中身は新しいデルタになっている
+            Assert.That(target.FindShape("eyeBlinkLeft").Frames[0].DeltaVertices[0], Is.EqualTo(Vector3.up));
         }
 
         [Test]
