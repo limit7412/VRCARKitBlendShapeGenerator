@@ -21,7 +21,7 @@ namespace ARKitBlendShapeGenerator
         // インスペクタ表示用の文言はEditorアセンブリ側でローカライズされる
         // （以下の属性はカスタムエディタが無効な場合のフォールバック表示）
         [Header("Target")]
-        [Tooltip("Target SkinnedMeshRenderer (when empty, a direct child named Body/Face/Head is preferred, otherwise the first SkinnedMeshRenderer among the descendants)")]
+        [Tooltip("Target SkinnedMeshRenderer (when empty, a direct child named Body/Face/Head is preferred, otherwise the first SkinnedMeshRenderer on this object or its descendants)")]
         public SkinnedMeshRenderer targetRenderer;
 
         [Header("Generation")]

@@ -52,7 +52,7 @@ Jerry's Templatesと組み合わせて使用することで、フェイストラ
 | **Custom Mappings** | 自動マッピングできないBlendShapeを手動で指定 |
 | **Debug Mode** | デバッグログを出力する |
 
-Target Renderer が空のときは、コンポーネントの直下にある `Body` / `body` / `Face` / `face` / `Head` / `head` のいずれかの名前を持つSkinnedMeshRendererを優先し、見つからなければ子孫の最初のSkinnedMeshRendererを対象にします。
+Target Renderer が空のときは、コンポーネントの直下にある `Body` / `body` / `Face` / `face` / `Head` / `head` のいずれかの名前を持つSkinnedMeshRendererを優先し、見つからなければ自身を含む子孫の最初のSkinnedMeshRendererを対象にします。
 どちらの検索も非アクティブなオブジェクトを含みます。
 この探索順序はビルド、プレビュー、インスペクタ表示のすべてで共通です。
 
@@ -92,7 +92,7 @@ NDMFのプレビュー機能を使用して、生成結果をリアルタイム�
 - **舌**: tongueOut
 
 VRChat/MMDの標準的なBlendShape名（vrc.blink, まばたき, あ, い, う等）から自動的にマッピングされます。
-対応するシェイプキーがアバターに無いものは生成されません。
+自動マッピングでは、対応するシェイプキーがアバターに無いものは生成されません（口の一部は後述の手続き的生成で補えます）。
 視線（Eye Look）は `EyeUp_L` や `目上` といったシェイプキーを持つアバターが少ないため、多くの場合はカスタムマッピングでの手動設定が必要です。
 インスペクタの「自動マッピング一覧（参照用）」に、ARKit名ごとの対応シェイプキー名が表示されます。
 
@@ -105,7 +105,7 @@ VRChat/MMDの標準的なBlendShape名（vrc.blink, まばたき, あ, い, う�
 - mouthShrugUpper / mouthShrugLower
 - mouthUpperUpLeft/Right, mouthLowerDownLeft/Right
 
-口領域の検出には `vrc.v_aa` や `あ` などの母音シェイプキーが必要です。
+口領域の検出には `vrc.v_aa`、`あ`、`vrc.v_nn`、`ん` などの口のシェイプキーが必要です。
 いずれも見つからないアバターでは、有効にしても何も生成されません。
 
 シェイプキーから生成できた場合はそちらが優先され、手続き的生成はフォールバックとして動作します。デフォルトでは無効です。変形量は `Procedural Mouth Intensity` で調整できます。変形は口の前面（唇側）が最も大きく、奥の頂点ほど減衰するため、単純な平行移動よりも自然な動きになります。

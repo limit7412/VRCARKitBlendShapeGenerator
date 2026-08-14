@@ -42,7 +42,7 @@ msgid "prop.target_renderer"
 msgstr "Target Renderer"
 
 msgid "prop.target_renderer.tooltip"
-msgstr "Target SkinnedMeshRenderer (when empty, a direct child named Body/Face/Head is preferred, otherwise the first SkinnedMeshRenderer among the descendants)"
+msgstr "Target SkinnedMeshRenderer (when empty, a direct child named Body/Face/Head is preferred, otherwise the first SkinnedMeshRenderer on this object or its descendants)"
 
 msgid "prop.intensity_multiplier"
 msgstr "Intensity Multiplier"
@@ -103,7 +103,7 @@ msgid "inspector.section.procedural_mouth"
 msgstr "Procedural Mouth Generation"
 
 msgid "inspector.procedural_mouth.description"
-msgstr "Procedurally generates mouth-related blend shapes (mouthLeft/Right, jaw*, etc.) that cannot be derived from existing blend shapes, by moving vertices in the mouth region. Existing blend shapes are only used to detect the mouth region.\nDetection needs a viseme shape key such as vrc.v_aa or あ; nothing is generated when none of them is found."
+msgstr "Procedurally generates mouth-related blend shapes (mouthLeft/Right, jaw*, etc.) that cannot be derived from existing blend shapes, by moving vertices in the mouth region. Existing blend shapes are only used to detect the mouth region.\nDetection needs one of the recognized mouth shape keys (vrc.v_aa, あ, vrc.v_nn, ん, etc.); nothing is generated when none of them is found."
 
 # Mouth cancellation
 msgid "inspector.section.mouth_cancellation"
@@ -368,7 +368,7 @@ msgid "auto_mappings.row.jaw_direction"
 msgstr "← JawLeft/JawRight/JawForward"
 
 msgid "auto_mappings.row.procedural_fallback"
-msgstr " (procedural generation when missing; requires the option to be enabled and a viseme shape key to detect the mouth region)"
+msgstr " (procedural generation when missing; requires the option to be enabled and a recognized mouth shape key to detect the mouth region)"
 
 msgid "auto_mappings.row.cheek_puff"
 msgstr "← ぷく, 膨らみ, CheekPuff"

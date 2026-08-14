@@ -42,7 +42,7 @@ msgid "prop.target_renderer"
 msgstr "対象Renderer"
 
 msgid "prop.target_renderer.tooltip"
-msgstr "対象のSkinnedMeshRenderer（空の場合は直下のBody/Face/Headを優先し、無ければ子孫の最初のSkinnedMeshRendererを使用）"
+msgstr "対象のSkinnedMeshRenderer（空の場合は直下のBody/Face/Headを優先し、無ければ自身を含む子孫の最初のSkinnedMeshRendererを使用）"
 
 msgid "prop.intensity_multiplier"
 msgstr "強度係数"
@@ -103,7 +103,7 @@ msgid "inspector.section.procedural_mouth"
 msgstr "口の手続き的生成"
 
 msgid "inspector.procedural_mouth.description"
-msgstr "既存のBlendShapeから生成できない口周りのBlendShape（mouthLeft/Right、jaw系等）を、口領域の頂点移動で自動生成します。既存のBlendShapeは口領域の検出にのみ使用されます。\n検出には vrc.v_aa や あ などの母音シェイプキーが必要で、いずれも見つからない場合は生成されません。"
+msgstr "既存のBlendShapeから生成できない口周りのBlendShape（mouthLeft/Right、jaw系等）を、口領域の頂点移動で自動生成します。既存のBlendShapeは口領域の検出にのみ使用されます。\n検出には口のシェイプキー（vrc.v_aa, あ, vrc.v_nn, ん 等）のいずれかが必要で、見つからない場合は生成されません。"
 
 # 口の打ち消し
 msgid "inspector.section.mouth_cancellation"
@@ -368,7 +368,7 @@ msgid "auto_mappings.row.jaw_direction"
 msgstr "← JawLeft/JawRight/JawForward"
 
 msgid "auto_mappings.row.procedural_fallback"
-msgstr "（無い場合は手続き的生成: 要有効化、口領域の検出に母音シェイプキーが必要）"
+msgstr "（無い場合は手続き的生成: 要有効化、口領域の検出に口のシェイプキーが必要）"
 
 msgid "auto_mappings.row.cheek_puff"
 msgstr "← ぷく, 膨らみ, CheekPuff"

@@ -1324,6 +1324,18 @@ namespace ARKitBlendShapeGenerator.Presentation
             return S(rowKey) + S("auto_mappings.row.procedural_fallback");
         }
 
+        /// <summary>
+        /// 自動マッピング一覧の1行を描画する。
+        /// 対応シェイプキー名は通常のインスペクタ幅に収まらず右端で省略されるため、
+        /// 全文をツールチップからも読めるようにする
+        /// </summary>
+        private static void DrawAutoMappingRow(string arkitNames, string sources)
+        {
+            EditorGUILayout.LabelField(
+                new GUIContent(arkitNames, sources),
+                new GUIContent(sources, sources));
+        }
+
         private void DrawAutoMappingsInfo()
         {
             EditorGUILayout.HelpBox(S("auto_mappings.description"), MessageType.Info);
@@ -1333,9 +1345,9 @@ namespace ARKitBlendShapeGenerator.Presentation
             if (_foldEye)
             {
                 EditorGUI.indentLevel++;
-                EditorGUILayout.LabelField("eyeBlinkLeft/Right", S("auto_mappings.row.eye_blink"));
-                EditorGUILayout.LabelField("eyeSquintLeft/Right", S("auto_mappings.row.eye_squint"));
-                EditorGUILayout.LabelField("eyeWideLeft/Right", S("auto_mappings.row.eye_wide"));
+                DrawAutoMappingRow("eyeBlinkLeft/Right", S("auto_mappings.row.eye_blink"));
+                DrawAutoMappingRow("eyeSquintLeft/Right", S("auto_mappings.row.eye_squint"));
+                DrawAutoMappingRow("eyeWideLeft/Right", S("auto_mappings.row.eye_wide"));
                 EditorGUI.indentLevel--;
             }
 
@@ -1344,10 +1356,10 @@ namespace ARKitBlendShapeGenerator.Presentation
             if (_foldEyeLook)
             {
                 EditorGUI.indentLevel++;
-                EditorGUILayout.LabelField("eyeLookUpLeft/Right", S("auto_mappings.row.eye_look_up"));
-                EditorGUILayout.LabelField("eyeLookDownLeft/Right", S("auto_mappings.row.eye_look_down"));
-                EditorGUILayout.LabelField("eyeLookInLeft/Right", S("auto_mappings.row.eye_look_in"));
-                EditorGUILayout.LabelField("eyeLookOutLeft/Right", S("auto_mappings.row.eye_look_out"));
+                DrawAutoMappingRow("eyeLookUpLeft/Right", S("auto_mappings.row.eye_look_up"));
+                DrawAutoMappingRow("eyeLookDownLeft/Right", S("auto_mappings.row.eye_look_down"));
+                DrawAutoMappingRow("eyeLookInLeft/Right", S("auto_mappings.row.eye_look_in"));
+                DrawAutoMappingRow("eyeLookOutLeft/Right", S("auto_mappings.row.eye_look_out"));
                 EditorGUI.indentLevel--;
             }
 
@@ -1356,9 +1368,9 @@ namespace ARKitBlendShapeGenerator.Presentation
             if (_foldBrow)
             {
                 EditorGUI.indentLevel++;
-                EditorGUILayout.LabelField("browDownLeft/Right", S("auto_mappings.row.brow_down"));
-                EditorGUILayout.LabelField("browInnerUp", S("auto_mappings.row.brow_inner_up"));
-                EditorGUILayout.LabelField("browOuterUpLeft/Right", S("auto_mappings.row.brow_outer_up"));
+                DrawAutoMappingRow("browDownLeft/Right", S("auto_mappings.row.brow_down"));
+                DrawAutoMappingRow("browInnerUp", S("auto_mappings.row.brow_inner_up"));
+                DrawAutoMappingRow("browOuterUpLeft/Right", S("auto_mappings.row.brow_outer_up"));
                 EditorGUI.indentLevel--;
             }
 
@@ -1367,20 +1379,20 @@ namespace ARKitBlendShapeGenerator.Presentation
             if (_foldMouth)
             {
                 EditorGUI.indentLevel++;
-                EditorGUILayout.LabelField("jawOpen", S("auto_mappings.row.jaw_open"));
-                EditorGUILayout.LabelField("mouthFunnel", S("auto_mappings.row.mouth_funnel"));
-                EditorGUILayout.LabelField("mouthPucker", S("auto_mappings.row.mouth_pucker"));
-                EditorGUILayout.LabelField("mouthSmileLeft/Right", S("auto_mappings.row.mouth_smile"));
-                EditorGUILayout.LabelField("mouthFrownLeft/Right", S("auto_mappings.row.mouth_frown"));
-                EditorGUILayout.LabelField("mouthPress", S("auto_mappings.row.mouth_press"));
-                EditorGUILayout.LabelField("mouthClose", S("auto_mappings.row.mouth_close"));
-                EditorGUILayout.LabelField("mouthStretchLeft/Right", S("auto_mappings.row.mouth_stretch"));
-                EditorGUILayout.LabelField("mouthLeft/Right", WithProceduralFallback("auto_mappings.row.mouth_left_right"));
-                EditorGUILayout.LabelField("jawLeft/Right/Forward", WithProceduralFallback("auto_mappings.row.jaw_direction"));
-                EditorGUILayout.LabelField("mouthUpperUpLeft/Right", WithProceduralFallback("auto_mappings.row.mouth_upper_up"));
-                EditorGUILayout.LabelField("mouthLowerDownLeft/Right", WithProceduralFallback("auto_mappings.row.mouth_lower_down"));
-                EditorGUILayout.LabelField("mouthShrugUpper", WithProceduralFallback("auto_mappings.row.mouth_shrug_upper"));
-                EditorGUILayout.LabelField("mouthShrugLower", WithProceduralFallback("auto_mappings.row.mouth_shrug_lower"));
+                DrawAutoMappingRow("jawOpen", S("auto_mappings.row.jaw_open"));
+                DrawAutoMappingRow("mouthFunnel", S("auto_mappings.row.mouth_funnel"));
+                DrawAutoMappingRow("mouthPucker", S("auto_mappings.row.mouth_pucker"));
+                DrawAutoMappingRow("mouthSmileLeft/Right", S("auto_mappings.row.mouth_smile"));
+                DrawAutoMappingRow("mouthFrownLeft/Right", S("auto_mappings.row.mouth_frown"));
+                DrawAutoMappingRow("mouthPress", S("auto_mappings.row.mouth_press"));
+                DrawAutoMappingRow("mouthClose", S("auto_mappings.row.mouth_close"));
+                DrawAutoMappingRow("mouthStretchLeft/Right", S("auto_mappings.row.mouth_stretch"));
+                DrawAutoMappingRow("mouthLeft/Right", WithProceduralFallback("auto_mappings.row.mouth_left_right"));
+                DrawAutoMappingRow("jawLeft/Right/Forward", WithProceduralFallback("auto_mappings.row.jaw_direction"));
+                DrawAutoMappingRow("mouthUpperUpLeft/Right", WithProceduralFallback("auto_mappings.row.mouth_upper_up"));
+                DrawAutoMappingRow("mouthLowerDownLeft/Right", WithProceduralFallback("auto_mappings.row.mouth_lower_down"));
+                DrawAutoMappingRow("mouthShrugUpper", WithProceduralFallback("auto_mappings.row.mouth_shrug_upper"));
+                DrawAutoMappingRow("mouthShrugLower", WithProceduralFallback("auto_mappings.row.mouth_shrug_lower"));
                 EditorGUI.indentLevel--;
             }
 
@@ -1389,8 +1401,8 @@ namespace ARKitBlendShapeGenerator.Presentation
             if (_foldCheek)
             {
                 EditorGUI.indentLevel++;
-                EditorGUILayout.LabelField("cheekPuff", S("auto_mappings.row.cheek_puff"));
-                EditorGUILayout.LabelField("cheekSquintLeft/Right", S("auto_mappings.row.cheek_squint"));
+                DrawAutoMappingRow("cheekPuff", S("auto_mappings.row.cheek_puff"));
+                DrawAutoMappingRow("cheekSquintLeft/Right", S("auto_mappings.row.cheek_squint"));
                 EditorGUI.indentLevel--;
             }
 
@@ -1399,7 +1411,7 @@ namespace ARKitBlendShapeGenerator.Presentation
             if (_foldNose)
             {
                 EditorGUI.indentLevel++;
-                EditorGUILayout.LabelField("noseSneerLeft/Right", S("auto_mappings.row.nose_sneer"));
+                DrawAutoMappingRow("noseSneerLeft/Right", S("auto_mappings.row.nose_sneer"));
                 EditorGUI.indentLevel--;
             }
 
@@ -1408,7 +1420,7 @@ namespace ARKitBlendShapeGenerator.Presentation
             if (_foldTongue)
             {
                 EditorGUI.indentLevel++;
-                EditorGUILayout.LabelField("tongueOut", S("auto_mappings.row.tongue_out"));
+                DrawAutoMappingRow("tongueOut", S("auto_mappings.row.tongue_out"));
                 EditorGUI.indentLevel--;
             }
         }
