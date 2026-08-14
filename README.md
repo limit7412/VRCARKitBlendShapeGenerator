@@ -40,7 +40,7 @@ Jerry's Templatesと組み合わせて使用することで、フェイストラ
 
 | 項目 | 説明 |
 | ---- | ---- |
-| **Target Renderer** | 対象のSkinnedMeshRenderer（空の場合はBody/Faceを自動検出） |
+| **Target Renderer** | 対象のSkinnedMeshRenderer（空の場合はBody/Face/Headを自動検出） |
 | **Intensity Multiplier** | 生成時の強度係数（0.5〜1.5推奨） |
 | **Enable Left Right Split** | 左右分割を有効化（まばたき等を左右別々に生成） |
 | **Blend Width** | 左右分割時のグラデーション幅（中央付近で左右をブレンドする範囲、0.001〜0.1） |
@@ -51,6 +51,10 @@ Jerry's Templatesと組み合わせて使用することで、フェイストラ
 | **Mouth Cancellation Strength** | 打ち消し量の全体係数（0.0〜1.0） |
 | **Custom Mappings** | 自動マッピングできないBlendShapeを手動で指定 |
 | **Debug Mode** | デバッグログを出力する |
+
+Target Renderer が空のときは、コンポーネントの直下にある `Body` / `body` / `Face` / `face` / `Head` / `head` のいずれかの名前を持つSkinnedMeshRendererを優先し、見つからなければ子孫の最初のSkinnedMeshRendererを対象にします。
+どちらの検索も非アクティブなオブジェクトを含みます。
+この探索順序はビルド、プレビュー、インスペクタ表示のすべてで共通です。
 
 ### カスタムマッピング
 

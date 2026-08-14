@@ -8,6 +8,7 @@ using nadena.dev.ndmf.ui;
 using ARKitBlendShapeGenerator.Domain;
 using ARKitBlendShapeGenerator.Handler;
 using ARKitBlendShapeGenerator.Infra;
+using ARKitBlendShapeGenerator.UseCase;
 using static ARKitBlendShapeGenerator.Localization;
 
 namespace ARKitBlendShapeGenerator.Presentation
@@ -1091,12 +1092,7 @@ namespace ARKitBlendShapeGenerator.Presentation
 
         private SkinnedMeshRenderer GetPreviewTargetRenderer()
         {
-            if (_component.targetRenderer != null)
-            {
-                return _component.targetRenderer;
-            }
-
-            return _component.GetComponentInChildren<SkinnedMeshRenderer>(true);
+            return GenerateBlendShapesUseCase.ResolveTargetRenderer(_component);
         }
 
         private sealed class PreviewShapeCategories

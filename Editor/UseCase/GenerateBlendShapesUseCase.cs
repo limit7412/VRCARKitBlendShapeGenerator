@@ -46,21 +46,11 @@ namespace ARKitBlendShapeGenerator.UseCase
 
         /// <summary>
         /// 生成対象のSkinnedMeshRendererを解決する（未設定時は子要素から検索）
+        /// 解決順序の実体はTargetRendererResolverにあり、全経路でこれを共有する
         /// </summary>
         public static SkinnedMeshRenderer ResolveTargetRenderer(ARKitBlendShapeGeneratorComponent component)
         {
-            if (component == null)
-            {
-                return null;
-            }
-
-            var renderer = component.targetRenderer;
-            if (renderer == null)
-            {
-                renderer = component.GetComponentInChildren<SkinnedMeshRenderer>();
-            }
-
-            return renderer;
+            return TargetRendererResolver.Resolve(component);
         }
 
         /// <summary>

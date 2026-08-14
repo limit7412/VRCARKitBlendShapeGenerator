@@ -61,9 +61,11 @@ namespace ARKitBlendShapeGenerator.Handler
                 if (renderer == null)
                 {
                     // targetRenderer未設定時は子要素をフォールバック対象にする
-                    renderer = context
-                        .GetComponentsInChildren<SkinnedMeshRenderer>(component.gameObject, true)
-                        .FirstOrDefault();
+                    // レンダラーの列挙はComputeContext経由で行い（変更監視のため）、
+                    // どれを選ぶかの判断は他経路と共通のTargetRendererResolverに委ねる
+                    renderer = TargetRendererResolver.SelectFallback(
+                        component.transform,
+                        context.GetComponentsInChildren<SkinnedMeshRenderer>(component.gameObject, true));
                 }
 
                 if (renderer != null && context.Observe(renderer, r => r.sharedMesh) != null)

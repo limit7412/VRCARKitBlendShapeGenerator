@@ -80,7 +80,7 @@ namespace ARKitBlendShapeGenerator
         private void Reset()
         {
             // 自動でBodyメッシュを検索
-            targetRenderer = FindBodyMesh();
+            targetRenderer = TargetRendererResolver.Resolve(this);
 
             // デフォルトのカスタムマッピングを追加（視線系）
             InitializeDefaultCustomMappings();
@@ -91,25 +91,6 @@ namespace ARKitBlendShapeGenerator
 #if UNITY_EDITOR
             EditorOnValidateHook?.Invoke(this);
 #endif
-        }
-
-        private SkinnedMeshRenderer FindBodyMesh()
-        {
-            // よくある名前パターンで検索
-            string[] bodyNames = { "Body", "body", "Face", "face", "Head", "head" };
-
-            foreach (var name in bodyNames)
-            {
-                var found = transform.Find(name);
-                if (found != null)
-                {
-                    var smr = found.GetComponent<SkinnedMeshRenderer>();
-                    if (smr != null) return smr;
-                }
-            }
-
-            // 見つからない場合は最初のSkinnedMeshRendererを返す
-            return GetComponentInChildren<SkinnedMeshRenderer>();
         }
 
         private void InitializeDefaultCustomMappings()
@@ -134,7 +115,7 @@ namespace ARKitBlendShapeGenerator
         public List<string> GetAvailableBlendShapes()
         {
             var result = new List<string>();
-            var renderer = targetRenderer ?? GetComponentInChildren<SkinnedMeshRenderer>();
+            var renderer = TargetRendererResolver.Resolve(this);
 
             if (renderer != null && renderer.sharedMesh != null)
             {
