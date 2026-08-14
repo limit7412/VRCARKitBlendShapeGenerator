@@ -103,7 +103,7 @@ msgid "inspector.section.procedural_mouth"
 msgstr "口の手続き的生成"
 
 msgid "inspector.procedural_mouth.description"
-msgstr "既存のBlendShapeから生成できない口周りのBlendShape（mouthLeft/Right、jaw系等）を、口領域の頂点移動で自動生成します。既存のBlendShapeは口領域の検出にのみ使用されます。"
+msgstr "既存のBlendShapeから生成できない口周りのBlendShape（mouthLeft/Right、jaw系等）を、口領域の頂点移動で自動生成します。既存のBlendShapeは口領域の検出にのみ使用されます。\n検出には vrc.v_aa や あ などの母音シェイプキーが必要で、いずれも見つからない場合は生成されません。"
 
 # 口の打ち消し
 msgid "inspector.section.mouth_cancellation"
@@ -272,7 +272,7 @@ msgid "inspector.section.auto_mappings"
 msgstr "自動マッピング一覧（参照用）"
 
 msgid "auto_mappings.description"
-msgstr "以下のBlendShapeは自動的にマッピングされます。\nシェイプキー名は完全一致で照合します（大文字小文字・空白も区別）。\n各行の左側に並ぶ左右別のシェイプキーが優先されます。見つからない場合、左右分割がONなら右側の両側用シェイプキーを左右に分割して生成し、OFFなら分割せず左右のARKit名に同じ変形が入ります。\nカスタムマッピングで同じARKit名を指定した場合、カスタム設定（有効なもの）が優先されます。"
+msgstr "以下のBlendShapeは自動的にマッピングされます。\nシェイプキー名は完全一致で照合します（大文字小文字と空白も区別）。\n各行の左側に並ぶ左右別のシェイプキーが優先され、見つからない場合は右側の両側用シェイプキーから生成します。左右分割がONのときは両側用シェイプキーを左右に分割し、OFFのときは分割せずそのまま適用します。\nカスタムマッピングで同じARKit名を指定した場合、有効なカスタム設定が優先されます。"
 
 msgid "auto_mappings.fold.eye"
 msgstr "目 (Eye)"
@@ -296,7 +296,7 @@ msgid "auto_mappings.fold.tongue"
 msgstr "舌 (Tongue)"
 
 msgid "auto_mappings.row.eye_blink"
-msgstr "← vrc.blink_left/right, blink_left/right, Blink_L/R / vrc.blink, まばたき, ウィンク・ウィンク右, blink"
+msgstr "← vrc.blink_left/right, blink_left/right, Blink_L/R / vrc.blink, まばたき, ウィンク, ウィンク右, blink"
 
 msgid "auto_mappings.row.eye_squint"
 msgstr "← Squint_L/R, squint_left/right / 笑い, にこり, ><, 笑い目 (70%)"
@@ -341,7 +341,7 @@ msgid "auto_mappings.row.mouth_frown"
 msgstr "← Frown_L/R / への字, 悲しみ"
 
 msgid "auto_mappings.row.mouth_left_right"
-msgstr "← 口左・口右, MouthLeft/MouthRight"
+msgstr "← 口左, 口右, MouthLeft/MouthRight"
 
 msgid "auto_mappings.row.mouth_upper_up"
 msgstr "← vrc.v_ih, い, i/I"
@@ -368,7 +368,7 @@ msgid "auto_mappings.row.jaw_direction"
 msgstr "← JawLeft/JawRight/JawForward"
 
 msgid "auto_mappings.row.procedural_fallback"
-msgstr "（無い場合は手続き的生成: 要有効化）"
+msgstr "（無い場合は手続き的生成: 要有効化、口領域の検出に母音シェイプキーが必要）"
 
 msgid "auto_mappings.row.cheek_puff"
 msgstr "← ぷく, 膨らみ, CheekPuff"

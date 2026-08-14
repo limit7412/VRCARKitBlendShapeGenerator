@@ -103,7 +103,7 @@ msgid "inspector.section.procedural_mouth"
 msgstr "Procedural Mouth Generation"
 
 msgid "inspector.procedural_mouth.description"
-msgstr "Procedurally generates mouth-related blend shapes (mouthLeft/Right, jaw*, etc.) that cannot be derived from existing blend shapes, by moving vertices in the mouth region. Existing blend shapes are only used to detect the mouth region."
+msgstr "Procedurally generates mouth-related blend shapes (mouthLeft/Right, jaw*, etc.) that cannot be derived from existing blend shapes, by moving vertices in the mouth region. Existing blend shapes are only used to detect the mouth region.\nDetection needs a viseme shape key such as vrc.v_aa or あ; nothing is generated when none of them is found."
 
 # Mouth cancellation
 msgid "inspector.section.mouth_cancellation"
@@ -272,7 +272,7 @@ msgid "inspector.section.auto_mappings"
 msgstr "Auto Mapping List (Reference)"
 
 msgid "auto_mappings.description"
-msgstr "The following blend shapes are mapped automatically.\nBlend shape names are matched exactly (case and whitespace sensitive).\nThe left/right specific shape keys listed first take precedence. When none is found, the shared shape key listed after them is split into left and right only while Left/Right Split is on; when it is off, the same unsplit deformation is applied to both ARKit names.\nIf the same ARKit name is specified in an enabled custom mapping, the custom mapping takes precedence."
+msgstr "The following blend shapes are mapped automatically.\nBlend shape names are matched exactly (case and whitespace sensitive).\nThe left/right specific shape keys listed first take precedence; when none is found, the shared shape key listed after them is used. While Left/Right Split is on the shared shape key is split into left and right, and while it is off it is applied as-is without splitting.\nIf the same ARKit name is specified in an enabled custom mapping, the custom mapping takes precedence."
 
 msgid "auto_mappings.fold.eye"
 msgstr "Eye"
@@ -296,7 +296,7 @@ msgid "auto_mappings.fold.tongue"
 msgstr "Tongue"
 
 msgid "auto_mappings.row.eye_blink"
-msgstr "← vrc.blink_left/right, blink_left/right, Blink_L/R / vrc.blink, まばたき, ウィンク・ウィンク右, blink"
+msgstr "← vrc.blink_left/right, blink_left/right, Blink_L/R / vrc.blink, まばたき, ウィンク, ウィンク右, blink"
 
 msgid "auto_mappings.row.eye_squint"
 msgstr "← Squint_L/R, squint_left/right / 笑い, にこり, ><, 笑い目 (70%)"
@@ -341,7 +341,7 @@ msgid "auto_mappings.row.mouth_frown"
 msgstr "← Frown_L/R / への字, 悲しみ"
 
 msgid "auto_mappings.row.mouth_left_right"
-msgstr "← 口左・口右, MouthLeft/MouthRight"
+msgstr "← 口左, 口右, MouthLeft/MouthRight"
 
 msgid "auto_mappings.row.mouth_upper_up"
 msgstr "← vrc.v_ih, い, i/I"
@@ -368,7 +368,7 @@ msgid "auto_mappings.row.jaw_direction"
 msgstr "← JawLeft/JawRight/JawForward"
 
 msgid "auto_mappings.row.procedural_fallback"
-msgstr " (procedural generation when missing; requires the option to be enabled)"
+msgstr " (procedural generation when missing; requires the option to be enabled and a viseme shape key to detect the mouth region)"
 
 msgid "auto_mappings.row.cheek_puff"
 msgstr "← ぷく, 膨らみ, CheekPuff"
