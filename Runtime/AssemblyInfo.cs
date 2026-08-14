@@ -1,4 +1,7 @@
 using System.Runtime.CompilerServices;
 
-// Editorアセンブリからinternalメンバー（EditorOnValidateHook）へアクセスするため
+// Editorアセンブリからinternalメンバー（EditorOnValidateHook、TargetRendererResolver）へアクセスするため
 [assembly: InternalsVisibleTo("ARKitBlendShapeGenerator.Editor")]
+
+// テストアセンブリからTargetRendererResolverへアクセスするため
+[assembly: InternalsVisibleTo("ARKitBlendShapeGenerator.Editor.Tests")]
