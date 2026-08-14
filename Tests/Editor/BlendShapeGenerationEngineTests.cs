@@ -162,6 +162,53 @@ namespace ARKitBlendShapeGenerator.Tests
         }
 
         [Test]
+        public void Generate_PreservesMultiFrameShape_WhenOverwriteEnabled()
+        {
+            // 上書きは削除・再構築で行うため、置き換え対象でないシェイプのフレーム構成が
+            // 崩れていないことを確認する
+            var source = new FakeMeshRepository(TwoVertices())
+                .AddShape("vrc.blink", Vector3.up, Vector3.up);
+            var target = new FakeMeshRepository(TwoVertices())
+                .AddShapeFrame("表情", 50f, new Vector3(0f, 0.2f, 0f), new Vector3(0f, 0.2f, 0f))
+                .AddShapeFrame("表情", 100f, new Vector3(0f, 1.0f, 0f), new Vector3(0f, 1.0f, 0f))
+                .AddShape("eyeBlinkLeft", Vector3.right, Vector3.right);
+            var options = CreateOptions();
+            options.OverwriteExisting = true;
+
+            BlendShapeGenerationEngine.Generate(
+                source, target, null, AutoMapping("eyeBlinkLeft", 1.0f, "vrc.blink"), options, null);
+
+            var preserved = target.FindShape("表情");
+            Assert.That(target.CountShapes("表情"), Is.EqualTo(1));
+            Assert.That(preserved.Frames.Count, Is.EqualTo(2));
+            Assert.That(preserved.Frames[0].Weight, Is.EqualTo(50f));
+            Assert.That(preserved.Frames[1].Weight, Is.EqualTo(100f));
+            Assert.That(preserved.Frames[0].DeltaVertices[0], Is.EqualTo(new Vector3(0f, 0.2f, 0f)));
+            Assert.That(preserved.Frames[1].DeltaVertices[0], Is.EqualTo(new Vector3(0f, 1.0f, 0f)));
+        }
+
+        [Test]
+        public void Generate_KeepsShapeOrder_WhenOverwriteEnabled()
+        {
+            // 再構築後も残ったシェイプの並びは元のまま、生成したシェイプが末尾へ追加される
+            var source = new FakeMeshRepository(TwoVertices())
+                .AddShape("vrc.blink", Vector3.up, Vector3.up);
+            var target = new FakeMeshRepository(TwoVertices())
+                .AddShape("笑い", Vector3.up, Vector3.up)
+                .AddShape("eyeBlinkLeft", Vector3.right, Vector3.right)
+                .AddShape("怒り", Vector3.forward, Vector3.forward);
+            var options = CreateOptions();
+            options.OverwriteExisting = true;
+
+            var result = BlendShapeGenerationEngine.Generate(
+                source, target, null, AutoMapping("eyeBlinkLeft", 1.0f, "vrc.blink"), options, null);
+
+            Assert.That(result.ShapeIndices["笑い"], Is.EqualTo(0));
+            Assert.That(result.ShapeIndices["怒り"], Is.EqualTo(1));
+            Assert.That(result.ShapeIndices["eyeBlinkLeft"], Is.EqualTo(2));
+        }
+
+        [Test]
         public void Generate_SkipsAutoMapping_WhenSourceShapeMissing()
         {
             var source = new FakeMeshRepository(TwoVertices())
