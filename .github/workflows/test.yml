@@ -1,0 +1,183 @@
+name: Test
+
+# EditModeテストをPRごとに実行する。
+#
+# このリポジトリはVPMパッケージであってUnityプロジェクトではないため、
+# CI側で最小のUnityプロジェクトを組み立て、その `Packages/` へこのリポジトリを置く。
+# VPM依存（VRChat SDK / NDMF）はUnity Package Managerでは解決できないため、
+# vrc-getで先に入れてからテストランナーを回す。
+#
+# 実行にはUnityライセンスのsecret登録が必要。ライセンスの種類で使うsecretが違う:
+#   Personal … UNITY_LICENSE（ライセンスファイル(.ulf)の中身）+ UNITY_EMAIL + UNITY_PASSWORD
+#   Pro/Plus … UNITY_SERIAL + UNITY_EMAIL + UNITY_PASSWORD
+# 取得手順は https://game.ci/docs/github/activation を参照。
+# UNITY_LICENSEを登録するとそちらで認証するため、シリアルを使う場合は登録しない。
+# どちらも未設定の場合、テストジョブはスキップされる（フォークからのPRを含む）。
+
+on:
+  pull_request:
+    paths:
+      - 'Editor/**'
+      - 'Runtime/**'
+      - 'Tests/**'
+      - 'package.json'
+      - '.github/workflows/test.yml'
+  push:
+    branches:
+      - main
+    paths:
+      - 'Editor/**'
+      - 'Runtime/**'
+      - 'Tests/**'
+      - 'package.json'
+      - '.github/workflows/test.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  # テスト結果をチェックランとしてPRへ出すために必要
+  checks: write
+
+env:
+  # package.jsonの unity / unityRelease に合わせる。
+  # 変更する場合は unityci/editor に ubuntu-<version>-base-3 タグが存在するか確認する
+  UNITY_VERSION: 2022.3.6f1
+  PACKAGE_NAME: com.qazx7412.kx-vrc-arkit-blendshape-generator
+  VRC_GET_VERSION: v1.9.2
+
+jobs:
+  # secretsコンテキストはジョブの`if`で参照できないため、
+  # ライセンスの有無を先行ジョブの出力へ移してから分岐する
+  license:
+    name: Check license secret
+    runs-on: ubuntu-latest
+    outputs:
+      available: ${{ steps.check.outputs.available }}
+    steps:
+      - id: check
+        env:
+          UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+          UNITY_SERIAL: ${{ secrets.UNITY_SERIAL }}
+        run: |
+          if [ -n "$UNITY_LICENSE" ] || [ -n "$UNITY_SERIAL" ]; then
+            echo "available=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "available=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::UNITY_LICENSE / UNITY_SERIAL が未設定のためEditModeテストをスキップします"
+          fi
+
+  test:
+    name: EditMode tests
+    needs: license
+    if: needs.license.outputs.available == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout package
+        uses: actions/checkout@v4
+        with:
+          # テスト用プロジェクトのPackages配下へ直接チェックアウトする
+          path: TestProject/Packages/${{ env.PACKAGE_NAME }}
+
+      - name: Create Unity project
+        run: |
+          mkdir -p TestProject/Assets TestProject/ProjectSettings
+          echo "m_EditorVersion: $UNITY_VERSION" > TestProject/ProjectSettings/ProjectVersion.txt
+          # Unityが2022.3で生成するマニフェストに合わせた最小構成。
+          #
+          # com.unity.test-framework が無いとテストアセンブリが参照する
+          # UnityEngine.TestRunner / UnityEditor.TestRunner を解決できない。
+          # 組み込みモジュール（com.unity.modules.*）はマニフェストに書いたものだけが
+          # 有効になるため、省くとVRChat SDK側のコンパイルが通らない。
+          # testablesへ追加しないとテストアセンブリがコンパイルされず、テストが0件になる。
+          cat > TestProject/Packages/manifest.json <<JSON
+          {
+            "dependencies": {
+              "com.unity.ext.nunit": "1.0.6",
+              "com.unity.test-framework": "1.1.33",
+              "com.unity.ugui": "1.0.0",
+              "com.unity.modules.ai": "1.0.0",
+              "com.unity.modules.androidjni": "1.0.0",
+              "com.unity.modules.animation": "1.0.0",
+              "com.unity.modules.assetbundle": "1.0.0",
+              "com.unity.modules.audio": "1.0.0",
+              "com.unity.modules.cloth": "1.0.0",
+              "com.unity.modules.director": "1.0.0",
+              "com.unity.modules.imageconversion": "1.0.0",
+              "com.unity.modules.imgui": "1.0.0",
+              "com.unity.modules.jsonserialize": "1.0.0",
+              "com.unity.modules.particlesystem": "1.0.0",
+              "com.unity.modules.physics": "1.0.0",
+              "com.unity.modules.physics2d": "1.0.0",
+              "com.unity.modules.screencapture": "1.0.0",
+              "com.unity.modules.terrain": "1.0.0",
+              "com.unity.modules.terrainphysics": "1.0.0",
+              "com.unity.modules.tilemap": "1.0.0",
+              "com.unity.modules.ui": "1.0.0",
+              "com.unity.modules.uielements": "1.0.0",
+              "com.unity.modules.umbra": "1.0.0",
+              "com.unity.modules.unityanalytics": "1.0.0",
+              "com.unity.modules.unitywebrequest": "1.0.0",
+              "com.unity.modules.unitywebrequestassetbundle": "1.0.0",
+              "com.unity.modules.unitywebrequestaudio": "1.0.0",
+              "com.unity.modules.unitywebrequesttexture": "1.0.0",
+              "com.unity.modules.unitywebrequestwww": "1.0.0",
+              "com.unity.modules.vehicles": "1.0.0",
+              "com.unity.modules.video": "1.0.0",
+              "com.unity.modules.vr": "1.0.0",
+              "com.unity.modules.wind": "1.0.0",
+              "com.unity.modules.xr": "1.0.0"
+            },
+            "testables": [ "$PACKAGE_NAME" ]
+          }
+          JSON
+          jq . TestProject/Packages/manifest.json > /dev/null
+
+      - name: Install vrc-get
+        run: |
+          mkdir -p "$RUNNER_TEMP/bin"
+          curl -fsSL -o "$RUNNER_TEMP/bin/vrc-get" \
+            "https://github.com/vrc-get/vrc-get/releases/download/$VRC_GET_VERSION/x86_64-unknown-linux-musl-vrc-get"
+          chmod +x "$RUNNER_TEMP/bin/vrc-get"
+          echo "$RUNNER_TEMP/bin" >> "$GITHUB_PATH"
+          "$RUNNER_TEMP/bin/vrc-get" --version
+
+      - name: Resolve VPM dependencies
+        working-directory: TestProject
+        run: |
+          # NDMFのVPMリポジトリを登録する（VRChat公式・curatedはvrc-getが既定で持つ）。
+          # 登録済みなら失敗するので握りつぶし、実際に引けるかは後続のinstallで判断する
+          vrc-get repo add https://vpm.nadena.dev/vpm.json || true
+          vrc-get install com.vrchat.avatars --yes
+          vrc-get install nadena.dev.ndmf --yes
+          cat Packages/vpm-manifest.json
+
+      - name: Cache Library
+        uses: actions/cache@v4
+        with:
+          path: TestProject/Library
+          key: Library-${{ env.UNITY_VERSION }}-${{ hashFiles('TestProject/Packages/vpm-manifest.json') }}
+          restore-keys: |
+            Library-${{ env.UNITY_VERSION }}-
+
+      - name: Run EditMode tests
+        uses: game-ci/unity-test-runner@v4
+        env:
+          UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+          UNITY_SERIAL: ${{ secrets.UNITY_SERIAL }}
+          UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
+          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
+        with:
+          projectPath: TestProject
+          unityVersion: ${{ env.UNITY_VERSION }}
+          testMode: editmode
+          artifactsPath: artifacts
+          githubToken: ${{ secrets.GITHUB_TOKEN }}
+          checkName: EditMode Test Results
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: editmode-test-results
+          path: artifacts
+          if-no-files-found: warn
