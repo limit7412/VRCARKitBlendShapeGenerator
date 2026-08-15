@@ -109,6 +109,24 @@ namespace ARKitBlendShapeGenerator.Tests
             return this;
         }
 
+        /// <summary>
+        /// 直前と同名でも必ず別のシェイプとして追加するテスト用ヘルパー。
+        /// AddBlendShapeFrameは同名連続を1つのシェイプへまとめるため、この経路では
+        /// 同名シェイプが隣接したメッシュを作れない。FBXインポート等、そのAPIを
+        /// 経由せずに作られたメッシュを再現するために使う
+        /// </summary>
+        public FakeMeshRepository AddDistinctShape(string name, params Vector3[] deltaVertices)
+        {
+            var shape = new Shape(name);
+            Shapes.Add(shape);
+            shape.Frames.Add(new Frame(
+                100f,
+                Copy(deltaVertices),
+                new Vector3[VertexCount],
+                new Vector3[VertexCount]));
+            return this;
+        }
+
         public Shape FindShape(string name) => Shapes.Find(s => s.Name == name);
 
         public int CountShapes(string name) => Shapes.FindAll(s => s.Name == name).Count;

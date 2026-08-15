@@ -125,64 +125,39 @@ namespace ARKitBlendShapeGenerator.Tests
         }
 
         [Test]
-        public void Generate_AbortsOverwrite_WhenRebuildWouldMergeSameNamedShapes()
+        public void Generate_KeepsBothEmptyNamedShapes_WhenOverwritingTheShapeBetweenThem()
         {
-            // 削除によって同名シェイプ（ここでは空名）が隣接する配置。
-            // AddBlendShapeFrame は名前をキーにし、同名シェイプのフレームウェイトは昇順を要求するため、
-            // 再構築すると2つ目の同一ウェイトのフレームが追加されずデルタが失われる。
-            // メッシュを壊さないよう、変更を加える前に検出して生成自体を中止する。
+            // 空名シェイプに挟まれた対象を上書きするケース。
+            // 削除して末尾へ追加し直すと、空いた隙間で空名シェイプが隣接して統合されるため、
+            // その場で差し替えて並びを保つ（同名シェイプの扱いは #50 / DuplicateShapeNameTests）
             var source = new FakeMeshRepository(TwoVertices())
                 .AddShape("vrc.blink", Vector3.up, Vector3.up);
-            // 構築時点では削除対象が間に挟まるため、空名シェイプは別々のシェイプになる
             var target = new FakeMeshRepository(TwoVertices())
                 .AddShape("", Vector3.forward, Vector3.forward)
                 .AddShape("eyeBlinkLeft", Vector3.right, Vector3.right)
-                .AddShape("", Vector3.up, Vector3.up);
+                .AddShape("", Vector3.back, Vector3.back);
             var options = CreateOptions();
             options.OverwriteExisting = true;
-
-            Assert.That(target.CountShapes(""), Is.EqualTo(2), "前提: 削除前は空名シェイプが2つある");
 
             var result = BlendShapeGenerationEngine.Generate(
                 source, target, null, AutoMapping("eyeBlinkLeft", "vrc.blink"), options, null);
 
-            Assert.That(result.GeneratedShapes, Is.Empty);
+            Assert.That(result.GeneratedShapes, Is.EqualTo(new[] { "eyeBlinkLeft" }));
 
-            // メッシュは一切変更されない（ClearBlendShapesまで到達しない）
+            // 空名シェイプは2つとも、それぞれのデルタを保ったまま残る
             Assert.That(target.Shapes.Count, Is.EqualTo(3));
             Assert.That(target.CountShapes(""), Is.EqualTo(2));
             Assert.That(target.Shapes[0].Frames[0].DeltaVertices[0], Is.EqualTo(Vector3.forward));
-            Assert.That(target.Shapes[2].Frames[0].DeltaVertices[0], Is.EqualTo(Vector3.up));
-            // 置き換え対象も残したままにする
-            Assert.That(target.FindShape("eyeBlinkLeft").Frames[0].DeltaVertices[0], Is.EqualTo(Vector3.right));
+            Assert.That(target.Shapes[2].Frames[0].DeltaVertices[0], Is.EqualTo(Vector3.back));
+            // 対象は元の位置のまま新しいデルタへ差し替わる
+            Assert.That(target.Shapes[1].Name, Is.EqualTo("eyeBlinkLeft"));
+            Assert.That(target.Shapes[1].Frames[0].DeltaVertices[0], Is.EqualTo(Vector3.up));
         }
 
         [Test]
-        public void Generate_AbortsOverwrite_WhenSameNamedShapesAreAlreadyAdjacent()
+        public void Generate_ProceedsWithOverwrite_WhenShapeNamesAreUnique()
         {
-            // 同名の非空シェイプが隣接する場合も同じく中止する（空名固有の問題ではない）。
-            // FakeMeshRepositoryでは連続追加が統合されるため、間に別シェイプを挟んで構築する
-            var source = new FakeMeshRepository(TwoVertices())
-                .AddShape("vrc.blink", Vector3.up, Vector3.up);
-            var target = new FakeMeshRepository(TwoVertices())
-                .AddShape("dup", Vector3.forward, Vector3.forward)
-                .AddShape("eyeBlinkLeft", Vector3.right, Vector3.right)
-                .AddShape("dup", Vector3.up, Vector3.up);
-            var options = CreateOptions();
-            options.OverwriteExisting = true;
-
-            var result = BlendShapeGenerationEngine.Generate(
-                source, target, null, AutoMapping("eyeBlinkLeft", "vrc.blink"), options, null);
-
-            Assert.That(result.GeneratedShapes, Is.Empty);
-            Assert.That(target.Shapes.Count, Is.EqualTo(3));
-            Assert.That(target.CountShapes("dup"), Is.EqualTo(2));
-        }
-
-        [Test]
-        public void Generate_ProceedsWithOverwrite_WhenRemainingShapeNamesAreUnique()
-        {
-            // 同名シェイプが無ければ従来どおり上書きされる（中止判定が過剰に効かないこと）
+            // 同名シェイプが無い通常のケースでも従来どおり上書きされる
             var source = new FakeMeshRepository(TwoVertices())
                 .AddShape("vrc.blink", Vector3.up, Vector3.up);
             var target = new FakeMeshRepository(TwoVertices())
