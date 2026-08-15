@@ -577,7 +577,12 @@ namespace ARKitBlendShapeGenerator.Presentation
             // ソースBlendShape（ドロップダウンの左端をヘッダー行のARKit名に揃える）
             for (int j = 0; j < sourcesProperty.arraySize; j++)
             {
-                if (!DrawSourceItem(sourcesProperty, j, MappingToggleWidth))
+                // カスタムマッピングのSideは左右分割がOFFのとき生成側で無視される
+                if (!DrawSourceItem(
+                        sourcesProperty,
+                        j,
+                        MappingToggleWidth,
+                        sideAppliesNow: IsLeftRightSplitEnabled()))
                 {
                     break;
                 }
@@ -588,13 +593,26 @@ namespace ARKitBlendShapeGenerator.Presentation
         }
 
         /// <summary>
+        /// 左右分割が有効か。編集途中の値を見るためserializedObject側から取る
+        /// </summary>
+        private bool IsLeftRightSplitEnabled()
+        {
+            var property = serializedObject.FindProperty("enableLeftRightSplit");
+            return property == null || property.boolValue;
+        }
+
+        /// <summary>
         /// ソースBlendShape1件を描画する。要素を削除した場合はfalse（呼び出し元は列挙を打ち切る）
         /// </summary>
+        /// <param name="sideAppliesNow">
+        /// 現在の設定でSideが生成に効くか。効かない場合はドロップダウンを非活性にして無視されることを示す
+        /// </param>
         private bool DrawSourceItem(
             SerializedProperty sourcesProperty,
             int sourceIndex,
             float leadingSpace = 0f,
-            string sideTooltipKey = "enum.side.tooltip")
+            string sideTooltipKey = "enum.side.tooltip",
+            bool sideAppliesNow = true)
         {
             var sourceProperty = sourcesProperty.GetArrayElementAtIndex(sourceIndex);
             var blendShapeNameProperty = sourceProperty.FindPropertyRelative("blendShapeName");
@@ -639,17 +657,21 @@ namespace ARKitBlendShapeGenerator.Presentation
             }
 
             // 左右適用範囲
-            var sideTooltip = S(sideTooltipKey);
+            var sideTooltip = S(sideAppliesNow ? sideTooltipKey : "enum.side.split_off.tooltip");
             var sideLabels = new[]
             {
                 new GUIContent(S("enum.side.both"), sideTooltip),
                 new GUIContent(S("enum.side.left_only"), sideTooltip),
                 new GUIContent(S("enum.side.right_only"), sideTooltip),
             };
-            int newSide = EditorGUILayout.Popup(sideProperty.enumValueIndex, sideLabels, GUILayout.Width(70));
-            if (newSide != sideProperty.enumValueIndex)
+            // 値そのものは保持したまま、効いていないことを非活性表示で示す
+            using (new EditorGUI.DisabledScope(!sideAppliesNow))
             {
-                sideProperty.enumValueIndex = newSide;
+                int newSide = EditorGUILayout.Popup(sideProperty.enumValueIndex, sideLabels, GUILayout.Width(70));
+                if (newSide != sideProperty.enumValueIndex)
+                {
+                    sideProperty.enumValueIndex = newSide;
+                }
             }
 
             bool removed = false;

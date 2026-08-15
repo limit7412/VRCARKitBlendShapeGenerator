@@ -54,7 +54,7 @@ msgid "prop.enable_left_right_split"
 msgstr "左右分割"
 
 msgid "prop.enable_left_right_split.tooltip"
-msgstr "左右分割を有効にする（まばたき等を左右別々に生成）。OFFにするとカスタムマッピングのSide指定も無視され、両側に適用されます。"
+msgstr "頂点のX座標による左右分割を行う（まばたき等を左右別々に生成）。OFFにするとカスタムマッピングのSide指定も無視され、両側に適用されます（Sideのドロップダウンは非活性表示になります）。"
 
 msgid "prop.blend_width"
 msgstr "グラデーション幅"
@@ -235,6 +235,9 @@ msgstr "右のみ"
 
 msgid "enum.side.tooltip"
 msgstr "ソースを適用する左右の範囲。左のみ＝アバターから見て左半分（メッシュローカル座標のX<0）、右のみ＝右半分（X>0）。左右分割がOFFのときは無視されます。"
+
+msgid "enum.side.split_off.tooltip"
+msgstr "左右分割がOFFのため、この指定は生成時に無視されます（設定値は保持されます）。左右に分けて適用するには左右分割を有効にしてください。"
 
 msgid "enum.side.cancellation.tooltip"
 msgstr "打ち消しを適用する左右の範囲。左のみ＝アバターから見て左半分（メッシュローカル座標のX<0）、右のみ＝右半分（X>0）。アバター側での適用範囲を表すため、左右分割の設定に関わらず適用されます。"
