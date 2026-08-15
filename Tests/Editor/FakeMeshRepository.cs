@@ -143,9 +143,19 @@ namespace ARKitBlendShapeGenerator.Tests
             return copied;
         }
 
+        /// <summary>
+        /// Mesh.GetBlendShapeFrameVerticesと同様、渡された配列を書き潰す。
+        /// 呼び出し側がバッファを使い回しても前の内容が残らないことを保証する
+        /// </summary>
         private static void CopyTo(Vector3[] source, Vector3[] destination)
         {
-            if (source == null || destination == null)
+            if (destination == null)
+            {
+                return;
+            }
+
+            System.Array.Clear(destination, 0, destination.Length);
+            if (source == null)
             {
                 return;
             }
