@@ -11,7 +11,7 @@ Jerry's Templatesと組み合わせて使用することで、フェイストラ
 ## 必要要件
 
 - Unity 2022.3.6f1以降
-- [NDMF](https://ndmf.nadena.dev/) 1.4.0以降
+- [NDMF](https://ndmf.nadena.dev/) 1.5.0以降（プレビュー機構がNDMF 1.5.0で追加されたため、1.4系ではコンパイルできません）
 - VRChat SDK (Avatars)
 
 ## インストール
