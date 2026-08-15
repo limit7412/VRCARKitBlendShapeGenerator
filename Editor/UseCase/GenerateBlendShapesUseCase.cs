@@ -104,6 +104,10 @@ namespace ARKitBlendShapeGenerator.UseCase
         /// sourceMeshのBlendShapeを元に、targetMeshへARKit BlendShapeを生成する
         /// （プレビューはこのメソッドを直接使用してプロキシメッシュへ生成する）
         /// Infra実装（UnityMeshRepository / UnityDebugLogger）の組み立てはここで行う
+        ///
+        /// targetMeshにはsourceMeshの複製（Object.Instantiate）を渡すこと。
+        /// 上書き生成時の再構築をsourceMeshからの読み直しで済ませられるようになり、
+        /// 対象メッシュの全BlendShapeをメモリへ展開せずに済む
         /// </summary>
         public static BlendShapeGenerationResult GenerateInto(
             Mesh sourceMesh,
@@ -124,7 +128,8 @@ namespace ARKitBlendShapeGenerator.UseCase
                 customMappings,
                 ARKitMappingTable.GetMappings(),
                 options,
-                UnityDebugLogger.Instance);
+                UnityDebugLogger.Instance,
+                targetIsSourceCopy: true);
         }
     }
 }
