@@ -50,6 +50,21 @@ namespace ARKitBlendShapeGenerator.Tests
             return deltas;
         }
 
+        /// <summary>
+        /// 口領域を左半分（X &lt; 0）へ寄せた頂点。
+        /// 右側のみに適用するシェイプは左右分割で移動量が0になり、デルタを作れなくなる
+        /// </summary>
+        private static Vector3[] LeftSideMouthVertices()
+        {
+            var vertices = MouthVertices();
+            for (int i = 0; i < RegionVertexCount; i++)
+            {
+                vertices[i].x -= SideX * 2f;
+            }
+
+            return vertices;
+        }
+
         /// <summary>口領域を検出できるシェイプキーを1つ持つメッシュ</summary>
         private static FakeMeshRepository MouthMesh()
         {
@@ -164,6 +179,37 @@ namespace ARKitBlendShapeGenerator.Tests
             Assert.That(target.CountShapes("dup"), Is.EqualTo(2));
             Assert.That(target.FindShape("mouthLeft").Frames[0].DeltaVertices[0], Is.EqualTo(Vector3.zero));
             Assert.That(target.FindShape("jawForward"), Is.Null);
+        }
+
+        [Test]
+        public void Generate_KeepsBuildableProceduralShapes_WhenTheReplacementCandidateCannotBeBuilt()
+        {
+            // デルタを作れない差し替え候補は差し替えを起こさないので、再構築も走らない。
+            // 候補が残っているというだけで手続き的生成全体を諦めないこと
+            var vertices = LeftSideMouthVertices();
+            var target = new FakeMeshRepository(vertices)
+                .AddShape(MouthSourceShapeName, RegionDeltas())
+                .AddDistinctShape("dup", new Vector3[vertices.Length])
+                .AddDistinctShape("dup", new Vector3[vertices.Length])
+                .AddShape("mouthUpperUpRight", new Vector3[vertices.Length]);
+            var source = new FakeMeshRepository(vertices)
+                .AddShape(MouthSourceShapeName, RegionDeltas());
+
+            var options = CreateOptions(overwriteExisting: true);
+            options.EnableLeftRightSplit = true;
+
+            var result = BlendShapeGenerationEngine.Generate(source, target, null, null, options, null);
+
+            // 口領域が左半分にしか無いため、右側のみのシェイプはデルタを作れない
+            Assert.That(result.GeneratedShapes.Contains("mouthUpperUpRight"), Is.False);
+            Assert.That(target.FindShape("mouthUpperUpRight").Frames[0].DeltaVertices[0], Is.EqualTo(Vector3.zero));
+
+            // 再構築が走らないので、元から隣接していた同名シェイプもそのまま残る
+            Assert.That(target.CountShapes("dup"), Is.EqualTo(2));
+
+            // 生成できるシェイプは追加される
+            Assert.That(result.GeneratedShapes, Contains.Item("jawForward"));
+            Assert.That(target.FindShape("jawForward"), Is.Not.Null);
         }
     }
 }

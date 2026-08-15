@@ -136,6 +136,8 @@ namespace ARKitBlendShapeGenerator.Domain
             public readonly bool IsProcedural;
 
             private readonly Func<BlendShapeData> _build;
+            private BlendShapeData _materialized;
+            private bool _isMaterialized;
 
             public BlendShapeBuildTask(string arkitName, bool isProcedural, Func<BlendShapeData> build)
             {
@@ -144,10 +146,25 @@ namespace ARKitBlendShapeGenerator.Domain
                 _build = build;
             }
 
+            /// <summary>
+            /// 先にデルタを組み立てて抱え込む。
+            /// 組み立てにソースメッシュを読む必要があるため、ソースが書き換わる前に確定させたい場合に使う
+            /// </summary>
+            public void Materialize()
+            {
+                if (_isMaterialized)
+                {
+                    return;
+                }
+
+                _materialized = _build();
+                _isMaterialized = true;
+            }
+
             /// <summary>デルタを組み立てる。生成できなかった場合はnull</summary>
             public BlendShapeData Build()
             {
-                return _build();
+                return _isMaterialized ? _materialized : _build();
             }
         }
 
@@ -157,28 +174,35 @@ namespace ARKitBlendShapeGenerator.Domain
         ///
         /// IMeshRepositoryはデルタの読み出しで配列全体を書き潰し、書き込みでは配列を複製するため、
         /// 読み出し→書き込みを終えるたびに同じバッファを次の用途へ回してよい。
+        ///
+        /// 各バッファは最初に使うときまで確保しない。生成対象が1件も無いプレビュー更新や、
+        /// フレーム間補間が要らないメッシュで、使わないバッファ分の確保が毎回走るのを避ける。
         /// </summary>
         private sealed class DeltaScratch
         {
-            /// <summary>ソースBlendShape1件分のデルタ</summary>
-            public readonly Vector3[] SourceVertices;
-            public readonly Vector3[] SourceNormals;
-            public readonly Vector3[] SourceTangents;
+            private readonly int _vertexCount;
 
-            /// <summary>フレーム間補間で下側フレームを読むためのバッファ</summary>
-            public readonly Vector3[] FrameVertices;
-            public readonly Vector3[] FrameNormals;
-            public readonly Vector3[] FrameTangents;
+            private Vector3[] _sourceVertices;
+            private Vector3[] _sourceNormals;
+            private Vector3[] _sourceTangents;
+            private Vector3[] _frameVertices;
+            private Vector3[] _frameNormals;
+            private Vector3[] _frameTangents;
 
             public DeltaScratch(int vertexCount)
             {
-                SourceVertices = new Vector3[vertexCount];
-                SourceNormals = new Vector3[vertexCount];
-                SourceTangents = new Vector3[vertexCount];
-                FrameVertices = new Vector3[vertexCount];
-                FrameNormals = new Vector3[vertexCount];
-                FrameTangents = new Vector3[vertexCount];
+                _vertexCount = vertexCount;
             }
+
+            /// <summary>ソースBlendShape1件分のデルタ</summary>
+            public Vector3[] SourceVertices => _sourceVertices ?? (_sourceVertices = new Vector3[_vertexCount]);
+            public Vector3[] SourceNormals => _sourceNormals ?? (_sourceNormals = new Vector3[_vertexCount]);
+            public Vector3[] SourceTangents => _sourceTangents ?? (_sourceTangents = new Vector3[_vertexCount]);
+
+            /// <summary>フレーム間補間で下側フレームを読むためのバッファ</summary>
+            public Vector3[] FrameVertices => _frameVertices ?? (_frameVertices = new Vector3[_vertexCount]);
+            public Vector3[] FrameNormals => _frameNormals ?? (_frameNormals = new Vector3[_vertexCount]);
+            public Vector3[] FrameTangents => _frameTangents ?? (_frameTangents = new Vector3[_vertexCount]);
         }
 
         /// <summary>
@@ -749,16 +773,23 @@ namespace ARKitBlendShapeGenerator.Domain
                 return;
             }
 
-            if (namesToReplace.Count > 0 && adjacentDuplicateName != null)
+            if (!ProceduralMouthShapeGenerator.TryCreateContext(sourceMesh, out var context))
+            {
+                Log(logger, options, "Skip procedural (mouth region not found)");
+                return;
+            }
+
+            if (namesToReplace.Count > 0 &&
+                adjacentDuplicateName != null &&
+                !TryDropUnbuildableProceduralReplacements(context, options, namesToGenerate, namesToReplace))
             {
                 // 手続き的生成は補助機能のため、メッシュを守って生成を見送る
                 Log(logger, options, $"Skip procedural (replacement would merge duplicate shape: {adjacentDuplicateName})");
                 return;
             }
 
-            if (!ProceduralMouthShapeGenerator.TryCreateContext(sourceMesh, out var context))
+            if (namesToGenerate.Count == 0)
             {
-                Log(logger, options, "Skip procedural (mouth region not found)");
                 return;
             }
 
@@ -779,6 +810,34 @@ namespace ARKitBlendShapeGenerator.Domain
                     appended.Add(task);
                 }
             }
+        }
+
+        /// <summary>
+        /// 差し替えが1件も成立しないことを確かめ、成立しないと分かった候補を生成対象から外す。
+        /// 1件でも成立する場合はfalse（再構築が走って同名シェイプが統合されるため、呼び出し側で中止する）。
+        ///
+        /// 差し替え候補はデルタを作れないことがあり、その場合は差し替えが起きないので
+        /// 再構築も走らない。候補が残っているという理由だけで手続き的生成全体を諦めないよう、
+        /// 実際に組み立てられるかを確かめる。元から同名シェイプが隣接するメッシュでしか
+        /// 通らない経路のため、ここで先に組み立てを試すコストは許容する
+        /// </summary>
+        private static bool TryDropUnbuildableProceduralReplacements(
+            ProceduralMouthShapeGenerator.MouthRegionContext context,
+            BlendShapeGenerationOptions options,
+            List<string> namesToGenerate,
+            HashSet<string> namesToReplace)
+        {
+            foreach (var arkitName in namesToReplace)
+            {
+                if (ProceduralMouthShapeGenerator.TryBuildDeltaVertices(context, arkitName, options, out _))
+                {
+                    return false;
+                }
+            }
+
+            namesToGenerate.RemoveAll(name => namesToReplace.Contains(name));
+            namesToReplace.Clear();
+            return true;
         }
 
         private static void CollectCustomMappings(
@@ -1188,6 +1247,22 @@ namespace ARKitBlendShapeGenerator.Domain
             IGenerationLogger logger)
         {
             var writtenNames = new HashSet<string>();
+
+            if (replacements.Count > 0 && ReferenceEquals(sourceMesh, targetMesh))
+            {
+                // 対象メッシュ自身がソースを兼ねる場合、再構築のClearBlendShapesでソースのデルタも消える。
+                // 組み立てを書き込み直前まで遅らせると読み直せなくなるため、ここで先に確定させる
+                // （抱えるメモリは生成シェイプ数分に戻るが、この経路を通るのは複製を渡さない呼び出しだけ）
+                foreach (var task in replacements.Values)
+                {
+                    task.Materialize();
+                }
+
+                foreach (var task in appended)
+                {
+                    task.Materialize();
+                }
+            }
 
             if (replacements.Count > 0)
             {

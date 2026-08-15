@@ -109,6 +109,35 @@ namespace ARKitBlendShapeGenerator.Tests
         }
 
         [Test]
+        public void Generate_ReplacesInPlace_WhenSourceAndTargetAreTheSameMesh()
+        {
+            // 複製ではなくメッシュそのものを両方に渡された場合、再構築でソースのデルタも消える。
+            // 合成元（vrc.blink）を差し替え対象より後ろに置き、積み直しの途中では
+            // まだ読み直せない並びにしてある
+            var mesh = new FakeMeshRepository(TwoVertices())
+                .AddShape("eyeBlinkLeft", Vector3.right, Vector3.right)
+                .AddShape("", Vector3.forward, Vector3.forward)
+                .AddShape("vrc.blink", Vector3.up, Vector3.up);
+
+            var result = BlendShapeGenerationEngine.Generate(
+                mesh,
+                mesh,
+                null,
+                AutoMapping("eyeBlinkLeft", "vrc.blink"),
+                CreateOverwriteOptions(),
+                null);
+
+            Assert.That(result.GeneratedShapes, Is.EqualTo(new[] { "eyeBlinkLeft" }));
+            Assert.That(mesh.Shapes[0].Name, Is.EqualTo("eyeBlinkLeft"));
+            Assert.That(mesh.Shapes[0].Frames[0].DeltaVertices[0], Is.EqualTo(Vector3.up));
+
+            // 差し替え対象以外も失われない
+            Assert.That(mesh.Shapes.Count, Is.EqualTo(3));
+            Assert.That(mesh.FindShape("").Frames[0].DeltaVertices[0], Is.EqualTo(Vector3.forward));
+            Assert.That(mesh.FindShape("vrc.blink").Frames[0].DeltaVertices[0], Is.EqualTo(Vector3.up));
+        }
+
+        [Test]
         public void Generate_RebuildsFromSourceCopy_WithoutBufferingEveryShape()
         {
             // 保持するシェイプを1つずつ読み直して書き戻していれば、確保するデルタ配列の本数は
