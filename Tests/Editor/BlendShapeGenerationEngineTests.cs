@@ -178,6 +178,50 @@ namespace ARKitBlendShapeGenerator.Tests
         }
 
         [Test]
+        public void Generate_UsesEnabledMapping_WhenDisabledMappingHasSameArkitName()
+        {
+            // 無効な同名マッピングは重複中止の対象にならず、取り置きとして残せる
+            var source = new FakeMeshRepository(TwoVertices())
+                .AddShape("あ", Vector3.up, Vector3.up)
+                .AddShape("口開き", Vector3.forward, Vector3.forward);
+            var target = new FakeMeshRepository(TwoVertices());
+            var disabled = CustomMapping("jawOpen", "口開き", 1.0f);
+            disabled.enabled = false;
+            var customMappings = new List<CustomBlendShapeMapping>
+            {
+                CustomMapping("jawOpen", "あ", 1.0f),
+                disabled,
+            };
+
+            var result = BlendShapeGenerationEngine.Generate(
+                source, target, customMappings, null, CreateOptions(), null);
+
+            Assert.That(result.GeneratedShapes, Is.EqualTo(new[] { "jawOpen" }));
+            Assert.That(target.CountShapes("jawOpen"), Is.EqualTo(1));
+            Assert.That(target.FindShape("jawOpen").Frames[0].DeltaVertices[0], Is.EqualTo(Vector3.up));
+        }
+
+        [Test]
+        public void Generate_AbortsOnDuplicate_WhenBothMappingsAreEnabled()
+        {
+            var source = new FakeMeshRepository(TwoVertices())
+                .AddShape("あ", Vector3.up, Vector3.up)
+                .AddShape("口開き", Vector3.forward, Vector3.forward);
+            var target = new FakeMeshRepository(TwoVertices());
+            var customMappings = new List<CustomBlendShapeMapping>
+            {
+                CustomMapping("jawOpen", "あ", 1.0f),
+                CustomMapping("jawOpen", "口開き", 1.0f),
+            };
+
+            var result = BlendShapeGenerationEngine.Generate(
+                source, target, customMappings, null, CreateOptions(), null);
+
+            Assert.That(result.GeneratedShapes, Is.Empty);
+            Assert.That(target.Shapes, Is.Empty);
+        }
+
+        [Test]
         public void Generate_SkipsExistingShape_WhenOverwriteDisabled()
         {
             var source = new FakeMeshRepository(TwoVertices())

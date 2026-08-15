@@ -7,23 +7,23 @@ namespace ARKitBlendShapeGenerator.Presentation
 {
     /// <summary>
     /// カスタムマッピングのARKit名を検索して選択するドロップダウン
-    /// 同一ARKit名は複数のマッピングに設定できないため、他のマッピングで使用済みの名前は
+    /// 有効なマッピングどうしで同一ARKit名は設定できないため、選ぶと重複になる名前は
     /// 一覧から隠さずグレーアウトして選択不可にする
     /// </summary>
     internal sealed class ArkitNameSearchDropdown : SearchableNameDropdown
     {
         private readonly IReadOnlyList<string> _arkitNames;
-        private readonly ICollection<string> _usedByOtherMappings;
+        private readonly ICollection<string> _blockedNames;
 
         public ArkitNameSearchDropdown(
             AdvancedDropdownState state,
             IReadOnlyList<string> arkitNames,
-            ICollection<string> usedByOtherMappings,
+            ICollection<string> blockedNames,
             string currentValue,
             Action<string> onSelected) : base(state, currentValue, onSelected)
         {
             _arkitNames = arkitNames ?? new List<string>();
-            _usedByOtherMappings = usedByOtherMappings ?? new HashSet<string>();
+            _blockedNames = blockedNames ?? new HashSet<string>();
         }
 
         internal static string BuildButtonLabel(string current)
@@ -44,7 +44,7 @@ namespace ARKitBlendShapeGenerator.Presentation
                     continue;
                 }
 
-                bool isUsed = _usedByOtherMappings.Contains(arkitName);
+                bool isUsed = _blockedNames.Contains(arkitName);
                 root.AddChild(new ValueItem(isUsed ? arkitName + S("arkit_name.used_suffix") : arkitName, arkitName)
                 {
                     id = nextId++,
