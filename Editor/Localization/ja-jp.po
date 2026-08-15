@@ -275,7 +275,7 @@ msgid "inspector.section.auto_mappings"
 msgstr "自動マッピング一覧（参照用）"
 
 msgid "auto_mappings.description"
-msgstr "以下のBlendShapeは自動的にマッピングされます。\nシェイプキー名は完全一致で照合します（大文字小文字と空白も区別）。\n各ARKit名について候補を左から順に検索し、最初に見つかったものを使います。左右のARKit名は独立に検索するため、候補が違う場合（ウィンク と ウィンク右 など）は片方だけが生成されることがあります。\nスラッシュより後ろの候補は、左右分割がONのときだけSideで左右に分割されます。OFFのときは分割せずそのまま適用されます。\nカスタムマッピングで同じARKit名を指定した場合、有効なカスタム設定が優先されます。"
+msgstr "以下のBlendShapeは自動的にマッピングされます。この一覧はマッピング定義から生成しています。\nシェイプキー名は完全一致で照合します（大文字小文字と空白も区別）。\nカンマ区切りの名前は候補の並びで、最初に見つかったものを使います。「 / 」は優先順位の区切りで、左の段が成立しなければ次の段を試します。「 + 」で結ばれたソースは同時に合成されます。\n「(70%)」は掛かる重み、「[左のみ]」は左右分割がONのときだけ適用される左右フィルタです。\n左右のARKit名は独立に検索するため、候補が違う場合（ウィンク と ウィンク右 など）は片方だけが生成されることがあります。\nカスタムマッピングで同じARKit名を指定した場合、有効なカスタム設定が優先されます。"
 
 msgid "auto_mappings.fold.eye"
 msgstr "目 (Eye)"
@@ -298,92 +298,8 @@ msgstr "鼻 (Nose)"
 msgid "auto_mappings.fold.tongue"
 msgstr "舌 (Tongue)"
 
-msgid "auto_mappings.row.eye_blink"
-msgstr "← vrc.blink_left/right, blink_left/right, Blink_L/R / vrc.blink, まばたき, ウィンク, ウィンク右, blink"
-
-msgid "auto_mappings.row.eye_squint"
-msgstr "← Squint_L/R, squint_left/right / 笑い, にこり, ><, 笑い目 (70%)"
-
-msgid "auto_mappings.row.eye_wide"
-msgstr "← Wide_L/R, wide_left/right / びっくり, 見開き, 驚き"
-
-msgid "auto_mappings.row.eye_look_up"
-msgstr "← EyeUp_L/R, eye_up_L/R / 目上"
-
-msgid "auto_mappings.row.eye_look_down"
-msgstr "← EyeDown_L/R, eye_down_L/R / 目下"
-
-msgid "auto_mappings.row.eye_look_in"
-msgstr "← EyeIn_L/R, eye_in_L/R / より目"
-
-msgid "auto_mappings.row.eye_look_out"
-msgstr "← EyeOut_L/R, eye_out_L/R（両目用からの分割には未対応）"
-
-msgid "auto_mappings.row.brow_down"
-msgstr "← BrowDown_L/R / 怒り, 真面目, 困る"
-
-msgid "auto_mappings.row.brow_inner_up"
-msgstr "← 困る, 上, 悲しい, BrowInnerUp"
-
-msgid "auto_mappings.row.brow_outer_up"
-msgstr "← BrowOuterUp_L/R / 上, 驚き"
-
-msgid "auto_mappings.row.jaw_open"
-msgstr "← vrc.v_aa, あ, a/A (70%)"
-
-msgid "auto_mappings.row.mouth_funnel"
-msgstr "← vrc.v_ou, う, u/U"
-
-msgid "auto_mappings.row.mouth_pucker"
-msgstr "← vrc.v_ou, う, ω, u/U (120%)"
-
-msgid "auto_mappings.row.mouth_smile"
-msgstr "← Smile_L/R / にやり, ∧, にっこり"
-
-msgid "auto_mappings.row.mouth_frown"
-msgstr "← Frown_L/R / への字, 悲しみ"
-
-msgid "auto_mappings.row.mouth_left_right"
-msgstr "← 口左, 口右, MouthLeft/MouthRight"
-
-msgid "auto_mappings.row.mouth_upper_up"
-msgstr "← vrc.v_ih, い, i/I"
-
-msgid "auto_mappings.row.mouth_lower_down"
-msgstr "← vrc.v_aa, あ, a/A (60%)"
-
-msgid "auto_mappings.row.mouth_close"
-msgstr "← vrc.v_nn, ん, n/N"
-
-msgid "auto_mappings.row.mouth_shrug_upper"
-msgstr "← vrc.v_ch, え, e/E"
-
-msgid "auto_mappings.row.mouth_shrug_lower"
-msgstr "← vrc.v_oh, お, o/O (50%)"
-
-msgid "auto_mappings.row.mouth_press"
-msgstr "← むっ, MouthPress"
-
-msgid "auto_mappings.row.mouth_stretch"
-msgstr "← vrc.v_ih, い, i"
-
-msgid "auto_mappings.row.jaw_direction"
-msgstr "← JawLeft/JawRight/JawForward"
-
 msgid "auto_mappings.row.procedural_fallback"
 msgstr "（無い場合は手続き的生成: 要有効化、口領域の検出に口のシェイプキーが必要）"
-
-msgid "auto_mappings.row.cheek_puff"
-msgstr "← ぷく, 膨らみ, CheekPuff"
-
-msgid "auto_mappings.row.cheek_squint"
-msgstr "← CheekSquint_L/R / 笑い, にこり (80%)"
-
-msgid "auto_mappings.row.nose_sneer"
-msgstr "← NoseSneer_L/R / 怒り"
-
-msgid "auto_mappings.row.tongue_out"
-msgstr "← べー, 舌, TongueOut"
 
 # デバッグ
 msgid "debug.show_all_meshes"

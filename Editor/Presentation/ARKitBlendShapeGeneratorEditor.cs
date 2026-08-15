@@ -33,14 +33,16 @@ namespace ARKitBlendShapeGenerator.Presentation
         private int _cachedPreviewMeshInstanceId;
         private PreviewShapeCategories _cachedPreviewCategories;
 
-        // カテゴリごとの折りたたみ状態
-        private bool _foldEye = true;
-        private bool _foldEyeLook = true;
-        private bool _foldBrow = true;
-        private bool _foldMouth = false;
-        private bool _foldCheek = false;
-        private bool _foldNose = false;
-        private bool _foldTongue = false;
+        // 自動マッピング一覧はARKitMappingTableから組み立てる。テーブルは実行中変化しないため使い回す
+        private static IReadOnlyList<AutoMappingCategory> _autoMappingCategories;
+
+        // 自動マッピング一覧のカテゴリごとの折りたたみ状態（キーはAutoMappingCategory.Key）
+        private readonly Dictionary<string, bool> _autoMappingFolds = new Dictionary<string, bool>
+        {
+            { "eye", true },
+            { "eye_look", true },
+            { "brow", true },
+        };
 
         // 検索
         private string _searchFilter = "";
@@ -1338,111 +1340,77 @@ namespace ARKitBlendShapeGenerator.Presentation
         }
 
         /// <summary>
-        /// 手続き的生成のフォールバックがあるARKit BlendShapeの説明文を組み立てる
-        /// （シェイプキーからの生成が成立した場合はそちらが優先される）
-        /// </summary>
-        private static string WithProceduralFallback(string rowKey)
-        {
-            return S(rowKey) + S("auto_mappings.row.procedural_fallback");
-        }
-
-        /// <summary>
         /// 自動マッピング一覧の1行を描画する。
         /// 対応シェイプキー名は通常のインスペクタ幅に収まらず右端で省略されるため、
         /// 全文をツールチップからも読めるようにする
         /// </summary>
-        private static void DrawAutoMappingRow(string arkitNames, string sources)
+        private static void DrawAutoMappingRow(string arkitName, string sources)
         {
             EditorGUILayout.LabelField(
-                new GUIContent(arkitNames, sources),
+                new GUIContent(arkitName, sources),
                 new GUIContent(sources, sources));
+        }
+
+        /// <summary>
+        /// ARKit名1件分の説明文を組み立てる。
+        /// 候補はARKitMappingTableから生成し、手続き的生成で補える場合はその旨を後ろに付ける
+        /// </summary>
+        private static string DescribeAutoMappingEntry(AutoMappingEntry entry)
+        {
+            var sources = AutoMappingSummary.DescribeCandidates(entry, SideLabel);
+            var description = string.IsNullOrEmpty(sources) ? string.Empty : "\u2190 " + sources;
+
+            if (!entry.HasProceduralFallback)
+            {
+                return description;
+            }
+
+            return description + S("auto_mappings.row.procedural_fallback");
+        }
+
+        private static string SideLabel(BlendShapeSide side)
+        {
+            switch (side)
+            {
+                case BlendShapeSide.LeftOnly:
+                    return S("enum.side.left_only");
+                case BlendShapeSide.RightOnly:
+                    return S("enum.side.right_only");
+                default:
+                    return S("enum.side.both");
+            }
         }
 
         private void DrawAutoMappingsInfo()
         {
             EditorGUILayout.HelpBox(S("auto_mappings.description"), MessageType.Info);
 
-            // 目
-            _foldEye = EditorGUILayout.Foldout(_foldEye, S("auto_mappings.fold.eye"));
-            if (_foldEye)
+            // 表示はARKitMappingTableから生成する（手書きすると実装とずれるため）
+            if (_autoMappingCategories == null)
             {
-                EditorGUI.indentLevel++;
-                DrawAutoMappingRow("eyeBlinkLeft/Right", S("auto_mappings.row.eye_blink"));
-                DrawAutoMappingRow("eyeSquintLeft/Right", S("auto_mappings.row.eye_squint"));
-                DrawAutoMappingRow("eyeWideLeft/Right", S("auto_mappings.row.eye_wide"));
-                EditorGUI.indentLevel--;
+                _autoMappingCategories = AutoMappingSummary.Build();
             }
 
-            // 視線
-            _foldEyeLook = EditorGUILayout.Foldout(_foldEyeLook, S("auto_mappings.fold.eye_look"));
-            if (_foldEyeLook)
+            foreach (var category in _autoMappingCategories)
             {
-                EditorGUI.indentLevel++;
-                DrawAutoMappingRow("eyeLookUpLeft/Right", S("auto_mappings.row.eye_look_up"));
-                DrawAutoMappingRow("eyeLookDownLeft/Right", S("auto_mappings.row.eye_look_down"));
-                DrawAutoMappingRow("eyeLookInLeft/Right", S("auto_mappings.row.eye_look_in"));
-                DrawAutoMappingRow("eyeLookOutLeft/Right", S("auto_mappings.row.eye_look_out"));
-                EditorGUI.indentLevel--;
-            }
+                if (!_autoMappingFolds.TryGetValue(category.Key, out bool expanded))
+                {
+                    expanded = false;
+                }
 
-            // 眉毛
-            _foldBrow = EditorGUILayout.Foldout(_foldBrow, S("auto_mappings.fold.brow"));
-            if (_foldBrow)
-            {
-                EditorGUI.indentLevel++;
-                DrawAutoMappingRow("browDownLeft/Right", S("auto_mappings.row.brow_down"));
-                DrawAutoMappingRow("browInnerUp", S("auto_mappings.row.brow_inner_up"));
-                DrawAutoMappingRow("browOuterUpLeft/Right", S("auto_mappings.row.brow_outer_up"));
-                EditorGUI.indentLevel--;
-            }
+                expanded = EditorGUILayout.Foldout(expanded, S("auto_mappings.fold." + category.Key));
+                _autoMappingFolds[category.Key] = expanded;
 
-            // 口
-            _foldMouth = EditorGUILayout.Foldout(_foldMouth, S("auto_mappings.fold.mouth"));
-            if (_foldMouth)
-            {
-                EditorGUI.indentLevel++;
-                DrawAutoMappingRow("jawOpen", S("auto_mappings.row.jaw_open"));
-                DrawAutoMappingRow("mouthFunnel", S("auto_mappings.row.mouth_funnel"));
-                DrawAutoMappingRow("mouthPucker", S("auto_mappings.row.mouth_pucker"));
-                DrawAutoMappingRow("mouthSmileLeft/Right", S("auto_mappings.row.mouth_smile"));
-                DrawAutoMappingRow("mouthFrownLeft/Right", S("auto_mappings.row.mouth_frown"));
-                DrawAutoMappingRow("mouthPress", S("auto_mappings.row.mouth_press"));
-                DrawAutoMappingRow("mouthClose", S("auto_mappings.row.mouth_close"));
-                DrawAutoMappingRow("mouthStretchLeft/Right", S("auto_mappings.row.mouth_stretch"));
-                DrawAutoMappingRow("mouthLeft/Right", WithProceduralFallback("auto_mappings.row.mouth_left_right"));
-                DrawAutoMappingRow("jawLeft/Right/Forward", WithProceduralFallback("auto_mappings.row.jaw_direction"));
-                DrawAutoMappingRow("mouthUpperUpLeft/Right", WithProceduralFallback("auto_mappings.row.mouth_upper_up"));
-                DrawAutoMappingRow("mouthLowerDownLeft/Right", WithProceduralFallback("auto_mappings.row.mouth_lower_down"));
-                DrawAutoMappingRow("mouthShrugUpper", WithProceduralFallback("auto_mappings.row.mouth_shrug_upper"));
-                DrawAutoMappingRow("mouthShrugLower", WithProceduralFallback("auto_mappings.row.mouth_shrug_lower"));
-                EditorGUI.indentLevel--;
-            }
+                if (!expanded)
+                {
+                    continue;
+                }
 
-            // 頬
-            _foldCheek = EditorGUILayout.Foldout(_foldCheek, S("auto_mappings.fold.cheek"));
-            if (_foldCheek)
-            {
                 EditorGUI.indentLevel++;
-                DrawAutoMappingRow("cheekPuff", S("auto_mappings.row.cheek_puff"));
-                DrawAutoMappingRow("cheekSquintLeft/Right", S("auto_mappings.row.cheek_squint"));
-                EditorGUI.indentLevel--;
-            }
-
-            // 鼻
-            _foldNose = EditorGUILayout.Foldout(_foldNose, S("auto_mappings.fold.nose"));
-            if (_foldNose)
-            {
-                EditorGUI.indentLevel++;
-                DrawAutoMappingRow("noseSneerLeft/Right", S("auto_mappings.row.nose_sneer"));
-                EditorGUI.indentLevel--;
-            }
-
-            // 舌
-            _foldTongue = EditorGUILayout.Foldout(_foldTongue, S("auto_mappings.fold.tongue"));
-            if (_foldTongue)
-            {
-                EditorGUI.indentLevel++;
-                DrawAutoMappingRow("tongueOut", S("auto_mappings.row.tongue_out"));
+                foreach (var entry in category.Entries)
+                {
+                    DrawAutoMappingRow(entry.ArkitName, DescribeAutoMappingEntry(entry));
+                }
                 EditorGUI.indentLevel--;
             }
         }
