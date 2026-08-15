@@ -242,6 +242,25 @@ msgstr "左右分割がOFFのため、この指定は生成時に無視されま
 msgid "enum.side.cancellation.tooltip"
 msgstr "打ち消しを適用する左右の範囲。左のみ＝アバターから見て左半分（メッシュローカル座標のX<0）、右のみ＝右半分（X>0）。アバター側での適用範囲を表すため、左右分割の設定に関わらず適用されます。"
 
+# 生成しないARKit BlendShape
+msgid "inspector.section.excluded"
+msgstr "生成しないARKit BlendShape"
+
+msgid "excluded.description"
+msgstr "チェックしたARKit BlendShapeを生成しません。自動マッピング・カスタムマッピング・口の手続き的生成のいずれからも生成されなくなります。既にメッシュにある同名のBlendShapeは消さずにそのまま残し、「既存を上書き」がONでも上書きしません。"
+
+msgid "excluded.clear"
+msgstr "全て解除"
+
+msgid "excluded.count"
+msgstr "除外: {0}/{1}"
+
+msgid "excluded.custom_mapping_warning"
+msgstr "次のARKit名はカスタムマッピングでも設定されていますが、除外が優先されるため生成されません: {0}"
+
+msgid "excluded.cancellation_target_warning"
+msgstr "次のARKit名は打ち消しの焼き込み先ですが、除外により生成されないため打ち消しが効きません: {0}"
+
 # プレビュー
 msgid "inspector.section.preview"
 msgstr "プレビュー"

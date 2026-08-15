@@ -50,6 +50,7 @@ Jerry's Templatesと組み合わせて使用することで、フェイストラ
 | **Enable Mouth Cancellation** | 生成した口関連BlendShapeに、指定したBlendShapeの打ち消し成分を焼き込む（デフォルト: 無効） |
 | **Mouth Cancellation Strength** | 打ち消し量の全体係数（0.0〜1.0） |
 | **Custom Mappings** | 自動マッピングできないBlendShapeを手動で指定 |
+| **生成しないARKit BlendShape** | チェックしたARKit BlendShapeを生成対象から外す |
 | **Debug Mode** | デバッグログを出力する |
 
 Target Renderer が空のときは、コンポーネントの直下にある `Body` / `body` / `Face` / `face` / `Head` / `head` のいずれかの名前を持つSkinnedMeshRendererを優先し、見つからなければ自身を含む子孫の最初のSkinnedMeshRendererを対象にします。
@@ -70,6 +71,19 @@ Sideは適用する頂点の範囲を表し、「左のみ」はアバターか�
 `Enable Left Right Split` は生成全体で頂点のX座標による左右分割を行うかどうかのスイッチです。
 OFFのときはカスタムマッピングのSideも無視され、ソースが両側に適用されます。
 無視されていることが分かるよう、OFFのあいだSideのドロップダウンは非活性で表示されます（設定値そのものは保持され、ONに戻すとまた効きます）。
+
+### 生成しないARKit BlendShape
+
+自動マッピングが成立してしまうものの、生成結果が不自然になる名前は、「生成しないARKit BlendShape」で個別に外せます。
+チェックした名前は自動マッピング、カスタムマッピング、口の手続き的生成のいずれからも生成されません。
+
+除外は「生成しない」であって「消す」ではありません。
+既にメッシュにある同名のBlendShapeはそのまま残り、`Overwrite Existing` がONでも上書きされません。
+生成する対象は減らしたいが手で作り込んだ既存のBlendShapeは残したい、という場合にも使えます。
+
+カスタムマッピングと除外で同じARKit名を指定した場合は、除外が優先されます。
+設定が食い違っていることが分かるよう、その場合はインスペクタに警告が出ます。
+打ち消しの焼き込み先を除外したときも同様で、焼き込み先が生成されないため打ち消しは効きません。
 
 ### NDMFプレビュー
 

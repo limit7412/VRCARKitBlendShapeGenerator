@@ -94,5 +94,39 @@ namespace ARKitBlendShapeGenerator.Tests
 
             Assert.That(options.MouthCancellationTargets, Is.Empty);
         }
+
+        [Test]
+        public void FromComponent_CopiesExcludedArkitNames()
+        {
+            var component = CreateComponent();
+            component.excludedArkitNames = new List<string> { "mouthClose", "cheekPuff" };
+
+            var options = BlendShapeGenerationOptions.FromComponent(component);
+
+            Assert.That(options.ExcludedArkitNames, Is.EquivalentTo(new[] { "mouthClose", "cheekPuff" }));
+        }
+
+        [Test]
+        public void FromComponent_IgnoresBlankExcludedArkitNames()
+        {
+            // 打ち消しの焼き込み先と同じ規則。空白のみは未設定として扱い、名前自体は加工しない
+            var component = CreateComponent();
+            component.excludedArkitNames = new List<string> { "mouthClose", "", "   ", null, " cheekPuff" };
+
+            var options = BlendShapeGenerationOptions.FromComponent(component);
+
+            Assert.That(options.ExcludedArkitNames, Is.EquivalentTo(new[] { "mouthClose", " cheekPuff" }));
+        }
+
+        [Test]
+        public void FromComponent_ReturnsEmptyExclusions_WhenExcludedListIsNull()
+        {
+            var component = CreateComponent();
+            component.excludedArkitNames = null;
+
+            var options = BlendShapeGenerationOptions.FromComponent(component);
+
+            Assert.That(options.ExcludedArkitNames, Is.Empty);
+        }
     }
 }

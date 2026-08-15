@@ -65,6 +65,10 @@ namespace ARKitBlendShapeGenerator
         [Tooltip("Manually specify blend shapes that cannot be mapped automatically")]
         public List<CustomBlendShapeMapping> customMappings = new List<CustomBlendShapeMapping>();
 
+        [Header("Exclusion")]
+        [Tooltip("ARKit blend shapes to leave ungenerated. Existing blend shapes with the same name are kept as they are (they are never deleted, and never overwritten even while Overwrite Existing is on)")]
+        public List<string> excludedArkitNames = new List<string>();
+
         [Header("Debug")]
         [Tooltip("Output debug logs")]
         public bool debugMode = false;

@@ -20,6 +20,7 @@ namespace ARKitBlendShapeGenerator.Presentation
         private List<string> _availableBlendShapes = new List<string>();
         private bool _showCustomMappings = true;
         private bool _showAutoMappings = false;
+        private bool _showExcludedNames = false;
         private bool _showPreview = false;
         private bool _showNdmfOffWarning;
         private bool _showPreviewCategoryCustom = true;
@@ -28,6 +29,7 @@ namespace ARKitBlendShapeGenerator.Presentation
         private Vector2 _scrollPosition;
         private Vector2 _previewScrollPosition;
         private Vector2 _mouthCancellationTargetScrollPosition;
+        private Vector2 _excludedNameScrollPosition;
         private int _cachedPreviewConfigRevision = -1;
         private int _cachedPreviewRendererInstanceId;
         private int _cachedPreviewMeshInstanceId;
@@ -148,6 +150,18 @@ namespace ARKitBlendShapeGenerator.Presentation
             {
                 EditorGUI.indentLevel++;
                 DrawCustomMappingsUI();
+                EditorGUI.indentLevel--;
+            }
+
+            EditorGUILayout.Space();
+            EditorGUILayout.LabelField("", GUI.skin.horizontalSlider);
+
+            // 生成しないARKit BlendShape
+            _showExcludedNames = EditorGUILayout.Foldout(_showExcludedNames, S("inspector.section.excluded"), true);
+            if (_showExcludedNames)
+            {
+                EditorGUI.indentLevel++;
+                DrawExcludedArkitNamesUI();
                 EditorGUI.indentLevel--;
             }
 
@@ -885,6 +899,153 @@ namespace ARKitBlendShapeGenerator.Presentation
             EditorGUILayout.EndScrollView();
         }
 
+        /// <summary>
+        /// 除外の選択肢。GetAllは呼び出しのたびに配列を組み立てるため、再描画ごとの確保を避ける
+        /// </summary>
+        private static readonly string[] ExcludableArkitNames = ARKitBlendShapeNames.GetAll();
+
+        /// <summary>
+        /// 生成対象から除外するARKit名を選ぶ。
+        /// 除外は「生成しない」であって「消す」ではないため、同名の既存シェイプはそのまま残る
+        /// </summary>
+        private void DrawExcludedArkitNamesUI()
+        {
+            EditorGUILayout.HelpBox(S("excluded.description"), MessageType.Info);
+
+            var excludedProperty = serializedObject.FindProperty("excludedArkitNames");
+            var selectableNames = ExcludableArkitNames;
+
+            if (GUILayout.Button(S("excluded.clear"), EditorStyles.miniButton))
+            {
+                excludedProperty.ClearArray();
+            }
+
+            EditorGUILayout.LabelField(
+                S("excluded.count", excludedProperty.arraySize, selectableNames.Length),
+                EditorStyles.miniLabel);
+
+            DrawExcludedConflictWarnings(excludedProperty);
+
+            _excludedNameScrollPosition = EditorGUILayout.BeginScrollView(
+                _excludedNameScrollPosition,
+                GUILayout.Height(200f));
+
+            foreach (var arkitName in selectableNames)
+            {
+                int existingIndex = IndexOfStringElement(excludedProperty, arkitName);
+                bool isExcluded = existingIndex >= 0;
+                bool newExcluded = EditorGUILayout.ToggleLeft(arkitName, isExcluded);
+                if (newExcluded == isExcluded)
+                {
+                    continue;
+                }
+
+                if (newExcluded)
+                {
+                    AppendStringElement(excludedProperty, arkitName);
+                }
+                else
+                {
+                    excludedProperty.DeleteArrayElementAtIndex(existingIndex);
+                }
+            }
+
+            EditorGUILayout.EndScrollView();
+        }
+
+        /// <summary>
+        /// 除外と食い違う設定を警告する。
+        /// どちらも黙って効かなくなる組み合わせのため、設定画面で気付けるようにする
+        /// </summary>
+        private void DrawExcludedConflictWarnings(SerializedProperty excludedProperty)
+        {
+            var excludedNames = new HashSet<string>();
+            for (int i = 0; i < excludedProperty.arraySize; i++)
+            {
+                var name = excludedProperty.GetArrayElementAtIndex(i).stringValue;
+                if (!string.IsNullOrWhiteSpace(name))
+                {
+                    excludedNames.Add(name);
+                }
+            }
+
+            if (excludedNames.Count == 0)
+            {
+                return;
+            }
+
+            // 除外はカスタムマッピングより優先するため、同名のマッピングは生成されない
+            var customMappingsProperty = serializedObject.FindProperty("customMappings");
+            var shadowedMappings = new List<string>();
+            for (int i = 0; i < customMappingsProperty.arraySize; i++)
+            {
+                var mappingProperty = customMappingsProperty.GetArrayElementAtIndex(i);
+                if (!mappingProperty.FindPropertyRelative("enabled").boolValue)
+                {
+                    continue;
+                }
+
+                var arkitName = mappingProperty.FindPropertyRelative("arkitName").stringValue;
+                if (excludedNames.Contains(arkitName) && !shadowedMappings.Contains(arkitName))
+                {
+                    shadowedMappings.Add(arkitName);
+                }
+            }
+
+            if (shadowedMappings.Count > 0)
+            {
+                EditorGUILayout.HelpBox(
+                    S("excluded.custom_mapping_warning", string.Join(", ", shadowedMappings.OrderBy(name => name))),
+                    MessageType.Warning);
+            }
+
+            // 焼き込み先が生成されないと、打ち消しは黙って効かなくなる
+            if (!serializedObject.FindProperty("enableMouthCancellation").boolValue)
+            {
+                return;
+            }
+
+            var targetsProperty = serializedObject.FindProperty("mouthCancellationTargets");
+            var shadowedTargets = new List<string>();
+            for (int i = 0; i < targetsProperty.arraySize; i++)
+            {
+                var target = targetsProperty.GetArrayElementAtIndex(i).stringValue;
+                if (excludedNames.Contains(target) && !shadowedTargets.Contains(target))
+                {
+                    shadowedTargets.Add(target);
+                }
+            }
+
+            if (shadowedTargets.Count > 0)
+            {
+                EditorGUILayout.HelpBox(
+                    S("excluded.cancellation_target_warning", string.Join(", ", shadowedTargets.OrderBy(name => name))),
+                    MessageType.Warning);
+            }
+        }
+
+        /// <summary>
+        /// 除外名の集合を作る。生成側（BuildNameSet）と同じく空白のみは未設定として無視する
+        /// </summary>
+        private HashSet<string> BuildExcludedNameSet()
+        {
+            var result = new HashSet<string>();
+            if (_component == null || _component.excludedArkitNames == null)
+            {
+                return result;
+            }
+
+            foreach (var name in _component.excludedArkitNames)
+            {
+                if (!string.IsNullOrWhiteSpace(name))
+                {
+                    result.Add(name);
+                }
+            }
+
+            return result;
+        }
+
         private static int IndexOfStringElement(SerializedProperty arrayProperty, string value)
         {
             for (int i = 0; i < arrayProperty.arraySize; i++)
@@ -1219,6 +1380,7 @@ namespace ARKitBlendShapeGenerator.Presentation
             var autoSet = new HashSet<string>();
             var customMappedNames = new HashSet<string>();
             var customMappings = _component.customMappings ?? new List<CustomBlendShapeMapping>();
+            var excludedNames = BuildExcludedNameSet();
 
             foreach (var mapping in customMappings)
             {
@@ -1226,6 +1388,11 @@ namespace ARKitBlendShapeGenerator.Presentation
                 // ここだけIsNullOrEmptyだと、生成されない空白のみの名前が
                 // 空欄のスライダーとしてプレビューに並んでしまう
                 if (mapping == null || !mapping.enabled || string.IsNullOrWhiteSpace(mapping.arkitName))
+                {
+                    continue;
+                }
+
+                if (excludedNames.Contains(mapping.arkitName))
                 {
                     continue;
                 }
@@ -1261,6 +1428,11 @@ namespace ARKitBlendShapeGenerator.Presentation
             foreach (var mapping in ARKitMappingTable.GetMappings())
             {
                 if (mapping == null || string.IsNullOrEmpty(mapping.arkitName) || mapping.sources == null)
+                {
+                    continue;
+                }
+
+                if (excludedNames.Contains(mapping.arkitName))
                 {
                     continue;
                 }
@@ -1312,7 +1484,9 @@ namespace ARKitBlendShapeGenerator.Presentation
             {
                 foreach (var arkitName in ProceduralMouthShapeGenerator.TargetShapeNames)
                 {
-                    if (customMappedNames.Contains(arkitName) || autoSet.Contains(arkitName))
+                    if (excludedNames.Contains(arkitName) ||
+                        customMappedNames.Contains(arkitName) ||
+                        autoSet.Contains(arkitName))
                     {
                         continue;
                     }

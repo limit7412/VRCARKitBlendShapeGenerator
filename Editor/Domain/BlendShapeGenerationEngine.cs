@@ -18,7 +18,20 @@ namespace ARKitBlendShapeGenerator.Domain
         public List<BlendShapeSource> MouthCancellationSources { get; set; }
         public float MouthCancellationStrength { get; set; } = 1.0f;
         public HashSet<string> MouthCancellationTargets { get; set; }
+        public HashSet<string> ExcludedArkitNames { get; set; }
         public bool Debug { get; set; }
+
+        /// <summary>
+        /// 生成対象から除外されたARKit名か。
+        /// 自動マッピング・カスタムマッピング・手続き的生成の入口すべてがこの判定を共有する
+        /// （どれか1つでも通すと、除外したはずの名前がその経路だけ生成される）
+        /// </summary>
+        public bool IsExcluded(string arkitName)
+        {
+            return ExcludedArkitNames != null
+                && !string.IsNullOrEmpty(arkitName)
+                && ExcludedArkitNames.Contains(arkitName);
+        }
 
         public static BlendShapeGenerationOptions FromComponent(ARKitBlendShapeGeneratorComponent component)
         {
@@ -33,29 +46,30 @@ namespace ARKitBlendShapeGenerator.Domain
                 EnableMouthCancellation = component.enableMouthCancellation,
                 MouthCancellationSources = component.mouthCancellationSources,
                 MouthCancellationStrength = component.mouthCancellationStrength,
-                MouthCancellationTargets = BuildTargetSet(component.mouthCancellationTargets),
+                MouthCancellationTargets = BuildNameSet(component.mouthCancellationTargets),
+                ExcludedArkitNames = BuildNameSet(component.excludedArkitNames),
                 Debug = component.debugMode
             };
         }
 
         /// <summary>
-        /// 打ち消し対象のARKit名の集合を作る。
-        /// 名前は加工せず、AppliesToでの照合も完全一致で行う（ここでTrimすると
-        /// インスペクタの選択状態と実際の打ち消し対象が食い違う）。空白のみは未設定として無視する。
+        /// インスペクタで選択したARKit名の集合を作る（打ち消しの焼き込み先と、生成の除外対象）。
+        /// 名前は加工せず、照合も完全一致で行う（ここでTrimすると
+        /// インスペクタの選択状態と実際の対象が食い違う）。空白のみは未設定として無視する。
         /// </summary>
-        private static HashSet<string> BuildTargetSet(List<string> targets)
+        private static HashSet<string> BuildNameSet(List<string> names)
         {
             var result = new HashSet<string>();
-            if (targets == null)
+            if (names == null)
             {
                 return result;
             }
 
-            foreach (var target in targets)
+            foreach (var name in names)
             {
-                if (!string.IsNullOrWhiteSpace(target))
+                if (!string.IsNullOrWhiteSpace(name))
                 {
-                    result.Add(target);
+                    result.Add(name);
                 }
             }
 
@@ -740,6 +754,12 @@ namespace ARKitBlendShapeGenerator.Domain
 
             foreach (var arkitName in ProceduralMouthShapeGenerator.TargetShapeNames)
             {
+                if (options.IsExcluded(arkitName))
+                {
+                    Log(logger, options, $"Skip procedural (excluded): {arkitName}");
+                    continue;
+                }
+
                 // 既存シェイプキーからの生成が成立している場合はそちらを優先
                 if (generatedNames.Contains(arkitName))
                 {
@@ -858,6 +878,15 @@ namespace ARKitBlendShapeGenerator.Domain
                     continue;
                 }
 
+                // 除外はカスタムマッピングより優先する。
+                // customMappedNamesへ入れないが、自動マッピングと手続き的生成も同じ判定で弾くため
+                // ここで抜けた名前が別経路から生成されることはない
+                if (options.IsExcluded(mapping.arkitName))
+                {
+                    Log(logger, options, $"Skip custom (excluded): {mapping.arkitName}");
+                    continue;
+                }
+
                 if (mapping.sources == null || mapping.sources.Count == 0)
                 {
                     continue;
@@ -909,11 +938,23 @@ namespace ARKitBlendShapeGenerator.Domain
             IGenerationLogger logger)
         {
             var processedArkitNames = new HashSet<string>();
+            var loggedExclusions = new HashSet<string>();
 
             foreach (var mapping in autoMappings)
             {
                 if (mapping == null || string.IsNullOrEmpty(mapping.arkitName) || mapping.sources == null)
                 {
+                    continue;
+                }
+
+                if (options.IsExcluded(mapping.arkitName))
+                {
+                    // 同じARKit名に候補が複数あるため、既に弾いた名前はログを繰り返さない
+                    if (loggedExclusions.Add(mapping.arkitName))
+                    {
+                        Log(logger, options, $"Skip auto (excluded): {mapping.arkitName}");
+                    }
+
                     continue;
                 }
 

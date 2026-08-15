@@ -242,6 +242,25 @@ msgstr "Left/Right Split is off, so this setting is ignored during generation (t
 msgid "enum.side.cancellation.tooltip"
 msgstr "Which half the cancellation is applied to. Left Only = the avatar's left half (mesh local X < 0), Right Only = the right half (X > 0). It represents how the blend shape is applied on the avatar, so it takes effect regardless of the Left/Right Split setting."
 
+# Excluded ARKit blend shapes
+msgid "inspector.section.excluded"
+msgstr "Excluded ARKit BlendShapes"
+
+msgid "excluded.description"
+msgstr "Checked ARKit blend shapes are not generated, neither by auto mapping, custom mapping, nor procedural mouth generation. Existing blend shapes with the same name are kept as they are: they are never deleted, and never overwritten even while Overwrite Existing is on."
+
+msgid "excluded.clear"
+msgstr "Clear All"
+
+msgid "excluded.count"
+msgstr "Excluded: {0}/{1}"
+
+msgid "excluded.custom_mapping_warning"
+msgstr "These ARKit names are also set in custom mappings, but exclusion takes precedence so they are not generated: {0}"
+
+msgid "excluded.cancellation_target_warning"
+msgstr "These ARKit names are cancellation bake targets, but they are excluded from generation so the cancellation has no effect: {0}"
+
 # Preview
 msgid "inspector.section.preview"
 msgstr "Preview"

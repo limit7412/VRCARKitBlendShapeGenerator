@@ -145,6 +145,7 @@ namespace ARKitBlendShapeGenerator.Handler
             private readonly int _observedMouthCancellationSignature;
             private readonly int _observedTargetRendererInstanceId;
             private readonly int _observedCustomMappingsSignature;
+            private readonly int _observedExcludedArkitNamesSignature;
             private readonly Dictionary<string, int> _shapeIndices = new Dictionary<string, int>();
             private HashSet<int> _appliedInteractiveIndices = new HashSet<int>();
             private HashSet<int> _nextAppliedInteractiveIndices = new HashSet<int>();
@@ -172,6 +173,7 @@ namespace ARKitBlendShapeGenerator.Handler
                 float observedMouthCancellationStrength = 0f;
                 int observedMouthCancellationSignature = 0;
                 int observedCustomMappingsSignature = 0;
+                int observedExcludedArkitNamesSignature = 0;
                 SkinnedMeshRenderer observedTargetRenderer = null;
                 if (component != null)
                 {
@@ -186,6 +188,7 @@ namespace ARKitBlendShapeGenerator.Handler
                     observedMouthCancellationStrength = context.Observe(component, c => c.mouthCancellationStrength);
                     observedMouthCancellationSignature = BuildMouthCancellationSignature(component);
                     observedCustomMappingsSignature = BuildCustomMappingsSignature(component.customMappings);
+                    observedExcludedArkitNamesSignature = BuildExcludedArkitNamesSignature(component);
                     observedTargetRenderer = context.Observe(component, c => c.targetRenderer);
                 }
 
@@ -199,6 +202,7 @@ namespace ARKitBlendShapeGenerator.Handler
                 _observedMouthCancellationStrength = observedMouthCancellationStrength;
                 _observedMouthCancellationSignature = observedMouthCancellationSignature;
                 _observedCustomMappingsSignature = observedCustomMappingsSignature;
+                _observedExcludedArkitNamesSignature = observedExcludedArkitNamesSignature;
                 _observedTargetRendererInstanceId = observedTargetRenderer != null ? observedTargetRenderer.GetInstanceID() : 0;
 
                 context.Observe(originalRenderer, r => r.sharedMesh);
@@ -307,6 +311,12 @@ namespace ARKitBlendShapeGenerator.Handler
 
                 int currentCustomMappingsSignature = BuildCustomMappingsSignature(_component.customMappings);
                 if (currentCustomMappingsSignature != _observedCustomMappingsSignature)
+                {
+                    return Task.FromResult<IRenderFilterNode>(null);
+                }
+
+                int currentExcludedArkitNamesSignature = BuildExcludedArkitNamesSignature(_component);
+                if (currentExcludedArkitNamesSignature != _observedExcludedArkitNamesSignature)
                 {
                     return Task.FromResult<IRenderFilterNode>(null);
                 }
@@ -442,6 +452,27 @@ namespace ARKitBlendShapeGenerator.Handler
                     foreach (var target in targets)
                     {
                         hash = (hash * 31) + HashString(target);
+                    }
+
+                    return hash;
+                }
+            }
+
+            private static int BuildExcludedArkitNamesSignature(ARKitBlendShapeGeneratorComponent component)
+            {
+                unchecked
+                {
+                    int hash = 17;
+                    var excluded = component != null ? component.excludedArkitNames : null;
+                    if (excluded == null)
+                    {
+                        return (hash * 31) + 2;
+                    }
+
+                    hash = (hash * 31) + excluded.Count;
+                    foreach (var name in excluded)
+                    {
+                        hash = (hash * 31) + HashString(name);
                     }
 
                     return hash;
