@@ -15,10 +15,14 @@ VRChatアバターの既存シェイプキー（まばたき、あ、い、う �
 
 ディレクトリがそのままレイヤに対応する。
 
-- **`Runtime/`**：設定値を保持するコンポーネント（`ARKitBlendShapeGeneratorComponent`）と、生成対象レンダラーの解決（`TargetRendererResolver`）。コンポーネントはビルド中に取り除かれるため、アバターの実行時には何も残らない
-- **`Editor/Handler/`**：NDMFとの接続点。ビルドのエントリポイント、プレビュー、重複コンポーネントの自動排除
-- **`Editor/UseCase/`**：入口とドメインの橋渡し。処理対象の選定と、Infra実装の組み立て
-- **`Editor/Domain/`**：生成ロジックの本体。メッシュの読み書きは `IMeshRepository` 越しに行い、`UnityEngine.Mesh` へ直接依存しない
+- **`Runtime/`**：設定値を保持するコンポーネント（`ARKitBlendShapeGeneratorComponent`）と、生成対象レンダラーの解決（`TargetRendererResolver`）。
+  コンポーネントはビルド中に取り除かれるため、アバターの実行時には何も残らない
+- **`Editor/Handler/`**：NDMFとの接続点。
+  ビルドのエントリポイント、プレビュー、重複コンポーネントの自動排除
+- **`Editor/UseCase/`**：入口とドメインの橋渡し。
+  処理対象の選定と、Infra実装の組み立て
+- **`Editor/Domain/`**：生成ロジックの本体。
+  メッシュの読み書きは `IMeshRepository` 越しに行い、`UnityEngine.Mesh` へ直接依存しない
 - **`Editor/Infra/`**：Domainが定義した抽象のUnity実装（`UnityMeshRepository` など）と、エディタAPIへ触る部品
 - **`Editor/Presentation/`**：インスペクタUI
 - **`Editor/Localization/`**：NDMFのローカライズ機構を使った文言管理（日英の `.po`）
@@ -44,7 +48,8 @@ graph TD
 ```
 
 矢印は参照の向き（参照する側 → される側）を表す。
-図には主要な依存だけを載せており、外側のレイヤが図で下にあるレイヤを直接参照する箇所もある（HandlerのプレビューがDomainの重複検証やInfraの共有状態を直接使う、など）。
+図には生成処理の主要な依存だけを載せており、外側のレイヤが図で下にあるレイヤを直接参照する箇所もある。
+たとえばHandlerのプレビューはDomainの `CustomMappingValidation` や `PreviewSettingsSnapshot` とInfraの共有状態を、Presentationは自動マッピング一覧のためにDomainの `ARKitMappingTable` と `AutoMappingSummary` を直接使う。
 向きが内側（図の下方向）へ揃っていることが約束事で、DomainやRuntimeが外側のレイヤを参照することはない。
 `Editor/Localization/` は文言参照のために全レイヤから使われるため、図からは省いた。
 
@@ -67,11 +72,14 @@ NDMFのGenerating Phaseで、Jerry's Templatesより先に実行されるよう�
 生成の本体は `Editor/Domain/BlendShapeGenerationEngine.cs` の `Generate` である。
 ファイルは約1500行あるが、`Generate` メソッド自体は骨格だけなので、まずそこを読めば全体の順序がつかめる。
 
-1. カスタムマッピングを収集する（`CollectCustomMappings`。自動マッピングより優先され、ソースを持つ有効な定義のARKit名は自動側の対象から外れる）
-2. 自動マッピングを収集する（`CollectAutoMappings`。`ARKitMappingTable` が持つVRChat/MMD名との照合）
+1. カスタムマッピングを収集する（`CollectCustomMappings`）。
+   自動マッピングより優先され、ソースを持つ有効な定義のARKit名は自動側の対象から外れる
+2. 自動マッピングを収集する（`CollectAutoMappings`）。
+   `ARKitMappingTable` が持つVRChat/MMD名との照合で決まる
 3. 口の打ち消しデルタを組み立てる（`BuildMouthCancellationDelta`）
 4. 書き込み計画を立てる（上書き対象は元の位置への置き換え、それ以外は末尾への追加）
-5. 手続き的な口の生成を計画へ加える（`CollectProceduralMouthShapes`。シェイプキーから生成できなかったものへのフォールバックで、変形の実体は `ProceduralMouthShapeGenerator` にある）
+5. 手続き的な口の生成を計画へ加える（`CollectProceduralMouthShapes`）。
+   シェイプキーから生成できなかったものへのフォールバックで、変形の実体は `ProceduralMouthShapeGenerator` にある
 6. まとめて書き込む（`WriteBlendShapes`）
 
 デルタ（頂点ごとの変位）は計画の段階では作らず、書き込む直前に1件ずつ実体化する。
@@ -84,7 +92,9 @@ NDMFのGenerating Phaseで、Jerry's Templatesより先に実行されるよう�
 
 このファイルの大半は「いつ再生成するか」の制御である。
 設定変更は `PreviewSettingsSnapshot` が差分の種類（構造的変更か、スライダーのような連続変更か）へ分類する。
-連続変更は毎フレーム届くため、`PreviewRebuildDebouncer`（実行時刻の計算）と `PreviewRebuildScheduler`（エディタ更新との接続）が、値が落ち着くまで再生成を先送りする。
+連続変更は毎フレーム届くため、`PreviewRebuildDebouncer`（実行時刻の計算）と `PreviewRebuildScheduler`（エディタ更新との接続）が再生成を先送りする。
+先送りは2つの時刻で制御され、要求が止んでから `IdleDelaySeconds`（0.1秒）経てば実行し、要求が続いていても最初の要求から `MaxDeferSeconds`（0.4秒）で打ち切って実行する。
+値が落ち着くまで無限に待つのではなく、長いドラッグの間もプレビューを一定間隔で追従させるための上限である。
 
 ### インスペクタ
 
@@ -96,10 +106,13 @@ NDMFのGenerating Phaseで、Jerry's Templatesより先に実行されるよう�
 
 次の順で読むと迷いにくい。
 
-1. `README.md`：機能と設定項目を把握する。生成ロジックの分岐は機能仕様の反映なので、先に仕様を知らないと分岐の意図が読めない
-2. `Runtime/ARKitBlendShapeGeneratorComponent.cs`：設定項目の一覧。生成エンジンへの入力がすべてここにある
+1. `README.md`：機能と設定項目を把握する。
+   生成ロジックの分岐は機能仕様の反映なので、先に仕様を知らないと分岐の意図が読めない
+2. `Runtime/ARKitBlendShapeGeneratorComponent.cs`：設定項目の一覧。
+   生成エンジンへの入力がすべてここにある
 3. `Editor/Handler/ARKitBlendShapeGeneratorPlugin.cs` と `Editor/UseCase/GenerateBlendShapesUseCase.cs`：入口から生成までの道筋
-4. `Editor/Domain/BlendShapeGenerationEngine.cs` の `Generate`：生成の骨格。個々のステップの詳細は、必要になったときに対応するprivateメソッドへ降りる
+4. `Editor/Domain/BlendShapeGenerationEngine.cs` の `Generate`：生成の骨格。
+   個々のステップの詳細は、必要になったときに対応するprivateメソッドへ降りる
 
 その先は目的で分かれる。
 マッピングの対応関係を知りたければ `ARKitMappingTable`、プレビューの再生成制御なら `ARKitBlendShapeGeneratorPreview` と `PreviewRebuildDebouncer`、UIなら `ARKitBlendShapeGeneratorEditor` を読む。
@@ -109,7 +122,12 @@ NDMFのGenerating Phaseで、Jerry's Templatesより先に実行されるよう�
 
 ## 読むときに知っておくと迷わないこと
 
-- **対象レンダラーの解決**：`TargetRendererResolver` が唯一の解決ロジックで、ビルド、プレビュー、インスペクタ表示、Reset時の自動設定がすべてここを通る。経路ごとに探索順序が食い違うと、プレビューとビルドで別のメッシュを対象にしてしまうため
-- **カスタムマッピングの重複検証**：ビルド入口、プレビュー、生成エンジン内の3か所で行う。エンジンは呼び出し元の検証を前提にせず、自身でも確認する
-- **重複コンポーネントの排除**：`DisallowMultipleComponent` は同一GameObject内しか防げないため、アバター単位の一意性は `DuplicateComponentGuard` が `OnValidate` フック経由で担保する。ビルド時にも `SelectPrimaryComponent` で1つに絞る
-- **文言**：ユーザーへ見せる文字列は直接書かず、`Localization.S(キー)` で引く。文言の実体は `Editor/Localization/*.po` にある
+- **対象レンダラーの解決**：`TargetRendererResolver` が唯一の解決ロジックで、ビルド、プレビュー、インスペクタ表示、Reset時の自動設定がすべてここを通る。
+  経路ごとに探索順序が食い違うと、プレビューとビルドで別のメッシュを対象にしてしまうため
+- **カスタムマッピングの重複検証**：ビルド入口、プレビュー、生成エンジン内の3か所で行う。
+  エンジンは呼び出し元の検証を前提にせず、自身でも確認する
+- **重複コンポーネントの排除**：`DisallowMultipleComponent` は同一GameObject内しか防げないため、アバター単位の一意性は `DuplicateComponentGuard` が `OnValidate` フック経由で担保する。
+  ビルド時にも `SelectPrimaryComponent` で1つに絞る
+- **文言**：Editor側でユーザーへ見せる文字列は直接書かず、`Localization.S(キー)` で引く。
+  文言の実体は `Editor/Localization/*.po` にある。
+  例外はRuntimeコンポーネントの `[Header]` と `[Tooltip]` で、Editorアセンブリにある `Localization` をRuntime側からは参照できないため、カスタムエディタが無効なとき用の英語文言を直接持っている
