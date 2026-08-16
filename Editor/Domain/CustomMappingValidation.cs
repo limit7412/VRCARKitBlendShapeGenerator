@@ -6,14 +6,24 @@ namespace ARKitBlendShapeGenerator.Domain
 {
     internal static class CustomMappingValidation
     {
+        /// <summary>
+        /// 有効なマッピングのARKit名から重複を抽出する。
+        ///
+        /// 無効なマッピングは生成側（CollectCustomMappings）が読み飛ばすため、重複として数えない。
+        /// これにより、同じARKit名の別定義を無効にしたまま取り置きできる。
+        /// </summary>
         public static List<string> GetDuplicateArkitNames(List<CustomBlendShapeMapping> customMappings)
         {
-            return GetDuplicateArkitNames(customMappings?.Select(mapping => mapping?.arkitName));
+            return GetDuplicateArkitNames(
+                customMappings?
+                    .Where(mapping => mapping != null && mapping.enabled)
+                    .Select(mapping => mapping.arkitName));
         }
 
         /// <summary>
         /// ARKit名の列挙から重複を抽出する。
         /// SerializedProperty等、コンポーネントの実体を経由せずに検証する場合に使用する。
+        /// 無効なマッピングは呼び出し側で除いてから渡す。
         ///
         /// 名前は一切加工せず完全一致で比較する。生成側も同じ規則で名前を扱うため、
         /// ここだけTrimすると「重複扱いなのに別々に生成される」といった食い違いが生じる。

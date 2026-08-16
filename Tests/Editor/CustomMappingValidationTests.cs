@@ -11,6 +11,11 @@ namespace ARKitBlendShapeGenerator.Tests
             return new CustomBlendShapeMapping { arkitName = arkitName, enabled = true };
         }
 
+        private static CustomBlendShapeMapping DisabledMapping(string arkitName)
+        {
+            return new CustomBlendShapeMapping { arkitName = arkitName, enabled = false };
+        }
+
         [Test]
         public void GetDuplicateArkitNames_ReturnsEmpty_WhenNoDuplicates()
         {
@@ -65,6 +70,48 @@ namespace ARKitBlendShapeGenerator.Tests
             };
 
             Assert.That(CustomMappingValidation.GetDuplicateArkitNames(mappings), Is.Empty);
+        }
+
+        [Test]
+        public void GetDuplicateArkitNames_IgnoresDisabledMapping_AgainstEnabledSameName()
+        {
+            // 無効なマッピングは生成側が読み飛ばすため、同名でも重複にしない
+            // （差し替え前の定義を無効のまま取り置きできる）
+            var mappings = new List<CustomBlendShapeMapping>
+            {
+                Mapping("jawOpen"),
+                DisabledMapping("jawOpen"),
+            };
+
+            Assert.That(CustomMappingValidation.GetDuplicateArkitNames(mappings), Is.Empty);
+        }
+
+        [Test]
+        public void GetDuplicateArkitNames_IgnoresDuplicatesAmongDisabledMappings()
+        {
+            var mappings = new List<CustomBlendShapeMapping>
+            {
+                DisabledMapping("jawOpen"),
+                DisabledMapping("jawOpen"),
+            };
+
+            Assert.That(CustomMappingValidation.GetDuplicateArkitNames(mappings), Is.Empty);
+        }
+
+        [Test]
+        public void GetDuplicateArkitNames_DetectsDuplicates_AmongEnabledMappingsOnly()
+        {
+            var mappings = new List<CustomBlendShapeMapping>
+            {
+                Mapping("jawOpen"),
+                DisabledMapping("eyeBlinkLeft"),
+                Mapping("jawOpen"),
+                DisabledMapping("eyeBlinkLeft"),
+            };
+
+            Assert.That(
+                CustomMappingValidation.GetDuplicateArkitNames(mappings),
+                Is.EqualTo(new[] { "jawOpen" }));
         }
 
         [Test]

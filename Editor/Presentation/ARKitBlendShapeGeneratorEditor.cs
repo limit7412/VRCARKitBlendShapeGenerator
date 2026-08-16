@@ -245,7 +245,7 @@ namespace ARKitBlendShapeGenerator.Presentation
             var customMappingsProperty = serializedObject.FindProperty("customMappings");
 
             var duplicateArkitNames = CustomMappingValidation.GetDuplicateArkitNames(
-                EnumerateArkitNames(customMappingsProperty));
+                EnumerateArkitNames(customMappingsProperty, enabledOnly: true));
             if (duplicateArkitNames.Count > 0)
             {
                 EditorGUILayout.HelpBox(
@@ -445,12 +445,24 @@ namespace ARKitBlendShapeGenerator.Presentation
         /// カスタムマッピングに設定済みのARKit名を列挙する（空白のみの要素は除外）。
         /// 名前は加工しない。生成側と同じ規則で扱わないと、重複判定や使用済み判定が実挙動とずれる
         /// </summary>
-        private static IEnumerable<string> EnumerateArkitNames(SerializedProperty customMappingsProperty)
+        /// <param name="enabledOnly">
+        /// 有効なマッピングだけを対象にするか。
+        /// 重複判定は生成側と同じく無効なマッピングを読み飛ばすためtrueを渡す。
+        /// 一方、既存の行と同名の行を作らないための使用済み判定は、無効な行も一覧に見えている以上は対象に含める
+        /// </param>
+        private static IEnumerable<string> EnumerateArkitNames(
+            SerializedProperty customMappingsProperty,
+            bool enabledOnly = false)
         {
             for (int i = 0; i < customMappingsProperty.arraySize; i++)
             {
-                var arkitName = customMappingsProperty.GetArrayElementAtIndex(i)
-                    .FindPropertyRelative("arkitName").stringValue;
+                var mappingProperty = customMappingsProperty.GetArrayElementAtIndex(i);
+                if (enabledOnly && !mappingProperty.FindPropertyRelative("enabled").boolValue)
+                {
+                    continue;
+                }
+
+                var arkitName = mappingProperty.FindPropertyRelative("arkitName").stringValue;
                 if (!string.IsNullOrWhiteSpace(arkitName))
                 {
                     yield return arkitName;
@@ -458,11 +470,24 @@ namespace ARKitBlendShapeGenerator.Presentation
             }
         }
 
-        private static HashSet<string> GetArkitNamesUsedByOtherMappings(
+        /// <summary>
+        /// 指定のマッピングでは選べないARKit名を集める。
+        /// 選ぶと重複エラーになる名前だけを対象にするため、有効な他のマッピングが使っている名前を返す。
+        /// 編集中のマッピング自体が無効なら、どの名前を選んでも重複にならないので何も制限しない
+        /// （同じARKit名の差し替え候補を、無効のまま用意できる）
+        /// </summary>
+        private static HashSet<string> GetArkitNamesBlockedForMapping(
             SerializedProperty customMappingsProperty,
             int mappingIndex)
         {
-            var usedByOthers = new HashSet<string>();
+            var blocked = new HashSet<string>();
+
+            var targetProperty = customMappingsProperty.GetArrayElementAtIndex(mappingIndex);
+            if (!targetProperty.FindPropertyRelative("enabled").boolValue)
+            {
+                return blocked;
+            }
+
             for (int i = 0; i < customMappingsProperty.arraySize; i++)
             {
                 if (i == mappingIndex)
@@ -470,15 +495,20 @@ namespace ARKitBlendShapeGenerator.Presentation
                     continue;
                 }
 
-                var arkitName = customMappingsProperty.GetArrayElementAtIndex(i)
-                    .FindPropertyRelative("arkitName").stringValue;
+                var mappingProperty = customMappingsProperty.GetArrayElementAtIndex(i);
+                if (!mappingProperty.FindPropertyRelative("enabled").boolValue)
+                {
+                    continue;
+                }
+
+                var arkitName = mappingProperty.FindPropertyRelative("arkitName").stringValue;
                 if (!string.IsNullOrWhiteSpace(arkitName))
                 {
-                    usedByOthers.Add(arkitName);
+                    blocked.Add(arkitName);
                 }
             }
 
-            return usedByOthers;
+            return blocked;
         }
 
         private string GetFirstUnusedArkitName(SerializedProperty customMappingsProperty)
@@ -730,7 +760,7 @@ namespace ARKitBlendShapeGenerator.Presentation
             var dropdown = new ArkitNameSearchDropdown(
                 new AdvancedDropdownState(),
                 ARKitBlendShapeNames.GetAll(),
-                GetArkitNamesUsedByOtherMappings(customMappingsProperty, mappingIndex),
+                GetArkitNamesBlockedForMapping(customMappingsProperty, mappingIndex),
                 arkitNameProperty.stringValue,
                 CreateSelectionCallback(arkitNameProperty));
 
