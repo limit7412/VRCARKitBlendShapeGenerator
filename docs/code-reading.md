@@ -25,6 +25,29 @@ VRChatアバターの既存シェイプキー（まばたき、あ、い、う �
 - **`Tests/Editor/`**：EditModeテスト
 
 依存の向きは、外側（Handler、Presentation）からUseCaseを経てDomainへ向かい、InfraはDomainの抽象を実装して外側から注入される。
+
+```mermaid
+graph TD
+    Presentation["Editor/Presentation<br/>（インスペクタUI）"]
+    Handler["Editor/Handler<br/>（NDMF接続点）"]
+    UseCase["Editor/UseCase<br/>（橋渡し）"]
+    Infra["Editor/Infra<br/>（Unity実装）"]
+    Domain["Editor/Domain<br/>（生成ロジックの本体）"]
+    Runtime["Runtime<br/>（設定コンポーネント）"]
+
+    Presentation --> UseCase
+    Handler --> UseCase
+    UseCase --> Domain
+    UseCase --> Infra
+    Infra -- 抽象の実装 --> Domain
+    Domain --> Runtime
+```
+
+矢印は参照の向き（参照する側 → される側）を表す。
+図には主要な依存だけを載せており、外側のレイヤが図で下にあるレイヤを直接参照する箇所もある（HandlerのプレビューがDomainの重複検証やInfraの共有状態を直接使う、など）。
+向きが内側（図の下方向）へ揃っていることが約束事で、DomainやRuntimeが外側のレイヤを参照することはない。
+`Editor/Localization/` は文言参照のために全レイヤから使われるため、図からは省いた。
+
 Domainを `UnityEngine.Mesh` から切り離しているのは、生成ロジックのテストをUnityのメッシュなしで回すためである。
 テストでは `Tests/Editor/FakeMeshRepository.cs` のインメモリ実装へ差し替える。
 
