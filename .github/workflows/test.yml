@@ -13,30 +13,23 @@ name: Test
 # 取得手順は https://game.ci/docs/github/activation を参照。
 # UNITY_LICENSEを登録するとそちらで認証するため、シリアルを使う場合は登録しない。
 # どちらも未設定の場合、テストジョブはスキップされる（フォークからのPRを含む）。
+#
+# テスト対象に触れていない変更では、テストジョブをスキップする。
+# 判定は`on`の`paths`フィルタではなく`changes`ジョブと`if`で行う（理由は当該ジョブに記述）。
 
 on:
   pull_request:
-    paths:
-      - 'Editor/**'
-      - 'Runtime/**'
-      - 'Tests/**'
-      - 'package.json'
-      - '.github/workflows/test.yml'
   push:
     branches:
       - main
-    paths:
-      - 'Editor/**'
-      - 'Runtime/**'
-      - 'Tests/**'
-      - 'package.json'
-      - '.github/workflows/test.yml'
   workflow_dispatch:
 
 permissions:
   contents: read
   # テスト結果をチェックランとしてPRへ出すために必要
   checks: write
+  # 変更ファイルの一覧をPull Requests APIから取得するために必要
+  pull-requests: read
 
 env:
   # package.jsonの unity / unityRelease に合わせる。
@@ -66,10 +59,107 @@ jobs:
             echo "::notice::UNITY_LICENSE / UNITY_SERIAL が未設定のためEditModeテストをスキップします"
           fi
 
+  # 変更がテスト対象に触れているかを判定する。
+  #
+  # `on`の`paths`フィルタを使わないのは、テストをrequired status checkに指定できる
+  # ようにするため。`paths`で起動しなかったワークフローはチェックランを作らないので、
+  # requiredに指定するとチェックが未作成のまま待ち状態になりPRをマージできなくなる。
+  # 一方、`if`で飛ばしたジョブはskippedのチェックランを残し、これはrequiredを満たす。
+  #
+  # 対象パスの一覧はこのジョブだけに置く。`on`側にも書くと二重管理になり、
+  # 片方だけ更新したときに「変更したのにテストが走らない」事故につながる。
+  changes:
+    name: Check changed paths
+    runs-on: ubuntu-latest
+    outputs:
+      relevant: ${{ steps.check.outputs.relevant }}
+    steps:
+      - id: check
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          EVENT_NAME: ${{ github.event_name }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          BEFORE: ${{ github.event.before }}
+          AFTER: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+
+          # 1ファイルにつき1行を出す。件数を数えるためで、行数がそのままファイル数になる。
+          # リネームで対象外へ移した変更（Editor/A.cs → docs/A.cs など）は新パスだけでは
+          # 検出できないため、previous_filenameも同じ行へ並べる。
+          RENAME_AWARE='[.filename, (.previous_filename // "")] | @tsv'
+
+          case "$EVENT_NAME" in
+            pull_request)
+              ENDPOINT="repos/$REPO/pulls/$PR_NUMBER/files"
+              JQ=".[] | $RENAME_AWARE"
+              # このエンドポイントが返すのは最大3000件
+              FILE_LIMIT=3000
+              ;;
+            push)
+              # ブランチ作成時やforce push後は`before`が到達不能なコミットを指し比較できない
+              if [ -z "$BEFORE" ] || [ "$BEFORE" = "0000000000000000000000000000000000000000" ]; then
+                echo "relevant=true" >> "$GITHUB_OUTPUT"
+                exit 0
+              fi
+              ENDPOINT="repos/$REPO/compare/$BEFORE...$AFTER"
+              # `?`を付けず、想定外のレスポンスではjqを失敗させる。
+              # 黙って空の一覧として扱うと、判定できない変更をスキップしてしまう。
+              JQ=".files[] | $RENAME_AWARE"
+              # compareの`files`が返すのは最大300件
+              FILE_LIMIT=300
+              ;;
+            *)
+              # workflow_dispatchなど、比較対象を定められないイベントでは常に実行する
+              echo "relevant=true" >> "$GITHUB_OUTPUT"
+              exit 0
+              ;;
+          esac
+
+          # 差分が分からないまま省略すると壊れた変更を通してしまうため、
+          # 取得に失敗した場合はテストを実行する側へ倒す。
+          if ! CHANGED=$(gh api --paginate "$ENDPOINT" --jq "$JQ"); then
+            echo "::warning::変更ファイルの一覧を取得できなかったためEditModeテストを実行します"
+            echo "relevant=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          # テストがコンパイル・実行するコードと、その前提を決めるファイルだけを対象とする。
+          # ここに載らないファイルはテスト結果を変えられない。
+          RELEVANT=false
+          COUNT=0
+          while IFS=$'\t' read -r NEW_PATH OLD_PATH; do
+            [ -n "$NEW_PATH" ] || continue
+            COUNT=$((COUNT + 1))
+            for FILE in "$NEW_PATH" "$OLD_PATH"; do
+              [ -n "$FILE" ] || continue
+              case "$FILE" in
+                Editor/*|Runtime/*|Tests/*|package.json|.github/workflows/test.yml)
+                  echo "テスト対象の変更: $FILE"
+                  RELEVANT=true
+                  ;;
+              esac
+            done
+          done <<< "$CHANGED"
+
+          # `--paginate`はページを辿るだけで、エンドポイントごとの返却件数の上限は外さない。
+          # 上限に達した一覧には、返ってこなかった変更が残っている可能性がある。
+          # 完全だと確認できない一覧を根拠にスキップするわけにはいかないので、実行側へ倒す。
+          if [ "$RELEVANT" = "false" ] && [ "$COUNT" -ge "$FILE_LIMIT" ]; then
+            echo "::warning::変更ファイルが上限の${FILE_LIMIT}件に達し一覧が不完全な可能性があるためEditModeテストを実行します"
+            RELEVANT=true
+          fi
+
+          if [ "$RELEVANT" = "false" ]; then
+            echo "::notice::テスト対象のファイルに変更がないためEditModeテストをスキップします"
+          fi
+          echo "relevant=$RELEVANT" >> "$GITHUB_OUTPUT"
+
   test:
     name: EditMode tests
-    needs: license
-    if: needs.license.outputs.available == 'true'
+    needs: [license, changes]
+    if: needs.license.outputs.available == 'true' && needs.changes.outputs.relevant == 'true'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout package
