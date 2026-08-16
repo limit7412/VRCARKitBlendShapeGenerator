@@ -79,11 +79,13 @@ NDMFのGenerating Phaseで、Jerry's Templatesより先に実行されるよう�
 3. 口の打ち消しデルタを組み立てる（`BuildMouthCancellationDelta`）
 4. 書き込み計画を立てる（上書き対象は元の位置への置き換え、それ以外は末尾への追加）
 5. 手続き的な口の生成を計画へ加える（`CollectProceduralMouthShapes`）。
-   シェイプキーから生成できなかったものへのフォールバックで、変形の実体は `ProceduralMouthShapeGenerator` にある
+   シェイプキーから生成できなかったものへのフォールバックで、変形の実体は `ProceduralMouthShapeGenerator` にある。
+   ただしソースを持つ有効なカスタムマッピングのARKit名は、その生成が失敗していてもユーザー設定を尊重して対象外になる
 6. まとめて書き込む（`WriteBlendShapes`）
 
-デルタ（頂点ごとの変位）は計画の段階では作らず、書き込む直前に1件ずつ実体化する。
+生成する各BlendShapeのデルタ（頂点ごとの変位）は計画の段階では作らず、書き込む直前に1件ずつ実体化する。
 生成シェイプ数×頂点数分のメモリを一度に抱えないための構造で、こうした設計の理由はコード中のコメントが説明している。
+例外は口の打ち消し用デルタで、複数のシェイプへ焼き込む共有データのため、計画より前に組み立てて書き込みが終わるまで保持する。
 
 ### プレビュー時
 
@@ -109,7 +111,7 @@ NDMFのGenerating Phaseで、Jerry's Templatesより先に実行されるよう�
 1. `README.md`：機能と設定項目を把握する。
    生成ロジックの分岐は機能仕様の反映なので、先に仕様を知らないと分岐の意図が読めない
 2. `Runtime/ARKitBlendShapeGeneratorComponent.cs`：設定項目の一覧。
-   生成エンジンへの入力がすべてここにある
+   ユーザーが調整できる設定はすべてここにあり、メッシュや自動マッピング定義といった残りの入力はUseCaseが組み立ててエンジンへ渡す
 3. `Editor/Handler/ARKitBlendShapeGeneratorPlugin.cs` と `Editor/UseCase/GenerateBlendShapesUseCase.cs`：入口から生成までの道筋
 4. `Editor/Domain/BlendShapeGenerationEngine.cs` の `Generate`：生成の骨格。
    個々のステップの詳細は、必要になったときに対応するprivateメソッドへ降りる
@@ -124,8 +126,9 @@ NDMFのGenerating Phaseで、Jerry's Templatesより先に実行されるよう�
 
 - **対象レンダラーの解決**：`TargetRendererResolver` が唯一の解決ロジックで、ビルド、プレビュー、インスペクタ表示、Reset時の自動設定がすべてここを通る。
   経路ごとに探索順序が食い違うと、プレビューとビルドで別のメッシュを対象にしてしまうため
-- **カスタムマッピングの重複検証**：ビルド入口、プレビュー、生成エンジン内の3か所で行う。
-  エンジンは呼び出し元の検証を前提にせず、自身でも確認する
+- **カスタムマッピングの重複検証**：生成を中止する検証は、ビルド入口、プレビュー、生成エンジン内の3か所で行う。
+  エンジンは呼び出し元の検証を前提にせず、自身でも確認する。
+  このほかインスペクタも、編集中に同じ判定（`CustomMappingValidation`）でエラーを表示する
 - **重複コンポーネントの排除**：`DisallowMultipleComponent` は同一GameObject内しか防げないため、アバター単位の一意性は `DuplicateComponentGuard` が `OnValidate` フック経由で担保する。
   ビルド時にも `SelectPrimaryComponent` で1つに絞る
 - **文言**：Editor側でユーザーへ見せる文字列は直接書かず、`Localization.S(キー)` で引く。
