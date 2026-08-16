@@ -85,14 +85,17 @@ jobs:
         run: |
           set -euo pipefail
 
+          # 1ファイルにつき1行を出す。件数を数えるためで、行数がそのままファイル数になる。
           # リネームで対象外へ移した変更（Editor/A.cs → docs/A.cs など）は新パスだけでは
-          # 検出できないため、previous_filenameも判定に含める。
-          RENAME_AWARE='.filename, (.previous_filename // empty)'
+          # 検出できないため、previous_filenameも同じ行へ並べる。
+          RENAME_AWARE='[.filename, (.previous_filename // "")] | @tsv'
 
           case "$EVENT_NAME" in
             pull_request)
               ENDPOINT="repos/$REPO/pulls/$PR_NUMBER/files"
               JQ=".[] | $RENAME_AWARE"
+              # このエンドポイントが返すのは最大3000件
+              FILE_LIMIT=3000
               ;;
             push)
               # ブランチ作成時やforce push後は`before`が到達不能なコミットを指し比較できない
@@ -104,6 +107,8 @@ jobs:
               # `?`を付けず、想定外のレスポンスではjqを失敗させる。
               # 黙って空の一覧として扱うと、判定できない変更をスキップしてしまう。
               JQ=".files[] | $RENAME_AWARE"
+              # compareの`files`が返すのは最大300件
+              FILE_LIMIT=300
               ;;
             *)
               # workflow_dispatchなど、比較対象を定められないイベントでは常に実行する
@@ -123,15 +128,28 @@ jobs:
           # テストがコンパイル・実行するコードと、その前提を決めるファイルだけを対象とする。
           # ここに載らないファイルはテスト結果を変えられない。
           RELEVANT=false
-          while IFS= read -r FILE; do
-            [ -n "$FILE" ] || continue
-            case "$FILE" in
-              Editor/*|Runtime/*|Tests/*|package.json|.github/workflows/test.yml)
-                echo "テスト対象の変更: $FILE"
-                RELEVANT=true
-                ;;
-            esac
+          COUNT=0
+          while IFS=$'\t' read -r NEW_PATH OLD_PATH; do
+            [ -n "$NEW_PATH" ] || continue
+            COUNT=$((COUNT + 1))
+            for FILE in "$NEW_PATH" "$OLD_PATH"; do
+              [ -n "$FILE" ] || continue
+              case "$FILE" in
+                Editor/*|Runtime/*|Tests/*|package.json|.github/workflows/test.yml)
+                  echo "テスト対象の変更: $FILE"
+                  RELEVANT=true
+                  ;;
+              esac
+            done
           done <<< "$CHANGED"
+
+          # `--paginate`はページを辿るだけで、エンドポイントごとの返却件数の上限は外さない。
+          # 上限に達した一覧には、返ってこなかった変更が残っている可能性がある。
+          # 完全だと確認できない一覧を根拠にスキップするわけにはいかないので、実行側へ倒す。
+          if [ "$RELEVANT" = "false" ] && [ "$COUNT" -ge "$FILE_LIMIT" ]; then
+            echo "::warning::変更ファイルが上限の${FILE_LIMIT}件に達し一覧が不完全な可能性があるためEditModeテストを実行します"
+            RELEVANT=true
+          fi
 
           if [ "$RELEVANT" = "false" ]; then
             echo "::notice::テスト対象のファイルに変更がないためEditModeテストをスキップします"
