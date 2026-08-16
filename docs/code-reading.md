@@ -51,7 +51,7 @@ graph TD
 図には生成処理の主要な依存だけを載せており、外側のレイヤが図で下にあるレイヤを直接参照する箇所もある。
 たとえばHandlerのプレビューはDomainの `CustomMappingValidation` や `PreviewSettingsSnapshot` とInfraの共有状態を、Presentationは自動マッピング一覧のためにDomainの `ARKitMappingTable` と `AutoMappingSummary` を直接使う。
 向きが内側（図の下方向）へ揃っていることが約束事で、DomainやRuntimeが外側のレイヤを参照することはない。
-`Editor/Localization/` は文言参照のために全レイヤから使われるため、図からは省いた。
+`Editor/Localization/` は、HandlerやUseCase、Domain、Presentationといった複数のレイヤから文言参照のために使われるため、図からは省いた。
 
 Domainを `UnityEngine.Mesh` から切り離しているのは、生成ロジックのテストをUnityのメッシュなしで回すためである。
 テストでは `Tests/Editor/FakeMeshRepository.cs` のインメモリ実装へ差し替える。
@@ -86,6 +86,7 @@ NDMFのGenerating Phaseで、Jerry's Templatesより先に実行されるよう�
 生成する各BlendShapeのデルタ（頂点ごとの変位）は計画の段階では作らず、書き込む直前に1件ずつ実体化する。
 生成シェイプ数×頂点数分のメモリを一度に抱えないための構造で、こうした設計の理由はコード中のコメントが説明している。
 例外は口の打ち消し用デルタで、複数のシェイプへ焼き込む共有データのため、計画より前に組み立てて書き込みが終わるまで保持する。
+また、対象メッシュ自身がソースを兼ねたまま上書きする場合も、再構築でソースのデルタを読み直せなくなるため全件を先に実体化する（複製を渡す通常のUseCase経路では通らず、`Generate` を直接呼ぶときだけ成立する）。
 
 ### プレビュー時
 
@@ -120,7 +121,8 @@ NDMFのGenerating Phaseで、Jerry's Templatesより先に実行されるよう�
 マッピングの対応関係を知りたければ `ARKitMappingTable`、プレビューの再生成制御なら `ARKitBlendShapeGeneratorPreview` と `PreviewRebuildDebouncer`、UIなら `ARKitBlendShapeGeneratorEditor` を読む。
 
 テストから入る手もある。
-`Tests/Editor/` の各テストは機能ごとの仕様の固定化を兼ねていて、`FakeMeshRepository` によりUnityのメッシュなしで生成ロジックが動く様子をそのまま追える。
+`Tests/Editor/` の各テストは機能ごとの仕様の固定化を兼ねている。
+生成エンジンを扱うテストは `FakeMeshRepository` を使っていて、Unityのメッシュなしで生成ロジックが動く様子をそのまま追える。
 
 ## 読むときに知っておくと迷わないこと
 
