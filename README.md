@@ -138,6 +138,8 @@ BlendShapeは線形合成されるため、焼き込み先を複数選ぶと、�
 
 ## 開発
 
+コード全体の構造と読み始めの入口は [docs/code-reading.md](docs/code-reading.md) にまとめています。
+
 ### テスト
 
 生成ロジックのテストは `Tests/Editor` にEditModeテストとして置いています。
