@@ -134,17 +134,11 @@ namespace ARKitBlendShapeGenerator.Handler
             private readonly ARKitBlendShapeGeneratorComponent _component;
             private readonly int _componentInstanceId;
             private readonly int _observedComponentConfigRevision;
-            private readonly float _observedIntensityMultiplier;
-            private readonly bool _observedEnableLeftRightSplit;
-            private readonly float _observedBlendWidth;
-            private readonly bool _observedOverwriteExisting;
-            private readonly bool _observedEnableProceduralMouthShapes;
-            private readonly float _observedProceduralMouthIntensity;
-            private readonly bool _observedEnableMouthCancellation;
-            private readonly float _observedMouthCancellationStrength;
-            private readonly int _observedMouthCancellationSignature;
-            private readonly int _observedTargetRendererInstanceId;
-            private readonly int _observedCustomMappingsSignature;
+            private readonly PreviewSettingsSnapshot _observedSettings;
+
+            // 先送りの合図は全プレビューノードへ届く。自分が受け取った分まで進めておかないと、
+            // 他のコンポーネントの操作で進んだ合図をいつまでも「未反映」と見なしてしまう
+            private int _observedDeferredRebuildRevision;
             private readonly Dictionary<string, int> _shapeIndices = new Dictionary<string, int>();
             private HashSet<int> _appliedInteractiveIndices = new HashSet<int>();
             private HashSet<int> _nextAppliedInteractiveIndices = new HashSet<int>();
@@ -160,46 +154,15 @@ namespace ARKitBlendShapeGenerator.Handler
                 _component = component;
                 _componentInstanceId = component != null ? component.GetInstanceID() : 0;
                 _observedComponentConfigRevision = context.Observe(ARKitBlendShapeGeneratorPreviewState.ComponentConfigRevision);
+                _observedDeferredRebuildRevision = context.Observe(ARKitBlendShapeGeneratorPreviewState.DeferredRebuildRevision);
 
                 // customMappingsの内容を含むコンポーネント変更全体を監視
-                float observedIntensityMultiplier = 0f;
-                bool observedEnableLeftRightSplit = false;
-                float observedBlendWidth = 0f;
-                bool observedOverwriteExisting = false;
-                bool observedEnableProceduralMouthShapes = false;
-                float observedProceduralMouthIntensity = 0f;
-                bool observedEnableMouthCancellation = false;
-                float observedMouthCancellationStrength = 0f;
-                int observedMouthCancellationSignature = 0;
-                int observedCustomMappingsSignature = 0;
-                SkinnedMeshRenderer observedTargetRenderer = null;
                 if (component != null)
                 {
                     context.Observe(component);
-                    observedIntensityMultiplier = context.Observe(component, c => c.intensityMultiplier);
-                    observedEnableLeftRightSplit = context.Observe(component, c => c.enableLeftRightSplit);
-                    observedBlendWidth = context.Observe(component, c => c.blendWidth);
-                    observedOverwriteExisting = context.Observe(component, c => c.overwriteExisting);
-                    observedEnableProceduralMouthShapes = context.Observe(component, c => c.enableProceduralMouthShapes);
-                    observedProceduralMouthIntensity = context.Observe(component, c => c.proceduralMouthIntensity);
-                    observedEnableMouthCancellation = context.Observe(component, c => c.enableMouthCancellation);
-                    observedMouthCancellationStrength = context.Observe(component, c => c.mouthCancellationStrength);
-                    observedMouthCancellationSignature = BuildMouthCancellationSignature(component);
-                    observedCustomMappingsSignature = BuildCustomMappingsSignature(component.customMappings);
-                    observedTargetRenderer = context.Observe(component, c => c.targetRenderer);
                 }
 
-                _observedIntensityMultiplier = observedIntensityMultiplier;
-                _observedEnableLeftRightSplit = observedEnableLeftRightSplit;
-                _observedBlendWidth = observedBlendWidth;
-                _observedOverwriteExisting = observedOverwriteExisting;
-                _observedEnableProceduralMouthShapes = observedEnableProceduralMouthShapes;
-                _observedProceduralMouthIntensity = observedProceduralMouthIntensity;
-                _observedEnableMouthCancellation = observedEnableMouthCancellation;
-                _observedMouthCancellationStrength = observedMouthCancellationStrength;
-                _observedMouthCancellationSignature = observedMouthCancellationSignature;
-                _observedCustomMappingsSignature = observedCustomMappingsSignature;
-                _observedTargetRendererInstanceId = observedTargetRenderer != null ? observedTargetRenderer.GetInstanceID() : 0;
+                _observedSettings = ObserveSettings(component, context);
 
                 context.Observe(originalRenderer, r => r.sharedMesh);
                 context.Observe(proxyRenderer, r => r.sharedMesh);
@@ -238,85 +201,17 @@ namespace ARKitBlendShapeGenerator.Handler
                     return Task.FromResult<IRenderFilterNode>(null);
                 }
 
-                int currentConfigRevision = context.Observe(ARKitBlendShapeGeneratorPreviewState.ComponentConfigRevision);
-                if (currentConfigRevision != _observedComponentConfigRevision)
-                {
-                    return Task.FromResult<IRenderFilterNode>(null);
-                }
-
                 if ((updatedAspects & RenderAspects.Mesh) != 0)
                 {
                     return Task.FromResult<IRenderFilterNode>(null);
                 }
 
+                // ノードを残す場合に監視が切れないよう、判定より先に監視をすべて登録しておく
+                int currentDeferredRebuildRevision = context.Observe(
+                    ARKitBlendShapeGeneratorPreviewState.DeferredRebuildRevision);
+                int currentConfigRevision = context.Observe(ARKitBlendShapeGeneratorPreviewState.ComponentConfigRevision);
                 context.Observe(_component);
-
-                float currentIntensityMultiplier = context.Observe(_component, c => c.intensityMultiplier);
-                if (!Mathf.Approximately(currentIntensityMultiplier, _observedIntensityMultiplier))
-                {
-                    return Task.FromResult<IRenderFilterNode>(null);
-                }
-
-                bool currentEnableLeftRightSplit = context.Observe(_component, c => c.enableLeftRightSplit);
-                if (currentEnableLeftRightSplit != _observedEnableLeftRightSplit)
-                {
-                    return Task.FromResult<IRenderFilterNode>(null);
-                }
-
-                float currentBlendWidth = context.Observe(_component, c => c.blendWidth);
-                if (!Mathf.Approximately(currentBlendWidth, _observedBlendWidth))
-                {
-                    return Task.FromResult<IRenderFilterNode>(null);
-                }
-
-                bool currentOverwriteExisting = context.Observe(_component, c => c.overwriteExisting);
-                if (currentOverwriteExisting != _observedOverwriteExisting)
-                {
-                    return Task.FromResult<IRenderFilterNode>(null);
-                }
-
-                bool currentEnableProceduralMouthShapes = context.Observe(_component, c => c.enableProceduralMouthShapes);
-                if (currentEnableProceduralMouthShapes != _observedEnableProceduralMouthShapes)
-                {
-                    return Task.FromResult<IRenderFilterNode>(null);
-                }
-
-                float currentProceduralMouthIntensity = context.Observe(_component, c => c.proceduralMouthIntensity);
-                if (!Mathf.Approximately(currentProceduralMouthIntensity, _observedProceduralMouthIntensity))
-                {
-                    return Task.FromResult<IRenderFilterNode>(null);
-                }
-
-                bool currentEnableMouthCancellation = context.Observe(_component, c => c.enableMouthCancellation);
-                if (currentEnableMouthCancellation != _observedEnableMouthCancellation)
-                {
-                    return Task.FromResult<IRenderFilterNode>(null);
-                }
-
-                float currentMouthCancellationStrength = context.Observe(_component, c => c.mouthCancellationStrength);
-                if (!Mathf.Approximately(currentMouthCancellationStrength, _observedMouthCancellationStrength))
-                {
-                    return Task.FromResult<IRenderFilterNode>(null);
-                }
-
-                int currentMouthCancellationSignature = BuildMouthCancellationSignature(_component);
-                if (currentMouthCancellationSignature != _observedMouthCancellationSignature)
-                {
-                    return Task.FromResult<IRenderFilterNode>(null);
-                }
-
-                int currentCustomMappingsSignature = BuildCustomMappingsSignature(_component.customMappings);
-                if (currentCustomMappingsSignature != _observedCustomMappingsSignature)
-                {
-                    return Task.FromResult<IRenderFilterNode>(null);
-                }
-
-                var currentTargetRenderer = context.Observe(_component, c => c.targetRenderer);
-                int currentTargetRendererId = currentTargetRenderer != null ? currentTargetRenderer.GetInstanceID() : 0;
-                if (currentTargetRendererId != _observedTargetRendererInstanceId)
-                {
-                    return Task.FromResult<IRenderFilterNode>(null);
-                }
+                var currentSettings = ObserveSettings(_component, context);
 
                 var pair = proxyPairs.FirstOrDefault();
                 if (pair.Item1 is not SkinnedMeshRenderer ||
@@ -325,7 +220,70 @@ namespace ARKitBlendShapeGenerator.Handler
                     return Task.FromResult<IRenderFilterNode>(null);
                 }
 
-                return Task.FromResult<IRenderFilterNode>(this);
+                bool deferredRebuildRequested = currentDeferredRebuildRevision != _observedDeferredRebuildRevision;
+                _observedDeferredRebuildRevision = currentDeferredRebuildRevision;
+
+                // 反映済みの設定（_observedSettings）は更新しない。
+                // 先送り中は差分が残り続けることで、実行までの延長を要求し続ける
+                switch (currentSettings.CompareWith(_observedSettings))
+                {
+                    case PreviewSettingsChange.Structural:
+                        return Task.FromResult<IRenderFilterNode>(null);
+
+                    case PreviewSettingsChange.Continuous:
+                        if (deferredRebuildRequested)
+                        {
+                            // 先送りしていた分をここで反映する
+                            return Task.FromResult<IRenderFilterNode>(null);
+                        }
+
+                        // スライダーのドラッグ中は毎フレーム変更が届く。そのたびにフル再生成すると
+                        // 大きいアバターでは操作が重くなるため、値が落ち着くまで実行を遅らせ、
+                        // それまでは1つ前の結果を出したままにする
+                        PreviewRebuildScheduler.Request();
+                        return Task.FromResult<IRenderFilterNode>(this);
+
+                    default:
+                        if (currentConfigRevision != _observedComponentConfigRevision)
+                        {
+                            // 差分を検出できなくても設定自体は変わっているなら作り直す。
+                            // 署名の衝突など、比較での取りこぼしに対する保険
+                            return Task.FromResult<IRenderFilterNode>(null);
+                        }
+
+                        return Task.FromResult<IRenderFilterNode>(this);
+                }
+            }
+
+            /// <summary>
+            /// 生成に影響する設定を、ComputeContextへ監視を登録しながら読み出す
+            /// </summary>
+            private static PreviewSettingsSnapshot ObserveSettings(
+                ARKitBlendShapeGeneratorComponent component,
+                ComputeContext context)
+            {
+                if (component == null)
+                {
+                    return new PreviewSettingsSnapshot();
+                }
+
+                var targetRenderer = context.Observe(component, c => c.targetRenderer);
+                return new PreviewSettingsSnapshot
+                {
+                    IntensityMultiplier = context.Observe(component, c => c.intensityMultiplier),
+                    EnableLeftRightSplit = context.Observe(component, c => c.enableLeftRightSplit),
+                    BlendWidth = context.Observe(component, c => c.blendWidth),
+                    OverwriteExisting = context.Observe(component, c => c.overwriteExisting),
+                    EnableProceduralMouthShapes = context.Observe(component, c => c.enableProceduralMouthShapes),
+                    ProceduralMouthIntensity = context.Observe(component, c => c.proceduralMouthIntensity),
+                    EnableMouthCancellation = context.Observe(component, c => c.enableMouthCancellation),
+                    MouthCancellationStrength = context.Observe(component, c => c.mouthCancellationStrength),
+                    MouthCancellationSignature = PreviewSettingsSnapshot.BuildMouthCancellationSignature(
+                        component.mouthCancellationSources,
+                        component.mouthCancellationTargets),
+                    CustomMappingsSignature = PreviewSettingsSnapshot.BuildCustomMappingsSignature(component.customMappings),
+                    TargetRendererInstanceId = targetRenderer != null ? targetRenderer.GetInstanceID() : 0,
+                };
             }
 
             public void OnFrame(Renderer original, Renderer proxy)
@@ -390,94 +348,6 @@ namespace ARKitBlendShapeGenerator.Handler
                 {
                     _shapeIndices[kvp.Key] = kvp.Value;
                 }
-            }
-
-            private static int BuildCustomMappingsSignature(List<CustomBlendShapeMapping> customMappings)
-            {
-                unchecked
-                {
-                    int hash = 17;
-                    if (customMappings == null)
-                    {
-                        return hash;
-                    }
-
-                    hash = (hash * 31) + customMappings.Count;
-                    foreach (var mapping in customMappings)
-                    {
-                        if (mapping == null)
-                        {
-                            hash = (hash * 31) + 1;
-                            continue;
-                        }
-
-                        hash = (hash * 31) + (mapping.enabled ? 1 : 0);
-                        hash = (hash * 31) + HashString(mapping.arkitName);
-                        hash = HashSources(hash, mapping.sources);
-                    }
-
-                    return hash;
-                }
-            }
-
-            private static int BuildMouthCancellationSignature(ARKitBlendShapeGeneratorComponent component)
-            {
-                unchecked
-                {
-                    int hash = 17;
-                    if (component == null)
-                    {
-                        return hash;
-                    }
-
-                    hash = HashSources(hash, component.mouthCancellationSources);
-
-                    var targets = component.mouthCancellationTargets;
-                    if (targets == null)
-                    {
-                        return (hash * 31) + 2;
-                    }
-
-                    hash = (hash * 31) + targets.Count;
-                    foreach (var target in targets)
-                    {
-                        hash = (hash * 31) + HashString(target);
-                    }
-
-                    return hash;
-                }
-            }
-
-            private static int HashSources(int hash, List<BlendShapeSource> sources)
-            {
-                unchecked
-                {
-                    if (sources == null)
-                    {
-                        return (hash * 31) + 2;
-                    }
-
-                    hash = (hash * 31) + sources.Count;
-                    foreach (var source in sources)
-                    {
-                        if (source == null)
-                        {
-                            hash = (hash * 31) + 3;
-                            continue;
-                        }
-
-                        hash = (hash * 31) + HashString(source.blendShapeName);
-                        hash = (hash * 31) + source.weight.GetHashCode();
-                        hash = (hash * 31) + (int)source.side;
-                    }
-
-                    return hash;
-                }
-            }
-
-            private static int HashString(string value)
-            {
-                return value != null ? value.GetHashCode() : 0;
             }
 
             public void Dispose()

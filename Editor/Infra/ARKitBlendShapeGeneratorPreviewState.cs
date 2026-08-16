@@ -55,6 +55,14 @@ namespace ARKitBlendShapeGenerator.Infra
             0,
             debugName: "ARKitBlendShapeGenerator/ComponentConfigRevision");
 
+        /// <summary>
+        /// 先送りしていた再生成を実行させる合図。
+        /// プレビューはこの値が進んだときだけ、遅らせていた分をまとめて反映する
+        /// </summary>
+        public static readonly PublishedValue<int> DeferredRebuildRevision = new PublishedValue<int>(
+            0,
+            debugName: "ARKitBlendShapeGenerator/DeferredRebuildRevision");
+
         public static Snapshot Current => RuntimeState.Value;
 
         public static void BeginEdit(int componentInstanceId)
@@ -158,6 +166,12 @@ namespace ARKitBlendShapeGenerator.Infra
         public static void NotifyComponentConfigurationChanged()
         {
             ComponentConfigRevision.Value = ComponentConfigRevision.Value + 1;
+        }
+
+        /// <summary>先送りしていた再生成を実行させる</summary>
+        public static void NotifyDeferredRebuild()
+        {
+            DeferredRebuildRevision.Value = DeferredRebuildRevision.Value + 1;
         }
 
     }
