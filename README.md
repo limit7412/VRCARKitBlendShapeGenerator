@@ -164,8 +164,13 @@ CIでも実行されますが（後述）、Unityライセンスのsecretが未�
 
 ### CIでのテスト実行
 
-`.github/workflows/test.yml` が、`Editor/` `Runtime/` `Tests/` `package.json` を変更したPRでEditModeテストを実行します。
+`.github/workflows/test.yml` が、PRごとにEditModeテストを実行します。
 結果は「EditMode Test Results」チェックとしてPRに出ます。
+
+テストが読むのは `Editor/` `Runtime/` `Tests/` `package.json` とワークフロー自身だけなので、これらに触れないPRではテストジョブをスキップします。
+スキップの判定はワークフローの `changes` ジョブが行い、テストジョブはskippedとして完了します。
+`on` の `paths` フィルタを使っていないのは、そちらで起動を止めるとチェック自体が作られず、テストをrequired status checkに指定したときにPRをマージできなくなるためです。
+判定に使うパスの一覧は `changes` ジョブにのみ書かれています。テストが読むファイルを増やしたときは、この一覧にも追加してください。
 
 このリポジトリはUnityプロジェクトではないため、ワークフローは実行のたびに最小のUnityプロジェクトを組み立て、その `Packages/` へこのリポジトリを置きます。
 VPM依存（VRChat SDK / NDMF）はUnity Package Managerでは解決できないので、[vrc-get](https://github.com/vrc-get/vrc-get)で先に導入してから[game-ci](https://game.ci/)のテストランナーを回します。
