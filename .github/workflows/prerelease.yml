@@ -143,7 +143,7 @@ jobs:
       cancel-in-progress: false
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           # バージョンをタグの一覧から決めるため、履歴とタグをすべて取得する
           fetch-depth: 0
@@ -200,7 +200,7 @@ jobs:
           ls -la "$ZIP_NAME"
 
       - name: Create pre-release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v3
         with:
           tag_name: ${{ steps.version.outputs.version }}
           # 起動時点のコミットへタグを打つ。省略するとタグ作成時のデフォルトブランチの
