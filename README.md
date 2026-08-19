@@ -95,13 +95,15 @@ NDMFのプレビュー機能を使用して、生成結果をリアルタイム�
 - **目**: eyeBlinkLeft/Right, eyeSquintLeft/Right, eyeWideLeft/Right
 - **視線**: eyeLookUpLeft/Right, eyeLookDownLeft/Right, eyeLookInLeft/Right, eyeLookOutLeft/Right
 - **眉**: browDownLeft/Right, browInnerUp, browOuterUpLeft/Right
-- **口**: jawOpen, jawLeft/Right/Forward, mouthFunnel, mouthPucker, mouthSmileLeft/Right, mouthFrownLeft/Right, mouthLeft/Right, mouthUpperUpLeft/Right, mouthLowerDownLeft/Right, mouthStretchLeft/Right, mouthClose, mouthShrugUpper/Lower, mouthPress
+- **口**: jawOpen, jawLeft/Right/Forward, mouthFunnel, mouthSmileLeft/Right, mouthFrownLeft/Right, mouthLeft/Right, mouthUpperUpLeft/Right, mouthLowerDownLeft/Right, mouthStretchLeft/Right, mouthClose, mouthShrugUpper/Lower, mouthPress
 - **頬**: cheekPuff, cheekSquintLeft/Right
 - **鼻**: noseSneerLeft/Right
 - **舌**: tongueOut
 
 VRChat/MMDの標準的なBlendShape名（vrc.blink, まばたき, あ, い, う等）から自動的にマッピングされます。
 自動マッピングでは、対応するシェイプキーがアバターに無いものは生成されません（口の一部は後述の手続き的生成で補えます）。
+`mouthPucker` は「う」から生成すると口元が破綻しやすいため、自動マッピングとプリセット（「VRChat標準表情のみで設定」）のどちらにも含めていません。
+ARKit名としては残してあるので、必要なアバターではカスタムマッピングで手動指定できます。
 視線（Eye Look）は `EyeUp_L` や `目上` といったシェイプキーを持つアバターが少ないため、多くの場合はカスタムマッピングでの手動設定が必要です。
 インスペクタの「自動マッピング一覧（参照用）」に、ARKit名ごとの対応シェイプキー名が表示されます。
 この一覧はマッピング定義から生成しているため、定義を変更すれば表示も追随します。

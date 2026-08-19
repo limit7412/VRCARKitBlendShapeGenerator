@@ -141,9 +141,8 @@ namespace ARKitBlendShapeGenerator.Domain
                 new ARKitMapping("mouthFunnel", new List<SourceMapping> {
                     new SourceMapping(1.0f, "vrc.v_ou", "う", "u", "U"),
                 }),
-                new ARKitMapping("mouthPucker", new List<SourceMapping> {
-                    new SourceMapping(1.2f, "vrc.v_ou", "う", "ω", "u", "U"),
-                }),
+                // mouthPuckerは「う」から生成すると口元が破綻しやすいため自動マッピングを持たない。
+                // 必要な場合はカスタムマッピングで明示的に指定する
 
                 // === 口 - 表情 (Mouth Expressions) ===
                 // 既に左右別のBlendShapeがある場合

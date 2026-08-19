@@ -42,6 +42,19 @@ namespace ARKitBlendShapeGenerator.Tests
         }
 
         [Test]
+        public void GetMappings_DoesNotContainMouthPucker()
+        {
+            // mouthPuckerは母音のシェイプキーから生成すると口元が破綻しやすいため自動生成しない。
+            // ただしARKit名としては残すので、カスタムマッピングでの手動指定は引き続きできる
+            var arkitNames = ARKitMappingTable.GetMappings()
+                .Select(mapping => mapping.arkitName)
+                .ToList();
+
+            Assert.That(arkitNames, Has.No.Member("mouthPucker"));
+            Assert.That(ARKitBlendShapeNames.GetAll(), Has.Member("mouthPucker"));
+        }
+
+        [Test]
         public void GetMappings_SideSpecificFallbacksComeAfterDirectMappings()
         {
             // 同一ARKit名が複数ある場合、左右別ソースの定義（Both）が
