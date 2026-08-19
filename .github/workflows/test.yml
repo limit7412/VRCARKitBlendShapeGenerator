@@ -163,7 +163,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout package
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           # テスト用プロジェクトのPackages配下へ直接チェックアウトする
           path: TestProject/Packages/${{ env.PACKAGE_NAME }}
@@ -242,13 +242,15 @@ jobs:
           cat Packages/vpm-manifest.json
 
       - name: Cache Library
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: TestProject/Library
           key: Library-${{ env.UNITY_VERSION }}-${{ hashFiles('TestProject/Packages/vpm-manifest.json') }}
           restore-keys: |
             Library-${{ env.UNITY_VERSION }}-
 
+      # 他のアクションはNode 24を実行環境とする版へ上げているが、これはv4が最新であり
+      # Node 20のまま。上流が新しいメジャーを出すまでは追随できない。
       - name: Run EditMode tests
         uses: game-ci/unity-test-runner@v4
         env:
@@ -266,7 +268,7 @@ jobs:
 
       - name: Upload test results
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: editmode-test-results
           path: artifacts
