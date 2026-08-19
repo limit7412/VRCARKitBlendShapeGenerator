@@ -1,0 +1,237 @@
+name: Auto Pre-release
+
+# mainへの取り込みを契機に、プレリリースを自動作成する。
+#
+# バージョンは既存のタグ運用に合わせて決める。
+# 安定版タグ`X.Y.Z`のうち最新のものからパッチを1つ上げた`X.Y.(Z+1)`を次期バージョン
+# とし、プレリリース番号`-testN`を付けた`X.Y.(Z+1)-testN`をタグにする。
+# 同じ次期バージョンの`-testN`が既にあればNを1つ進める。
+# パッチ以外(マイナー・メジャー)を上げたいプレリリースは、従来どおり手動で作成する。
+#
+# zipの生成と添付、VPMリスティングへの通知は、release.ymlに任せずこのワークフロー内で
+# 行う。
+# GITHUB_TOKENで作成したリリースは、ワークフローの連鎖起動を防ぐGitHub Actionsの
+# 仕様により`release`イベントを発火させないため、release.ymlはここで作ったプレリリース
+# に対しては動かない。
+# 安定版リリースは従来どおり手動作成であり、その場合は`release`イベントが発火して
+# release.ymlがzipの添付とリスティング通知を行う。
+
+on:
+  push:
+    branches:
+      - main
+  # タグ計算からやり直したい場合などに手動でも作成できるようにする
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  # ビルドの成果物が変わる変更かどうかを判定する。
+  #
+  # `on`の`paths`フィルタではなくジョブで判定するのは、判定できなかった場合に作成する側
+  # へ倒すため。`paths`フィルタは、比較できないpushや件数の上限を超えた変更をどう扱うか
+  # を制御できず、黙って起動しないという最悪の側へ倒れる。
+  #
+  # 対象パスの一覧はこのジョブだけに置く。`on`側にも書くと二重管理になり、
+  # 片方だけ更新したときに「変更したのにプレリリースが作られない」事故につながる。
+  changes:
+    name: Check changed paths
+    runs-on: ubuntu-latest
+    outputs:
+      relevant: ${{ steps.check.outputs.relevant }}
+    steps:
+      - id: check
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          EVENT_NAME: ${{ github.event_name }}
+          BEFORE: ${{ github.event.before }}
+          AFTER: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+
+          # workflow_dispatchなど、比較対象を定められないイベントでは常に作成する
+          if [ "$EVENT_NAME" != "push" ]; then
+            echo "relevant=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          # ブランチ作成時やforce push後は`before`が到達不能なコミットを指し比較できない
+          if [ -z "$BEFORE" ] || [ "$BEFORE" = "0000000000000000000000000000000000000000" ]; then
+            echo "relevant=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          # 1ファイルにつき1行を出す。件数を数えるためで、行数がそのままファイル数になる。
+          # リネームで対象外へ移した変更(Editor/A.cs → docs/A.cs など)は新パスだけでは
+          # 検出できないため、previous_filenameも同じ行へ並べる。
+          RENAME_AWARE='[.filename, (.previous_filename // "")] | @tsv'
+          # `?`を付けず、想定外のレスポンスではjqを失敗させる。
+          # 黙って空の一覧として扱うと、判定できない変更を作成せずに終えてしまう。
+          JQ=".files[] | $RENAME_AWARE"
+          # compareの`files`が返すのは最大300件
+          FILE_LIMIT=300
+
+          # 差分が分からないまま省略すると、試せるはずの変更がmainに入ったままになるため、
+          # 取得に失敗した場合は作成する側へ倒す。
+          if ! CHANGED=$(gh api --paginate "repos/$REPO/compare/$BEFORE...$AFTER" --jq "$JQ"); then
+            echo "::warning::変更ファイルの一覧を取得できなかったためプレリリースを作成します"
+            echo "relevant=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          # zipへ入るファイルと、zipの作り方を決めるファイルだけを対象とする。
+          # ここに載らないファイルはプレリリースの成果物を変えられない。
+          # テストコード(Tests/)はzipへ入らないため対象外。
+          RELEVANT=false
+          COUNT=0
+          while IFS=$'\t' read -r NEW_PATH OLD_PATH; do
+            [ -n "$NEW_PATH" ] || continue
+            COUNT=$((COUNT + 1))
+            for FILE in "$NEW_PATH" "$OLD_PATH"; do
+              [ -n "$FILE" ] || continue
+              case "$FILE" in
+                Editor/*|Runtime/*|package.json|.github/workflows/prerelease.yml)
+                  echo "ビルドに関係する変更: $FILE"
+                  RELEVANT=true
+                  ;;
+              esac
+            done
+          done <<< "$CHANGED"
+
+          # `--paginate`はページを辿るだけで、エンドポイントごとの返却件数の上限は外さない。
+          # 上限に達した一覧には、返ってこなかった変更が残っている可能性がある。
+          # 完全だと確認できない一覧を根拠に見送るわけにはいかないので、作成する側へ倒す。
+          if [ "$RELEVANT" = "false" ] && [ "$COUNT" -ge "$FILE_LIMIT" ]; then
+            echo "::warning::変更ファイルが上限の${FILE_LIMIT}件に達し一覧が不完全な可能性があるためプレリリースを作成します"
+            RELEVANT=true
+          fi
+
+          if [ "$RELEVANT" = "false" ]; then
+            echo "::notice::ビルドに関係するファイルに変更がないためプレリリースを作成しません"
+          fi
+          echo "relevant=$RELEVANT" >> "$GITHUB_OUTPUT"
+
+  prerelease:
+    needs: changes
+    if: needs.changes.outputs.relevant == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      # タグとリリースの作成に必要
+      contents: write
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    # マージが連続した場合にタグの計算が競合しないよう、実行を直列にする。
+    # 並行して走ると両方が同じ`-testN`を計算し、片方のタグ作成が失敗する。
+    #
+    # ワークフロー全体ではなくこのジョブに効かせる。全体に効かせると、ビルドに関係ない
+    # 変更のpushもグループを占有し、待機中の「関係ある変更」の実行を取り消したうえで
+    # 自身は何も作らずに終わってしまう。
+    #
+    # `cancel-in-progress: false`が守るのは実行中のものだけで、待機できる実行は1件に限られる。
+    # 後から入った実行は待機中の実行を取り消すため、取り込みが続けて3件以上あると、
+    # 中間のコミットを起点とする実行は取り消され、そのコミット単体のプレリリースは作られない。
+    # 取り消されるのは待機中の実行に限られるので、ビルドの成果物を最後に変えた取り込みの
+    # 実行は取り消されない(それを取り消す後続があるなら、その後続がより新しい内容を指す)。
+    # 取り消されたコミットの変更もその実行がチェックアウトする履歴に含まれるため、
+    # 最新の内容はプレリリースに入る。
+    # 目的は取り込みごとに1つ作ることではなく、mainの最新の内容を試せるようにすることなので、
+    # 中間のコミット単体のプレリリースが飛ぶことは許容する。
+    concurrency:
+      group: prerelease
+      cancel-in-progress: false
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          # バージョンをタグの一覧から決めるため、履歴とタグをすべて取得する
+          fetch-depth: 0
+
+      - name: Determine version
+        id: version
+        run: |
+          set -euo pipefail
+
+          # 最新の安定版タグ(X.Y.Z形式)を起点にする。
+          # package.jsonのversionはリリース時にタグから上書きされる運用のため、
+          # ここでの起点には使えない。
+          LATEST=$(git tag --list | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$' | sort -V | tail -n 1)
+          if [ -z "$LATEST" ]; then
+            echo "::error::安定版タグ(X.Y.Z)が見つからないためバージョンを決められません"
+            exit 1
+          fi
+
+          # 次のパッチバージョンを次期バージョンとする
+          NEXT="${LATEST%.*}.$(( ${LATEST##*.} + 1 ))"
+
+          # 既存の`-testN`の最大値から次のNを決める。
+          # `0.1.4-test01`のようにNがゼロ埋めされた古いタグもあるため、
+          # 先頭の0を落としてから数値として比較する。
+          MAX_N=$(git tag --list "${NEXT}-test*" \
+            | sed -nE 's/^.*-test0*([0-9]+)$/\1/p' | sort -n | tail -n 1)
+          N=$(( ${MAX_N:-0} + 1 ))
+
+          VERSION="${NEXT}-test${N}"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "Version: $VERSION"
+
+      # 以降のzip生成はrelease.ymlの同名ステップと同じ内容にする。
+      # 片方だけ変更するとプレリリースと安定版で中身の違うパッケージができるため、
+      # 変更する場合は両方を揃えること。
+      - name: Update package.json version
+        run: |
+          jq '.version = "${{ steps.version.outputs.version }}"' package.json > package.json.tmp
+          mv package.json.tmp package.json
+
+      - name: Create package zip
+        run: |
+          PACKAGE_NAME="com.qazx7412.kx-vrc-arkit-blendshape-generator"
+          ZIP_NAME="${PACKAGE_NAME}-${{ steps.version.outputs.version }}.zip"
+
+          # Create zip with package contents
+          zip -r "$ZIP_NAME" \
+            package.json \
+            Runtime/ \
+            Editor/ \
+            -x "*.meta"
+
+          echo "Created: $ZIP_NAME"
+          ls -la "$ZIP_NAME"
+
+      - name: Create pre-release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ steps.version.outputs.version }}
+          # 起動時点のコミットへタグを打つ。省略するとタグ作成時のデフォルトブランチの
+          # 先頭が使われ、実行が遅延した場合に後続のコミットを巻き込んでしまう
+          target_commitish: ${{ github.sha }}
+          prerelease: true
+          generate_release_notes: true
+          files: "*.zip"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # プレリリースの公開をVPMリスティングリポジトリへ通知し、リスティングを即時再生成する。
+  # 通知に必要なsecretと、`inherit`を使わない理由はrelease.ymlの同名ジョブに書いてある。
+  #
+  # `needs: prerelease`としているのはリリース資材(zip)の添付完了を待つため。リスティングの
+  # 生成はリリースのアセットを参照するので、添付前に通知するとzipが無い状態で
+  # インデックスされてしまう。
+  notify-listing:
+    name: notify-listing
+    needs: prerelease
+    # 呼び出された再利用可能ワークフローは呼び出し元の`GITHUB_TOKEN`を受け取る。
+    # 通知はvcc-vpm側へ`LISTING_DISPATCH_TOKEN`を使って行われ`GITHUB_TOKEN`は
+    # 使わないので、権限は全て落とす。
+    permissions: {}
+    uses: limit7412/vcc-vpm/.github/workflows/notify-listing.yml@main
+    with:
+      # デフォルトを持たない必須入力。`uses:`の参照先と同じリポジトリを指すこと。
+      listing-repo: limit7412/vcc-vpm
+      # GITHUB_TOKENで作ったリリースは`release`イベントを発火させないため、
+      # 呼び出し先が既定で読む`github.event.release.tag_name`は空になる。
+      # 作成したタグを明示的に渡す。
+      tag: ${{ needs.prerelease.outputs.version }}
+    secrets:
+      LISTING_DISPATCH_TOKEN: ${{ secrets.LISTING_DISPATCH_TOKEN }}
