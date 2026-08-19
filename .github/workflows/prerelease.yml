@@ -1,0 +1,114 @@
+name: Auto Pre-release
+
+# mainへの取り込みを契機に、プレリリースを自動作成する。
+#
+# バージョンは既存のタグ運用に合わせて決める。
+# 安定版タグ`X.Y.Z`のうち最新のものからパッチを1つ上げた`X.Y.(Z+1)`を次期バージョン
+# とし、プレリリース番号`-testN`を付けた`X.Y.(Z+1)-testN`をタグにする。
+# 同じ次期バージョンの`-testN`が既にあればNを1つ進める。
+# パッチ以外(マイナー・メジャー)を上げたいプレリリースは、従来どおり手動で作成する。
+#
+# zipの生成と添付はrelease.ymlに任せず、このワークフロー内で行う。
+# GITHUB_TOKENで作成したリリースは、ワークフローの連鎖起動を防ぐGitHub Actionsの
+# 仕様により`release`イベントを発火させないため、release.ymlはここで作った
+# プレリリースに対しては動かない。
+# 同じ理由でvcc-vpmへのリスティング通知も発火しないが、リスティングの更新は
+# 安定版リリースの公開時に行えば足りるため、プレリリースでは通知しない。
+# 安定版リリースは従来どおり手動作成であり、その場合は`release`イベントが発火して
+# release.ymlがzipの添付とリスティング通知を行う。
+
+on:
+  push:
+    branches:
+      - main
+    # パッケージに入る内容が変わったときだけ作成する。
+    # ドキュメントやCI設定だけの変更でプレリリースを積み上げない。
+    paths:
+      - package.json
+      - 'Runtime/**'
+      - 'Editor/**'
+  # タグ計算からやり直したい場合などに手動でも作成できるようにする
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+# マージが連続した場合にタグの計算が競合しないよう、実行を直列にする。
+# 後続の実行を取り消すと、その分のプレリリースが作られないまま終わるため取り消さない。
+concurrency:
+  group: prerelease
+  cancel-in-progress: false
+
+jobs:
+  prerelease:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          # バージョンをタグの一覧から決めるため、履歴とタグをすべて取得する
+          fetch-depth: 0
+
+      - name: Determine version
+        id: version
+        run: |
+          set -euo pipefail
+
+          # 最新の安定版タグ(X.Y.Z形式)を起点にする。
+          # package.jsonのversionはリリース時にタグから上書きされる運用のため、
+          # ここでの起点には使えない。
+          LATEST=$(git tag --list | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$' | sort -V | tail -n 1)
+          if [ -z "$LATEST" ]; then
+            echo "::error::安定版タグ(X.Y.Z)が見つからないためバージョンを決められません"
+            exit 1
+          fi
+
+          # 次のパッチバージョンを次期バージョンとする
+          NEXT="${LATEST%.*}.$(( ${LATEST##*.} + 1 ))"
+
+          # 既存の`-testN`の最大値から次のNを決める。
+          # `0.1.4-test01`のようにNがゼロ埋めされた古いタグもあるため、
+          # 先頭の0を落としてから数値として比較する。
+          MAX_N=$(git tag --list "${NEXT}-test*" \
+            | sed -nE 's/^.*-test0*([0-9]+)$/\1/p' | sort -n | tail -n 1)
+          N=$(( ${MAX_N:-0} + 1 ))
+
+          VERSION="${NEXT}-test${N}"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "Version: $VERSION"
+
+      # 以降のzip生成はrelease.ymlの同名ステップと同じ内容にする。
+      # 片方だけ変更するとプレリリースと安定版で中身の違うパッケージができるため、
+      # 変更する場合は両方を揃えること。
+      - name: Update package.json version
+        run: |
+          jq '.version = "${{ steps.version.outputs.version }}"' package.json > package.json.tmp
+          mv package.json.tmp package.json
+
+      - name: Create package zip
+        run: |
+          PACKAGE_NAME="com.qazx7412.kx-vrc-arkit-blendshape-generator"
+          ZIP_NAME="${PACKAGE_NAME}-${{ steps.version.outputs.version }}.zip"
+
+          # Create zip with package contents
+          zip -r "$ZIP_NAME" \
+            package.json \
+            Runtime/ \
+            Editor/ \
+            -x "*.meta"
+
+          echo "Created: $ZIP_NAME"
+          ls -la "$ZIP_NAME"
+
+      - name: Create pre-release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ steps.version.outputs.version }}
+          # 起動時点のコミットへタグを打つ。省略するとタグ作成時のデフォルトブランチの
+          # 先頭が使われ、実行が遅延した場合に後続のコミットを巻き込んでしまう
+          target_commitish: ${{ github.sha }}
+          prerelease: true
+          generate_release_notes: true
+          files: "*.zip"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
