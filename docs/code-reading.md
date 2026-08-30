@@ -23,7 +23,8 @@ VRChatアバターの既存シェイプキー（まばたき、あ、い、う �
   処理対象の選定と、Infra実装の組み立て
 - **`Editor/Domain/`**：生成ロジックの本体。
   メッシュの読み書きは `IMeshRepository` 越しに行い、`UnityEngine.Mesh` へ直接依存しない
-- **`Editor/Infra/`**：Domainが定義した抽象のUnity実装（`UnityMeshRepository` など）と、エディタAPIへ触る部品
+- **`Editor/Infra/`**：Domainが定義した抽象のUnity実装（`UnityMeshRepository` など）と、エディタAPIへ触る部品。
+  更新確認の通信とEditorPrefsの読み書き（`UpdateCheck`）、インストール形態の問い合わせ（`PackageLocation`）もここに置く
 - **`Editor/Presentation/`**：インスペクタUI
 - **`Editor/Localization/`**：NDMFのローカライズ機構を使った文言管理（日英の `.po`）
 - **`Tests/Editor/`**：EditModeテスト
@@ -105,6 +106,20 @@ NDMFのGenerating Phaseで、Jerry's Templatesより先に実行されるよう�
 設定UIのほか、自動マッピング一覧の表示（`AutoMappingSummary` がマッピング定義から組み立てる）と、生成シェイプをスライダーで動かすプレビュー再生を持つ。
 プレビュー再生は `ARKitBlendShapeGeneratorPreviewState`（`PublishedValue` によるエディタ全体の共有状態）へウェイトを書き、プレビューノードが毎フレームそれをプロキシへ適用する。
 
+### 更新の確認
+
+インスペクタの先頭に、新しいバージョンが出ているかの案内を出す。
+GitHubのreleasesへ問い合わせるのは `UpdateCheck` で、確認するかどうかを利用者が選ぶまでは通信しない。
+確認する場合も1日1回までとし、失敗しても黙って次の機会へ回す。
+
+案内の文面はインストール形態で変わる。
+形態の判別は `PackageLocation` がasmdefの位置をUnityへ問い合わせ、そのパスの解釈を `PackageInstallation` が行う。
+`Packages/` 配下ならVPM版、`Assets/` 配下ならbooth版とみなす。
+booth版は利用者がフォルダを移動できるため、固定のパスではなくasmdefの位置を起点にする（`Localization` の翻訳ファイル探索と同じ考え方）。
+
+VPM版でファイルを置き換えないのは、版数をVCC/ALCOMが `vpm-manifest.json` で管理しているためである。
+こちらが中身だけ差し替えると、管理側の記録と実態がずれる。
+
 ## どこから読み始めるか
 
 次の順で読むと迷いにくい。
@@ -133,6 +148,8 @@ NDMFのGenerating Phaseで、Jerry's Templatesより先に実行されるよう�
   このほかインスペクタも、編集中に同じ判定（`CustomMappingValidation`）でエラーを表示する
 - **重複コンポーネントの排除**：`DisallowMultipleComponent` は同一GameObject内しか防げないため、アバター単位の一意性は `DuplicateComponentGuard` が `OnValidate` フック経由で担保する。
   ビルド時にも `SelectPrimaryComponent` で1つに絞る
+- **更新確認の外部通信**：Editorから外部へ出る通信はここだけで、利用者が確認を選ぶまでは行わない。
+  選択は `EditorPrefs` に持ち、インスペクタの問いかけと Preferences > ARKit BlendShape Generator のどちらからも変えられる
 - **文言**：Editor側でユーザーへ見せる文字列は直接書かず、`Localization.S(キー)` で引く。
   文言の実体は `Editor/Localization/*.po` にある。
   例外はRuntimeコンポーネントの `[Header]` と `[Tooltip]` で、Editorアセンブリにある `Localization` をRuntime側からは参照できないため、カスタムエディタが無効なとき用の英語文言を直接持っている

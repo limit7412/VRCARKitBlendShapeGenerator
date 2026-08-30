@@ -344,3 +344,34 @@ msgstr "カスタムマッピングに同一ARKit名の重複があります。"
 
 msgid "validation.duplicate.message"
 msgstr "カスタムマッピングで同一ARKit名は複数設定できません。\n重複: {0}"
+
+# 更新の確認
+msgid "update.consent.description"
+msgstr "新しいバージョンが出ているかをGitHubのReleasesへ問い合わせますか？\n確認は1日1回までで、送るのはリリース情報の取得要求だけです。この設定は Preferences > ARKit BlendShape Generator から変更できます。"
+
+msgid "update.consent.enable"
+msgstr "確認する"
+
+msgid "update.consent.disable"
+msgstr "確認しない"
+
+msgid "update.available.vpm"
+msgstr "新しいバージョン {0} が公開されています。\nVCC/ALCOMから更新してください。"
+
+msgid "update.available.booth"
+msgstr "新しいバージョン {0} が公開されています。\nReleasesから最新版を入手し、Assets配下の既存フォルダを削除してから入れ直してください。"
+
+msgid "update.available.unknown"
+msgstr "新しいバージョン {0} が公開されています。"
+
+msgid "update.open_releases"
+msgstr "Releasesを開く"
+
+msgid "update.dismiss"
+msgstr "このバージョンは通知しない"
+
+msgid "update.settings.enabled"
+msgstr "更新を確認する"
+
+msgid "update.settings.description"
+msgstr "GitHubのReleasesへ1日1回まで問い合わせ、新しいバージョンが出ていればインスペクタに知らせます。"

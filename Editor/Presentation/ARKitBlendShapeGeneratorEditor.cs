@@ -60,6 +60,7 @@ namespace ARKitBlendShapeGenerator.Presentation
         {
             _component = (ARKitBlendShapeGeneratorComponent)target;
             Undo.undoRedoPerformed += OnUndoRedoPerformed;
+            UpdateCheck.ResultChanged += Repaint;
             InvalidatePreviewCategoryCache();
             RefreshBlendShapeList();
         }
@@ -67,6 +68,7 @@ namespace ARKitBlendShapeGenerator.Presentation
         private void OnDisable()
         {
             Undo.undoRedoPerformed -= OnUndoRedoPerformed;
+            UpdateCheck.ResultChanged -= Repaint;
             int componentId = _component != null ? _component.GetInstanceID() : 0;
             ARKitBlendShapeGeneratorPreviewState.ReleaseIfActive(componentId);
             InvalidatePreviewCategoryCache();
@@ -95,6 +97,10 @@ namespace ARKitBlendShapeGenerator.Presentation
             // 言語切替 + ヘッダー
             LanguageSwitcher.DrawImmediate();
             EditorGUILayout.LabelField("ARKit BlendShape Generator", EditorStyles.boldLabel);
+
+            // 更新の案内はヘッダーの直下へ置く。読み飛ばされない位置で、設定の並びは崩さない
+            UpdateNotice.Draw();
+
             EditorGUILayout.HelpBox(S("inspector.description"), MessageType.Info);
 
             EditorGUILayout.Space();
