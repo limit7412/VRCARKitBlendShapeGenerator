@@ -27,6 +27,20 @@ Jerry's Templatesと組み合わせて使用することで、フェイストラ
 2. VCCのプロジェクト管理画面で「Add Package」→「Add from Archive」を選択
 3. ダウンロードしたzipファイルを選択
 
+### 更新の確認
+
+新しいバージョンが出ているかを[Releases](https://github.com/limit7412/VRCARKitBlendShapeGenerator/releases/latest)へ問い合わせ、インスペクタの先頭で知らせます。
+
+エディタから外部へ通信するため、確認するかどうかは初回にインスペクタで尋ねます。
+確認しないことを選べば通信は行いません。
+確認する場合も1日1回までで、送るのはリリース情報の取得要求だけです。
+
+選択は Preferences > ARKit BlendShape Generator からいつでも変更できます。
+
+更新の手段はインストール方法で違います。
+`Packages/` 配下（VCC/ALCOM経由）ならVCC/ALCOMから更新してください。
+`Assets/` 配下（unitypackageから導入）の場合は、Releasesから最新版を入手し、既存のフォルダを削除してから入れ直してください。
+
 ## 使用方法
 
 ### 基本的な使い方
