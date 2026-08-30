@@ -173,15 +173,53 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v7
 
-      # 既存の`.meta`のGUIDが変わっていないことを、比較対象のブランチと突き合わせて確かめる。
-      # 配布済みのGUIDは利用者のアバターから参照されており、振り直すわけにはいかない
-      - name: Fetch base branch
+      # 既存の`.meta`のGUIDが変わっていないことを、変更前の内容と突き合わせて確かめる。
+      # 配布済みのGUIDは利用者のアバターから参照されており、振り直すわけにはいかない。
+      #
+      # 突き合わせる相手はイベントで違う。
+      # PRではベースブランチだが、pushで同じようにブランチ名を使うと、取得できるのは
+      # 今まさにpushされた内容そのものになり、比較が素通りしてしまう。
+      # pushでは`before`が指す更新前のコミットを相手にする。
+      - name: Resolve comparison target
+        id: base
         env:
-          BASE_REF: ${{ github.event.pull_request.base.ref || github.event.repository.default_branch }}
-        run: git fetch --no-tags --depth=1 origin "$BASE_REF"
+          PR_BASE: ${{ github.event.pull_request.base.ref }}
+          BEFORE: ${{ github.event.before }}
+        run: |
+          set -euo pipefail
+
+          if [ -n "$PR_BASE" ]; then
+            git fetch --no-tags --depth=1 origin "$PR_BASE"
+            echo "ref=FETCH_HEAD" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          # ブランチ作成時やforce push後、workflow_dispatchでは比較対象を定められない。
+          # GUIDの突き合わせだけを省き、残りの検証はそのまま行う
+          if [ -z "${BEFORE:-}" ] || [ "$BEFORE" = "0000000000000000000000000000000000000000" ]; then
+            echo "::notice::比較対象の更新前コミットが無いためGUIDの突き合わせを省略します"
+            echo "ref=" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          if ! git fetch --no-tags --depth=1 origin "$BEFORE"; then
+            echo "::warning::更新前のコミット($BEFORE)を取得できないためGUIDの突き合わせを省略します"
+            echo "ref=" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          echo "ref=FETCH_HEAD" >> "$GITHUB_OUTPUT"
 
       - name: Verify packaging
-        run: python3 .github/scripts/booth_package.py verify --base-ref FETCH_HEAD
+        env:
+          BASE: ${{ steps.base.outputs.ref }}
+        run: |
+          set -euo pipefail
+
+          if [ -n "$BASE" ]; then
+            python3 .github/scripts/booth_package.py verify --base-ref "$BASE"
+          else
+            python3 .github/scripts/booth_package.py verify
+          fi
 
   test:
     name: EditMode tests

@@ -89,6 +89,11 @@ jobs:
           # テストコード(Tests/)とドキュメントはzipへ入らないため対象外。
           # `.meta`と`LICENSE`はbooth用のunitypackageへ入るため対象に含める。
           # VPM用のzipからは`-x "*.meta"`で除かれるが、判定は2つの配布物の和で行う。
+          #
+          # 直下の`Editor.meta` `Runtime.meta` `package.json.meta` `LICENSE.meta`は
+          # `Editor/*`のようなパターンに当たらないため、個別に並べる。
+          # これらもunitypackageのエントリになるので、漏らすと中身が変わったのに
+          # プレリリースが作られない。
           # このワークフロー自身とスクリプトは対象に含めない。手順の変更でzipの中身が
           # 変わることはあるが、その頻度でプレリリースを積むより、作り直したいときに
           # `workflow_dispatch`から実行する方が扱いやすい。
@@ -100,7 +105,7 @@ jobs:
             for FILE in "$NEW_PATH" "$OLD_PATH"; do
               [ -n "$FILE" ] || continue
               case "$FILE" in
-                Editor/*|Runtime/*|package.json|LICENSE)
+                Editor/*|Editor.meta|Runtime/*|Runtime.meta|package.json|package.json.meta|LICENSE|LICENSE.meta)
                   echo "パッケージの中身が変わる変更: $FILE"
                   RELEVANT=true
                   ;;

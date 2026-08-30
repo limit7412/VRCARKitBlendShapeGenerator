@@ -323,16 +323,19 @@ def _diff_guids_against(repo_root, base_ref):
     GUIDは一度配布したら変えられないため、既存の`.meta`は追加と削除しか許さない
     """
     try:
+        # `-z`でNUL区切りにする。
+        # 既定の出力を空白で分割すると`Editor/Foo Bar.cs.meta`のような名前が分断され、
+        # 実在しないパスを見に行った末に「変化なし」として通してしまう
         listing = subprocess.run(
-            ["git", "ls-tree", "-r", "--name-only", base_ref],
+            ["git", "ls-tree", "-r", "-z", "--name-only", base_ref],
             cwd=repo_root, capture_output=True, text=True, check=True,
-        ).stdout.split()
+        ).stdout.split("\0")
     except (subprocess.CalledProcessError, FileNotFoundError) as error:
         return [f"`{base_ref}`の内容を取得できない: {error}"]
 
     problems = []
     for name in listing:
-        if not name.endswith(".meta"):
+        if not name or not name.endswith(".meta"):
             continue
 
         current = repo_root / name
