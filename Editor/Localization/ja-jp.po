@@ -375,3 +375,48 @@ msgstr "更新を確認する"
 
 msgid "update.settings.description"
 msgstr "GitHubのReleasesへ1日1回まで問い合わせ、新しいバージョンが出ていればインスペクタに知らせます。"
+
+msgid "update.available.booth_updatable"
+msgstr "新しいバージョン {0} が公開されています。\nこのウィンドウから更新できます。"
+
+msgid "update.run"
+msgstr "更新する"
+
+msgid "update.confirm"
+msgstr "バージョン {0} へ更新します。\n{1} の中身が新しいものへ置き換わり、この操作は取り消せません。フォルダの中を書き換えている場合は、先に控えを取ってください。"
+
+msgid "update.announce.message"
+msgstr "新しいバージョン {0} が公開されています。\nいま更新しますか？\n\n更新すると Assets/AtelierKairox/VRCARKitBlendShapeGenerator の中身が置き換わり、この操作は取り消せません。"
+
+msgid "update.announce.update"
+msgstr "更新する"
+
+msgid "update.announce.later"
+msgstr "あとで"
+
+msgid "update.completed"
+msgstr "バージョン {0} へ更新しました。"
+
+msgid "update.incomplete"
+msgstr "バージョン {0} への更新が完了しませんでした。更新前の内容は {1} に控えてあります。"
+
+msgid "update.error.unsupported"
+msgstr "このプロジェクトでは自動更新を行えません。Releasesから最新版を入手して入れ直してください。"
+
+msgid "update.error.release_missing"
+msgstr "バージョン {0} のリリースを取得できませんでした。"
+
+msgid "update.error.asset_missing"
+msgstr "リリースに {0} が添付されていません。"
+
+msgid "update.error.download"
+msgstr "ダウンロードに失敗しました: {0}"
+
+msgid "update.error.digest"
+msgstr "ダウンロードしたファイルがGitHubの示すダイジェストと一致しません。更新を中止しました。"
+
+msgid "update.error.archive"
+msgstr "ダウンロードしたファイルを読めませんでした: {0}"
+
+msgid "update.error.backup"
+msgstr "更新前の内容を控えられなかったため中止しました: {0}"

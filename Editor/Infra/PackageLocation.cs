@@ -20,6 +20,7 @@ namespace ARKitBlendShapeGenerator.Infra
         private static bool _resolved;
         private static InstallLocation _location;
         private static string _version;
+        private static string _root;
 
         /// <summary>インストール形態。判別できなければUnknown</summary>
         public static InstallLocation Location
@@ -41,6 +42,16 @@ namespace ARKitBlendShapeGenerator.Infra
             }
         }
 
+        /// <summary>パッケージのルート。判別できなければnull</summary>
+        public static string Root
+        {
+            get
+            {
+                Resolve();
+                return _root;
+            }
+        }
+
         private static void Resolve()
         {
             if (_resolved)
@@ -56,6 +67,7 @@ namespace ARKitBlendShapeGenerator.Infra
                 return;
             }
 
+            _root = packageRoot;
             _version = ReadVersion(packageRoot);
         }
 
