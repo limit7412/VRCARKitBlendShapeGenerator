@@ -307,7 +307,7 @@ def command_verify(args):
 
     # 既存の`.meta`のGUIDが変わっていないか
     if args.base_ref:
-        failures.extend(_diff_guids_against(repo_root, args.base_ref))
+        failures.extend(_diff_guids_against(repo_root, args.base_ref, set(guids.values())))
 
     if failures:
         _report(failures)
@@ -317,7 +317,7 @@ def command_verify(args):
     return 0
 
 
-def _diff_guids_against(repo_root, base_ref):
+def _diff_guids_against(repo_root, base_ref, shipped_guids):
     """`base_ref`が配っていたGUIDが今も同じ意味で残っているか調べる。
 
     GUIDは一度配布したら変えられない。
@@ -339,17 +339,11 @@ def _diff_guids_against(repo_root, base_ref):
     except (subprocess.CalledProcessError, FileNotFoundError) as error:
         return [f"`{base_ref}`の内容を取得できない: {error}"]
 
-    # 現在のリポジトリが持つGUIDの全体。
-    # 同梱対象に限らず拾うのは、対象から外れただけのアセットを「消えた」と誤って責めないため
-    live_guids = set()
-    for meta in repo_root.rglob("*.meta"):
-        match = GUID_PATTERN.search(meta.read_text(encoding="utf-8"))
-        if match:
-            live_guids.add(match.group(1))
-
     problems = []
     for name in listing:
-        if not name or not name.endswith(".meta"):
+        # 見るのは配布物へ入る`.meta`だけ。
+        # 同梱対象の外にある`.meta`はそもそも配っていないため、消えても参照は切れない
+        if not _is_shipped_meta(name):
             continue
 
         old = subprocess.run(
@@ -367,11 +361,13 @@ def _diff_guids_against(repo_root, base_ref):
         current = repo_root / name
         if not current.exists():
             # リネームは`.meta`ごと動かすのが正しく、その場合GUIDは新しいパスで生き残る。
-            # 消えているなら、振り直したか、配っていたアセットを消したかのどちらか
-            if old_guid not in live_guids:
+            # 配布物の側から消えているなら、振り直したか、同梱対象の外へ出したか、
+            # アセットごと消したかのいずれかで、どれも利用者の参照を切る
+            if old_guid not in shipped_guids:
                 problems.append(
-                    f"配っていたGUIDが失われている: {name} ({old_guid})。"
-                    "リネームなら`.meta`も一緒に動かし、削除なら参照が切れることを承知のうえで行うこと"
+                    f"配っていたGUIDが配布物から消えている: {name} ({old_guid})。"
+                    "リネームなら`.meta`も一緒に動かすこと。"
+                    "同梱対象から外す・削除する場合は、利用者の参照が切れることを承知のうえで行うこと"
                 )
             continue
 
@@ -384,6 +380,19 @@ def _diff_guids_against(repo_root, base_ref):
 
     problems.extend(_diff_root_folder_guid(repo_root, base_ref))
     return problems
+
+
+def _is_shipped_meta(name):
+    """その`.meta`が配布物へ入るものかどうか。
+
+    判定は`INCLUDED_TOP_LEVEL`から導く。
+    ここに別の一覧を書くと、同梱対象を変えたときに片方だけ古いまま残る
+    """
+    if not name or not name.endswith(".meta"):
+        return False
+
+    asset = name[: -len(".meta")]
+    return any(asset == top or asset.startswith(top + "/") for top in INCLUDED_TOP_LEVEL)
 
 
 def _diff_root_folder_guid(repo_root, base_ref):
