@@ -46,25 +46,14 @@ jobs:
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "Version: $VERSION"
 
-      - name: Update package.json version
+      # VPM用zipとbooth用zipの両方を作る。手順はprerelease.ymlと共有している
+      - name: Create packages
+        run: .github/scripts/build-packages.sh "${{ steps.version.outputs.version }}"
+
+      - name: Verify packages
         run: |
-          jq '.version = "${{ steps.version.outputs.version }}"' package.json > package.json.tmp
-          mv package.json.tmp package.json
-
-      - name: Create package zip
-        run: |
-          PACKAGE_NAME="com.qazx7412.kx-vrc-arkit-blendshape-generator"
-          ZIP_NAME="${PACKAGE_NAME}-${{ steps.version.outputs.version }}.zip"
-
-          # Create zip with package contents
-          zip -r "$ZIP_NAME" \
-            package.json \
-            Runtime/ \
-            Editor/ \
-            -x "*.meta"
-
-          echo "Created: $ZIP_NAME"
-          ls -la "$ZIP_NAME"
+          .github/scripts/verify-packages.py "${{ steps.version.outputs.version }}" \
+            package.json Runtime Editor LICENSE
 
       - name: Upload artifact
         uses: actions/upload-artifact@v7
@@ -72,6 +61,9 @@ jobs:
           name: vpm-package
           path: "*.zip"
 
+      # booth用zipもここで添付される。
+      # VPMリスティングの生成はリリースの全zipを見に行くが、zip直下に
+      # `package.json`が無いものは読み飛ばすため、リスティングには載らない
       - name: Upload to Release
         if: github.event_name == 'release'
         uses: softprops/action-gh-release@v3

@@ -37,6 +37,8 @@ env:
   UNITY_VERSION: 2022.3.6f1
   PACKAGE_NAME: com.qazx7412.kx-vrc-arkit-blendshape-generator
   VRC_GET_VERSION: v1.9.2
+  # パッケージングの検証で使う仮のバージョン。リリースされることはない
+  CI_VERSION: 0.0.0-ci
 
 jobs:
   # secretsコンテキストはジョブの`if`で参照できないため、
@@ -273,3 +275,48 @@ jobs:
           name: editmode-test-results
           path: artifacts
           if-no-files-found: warn
+
+  # パッケージングの検証。
+  #
+  # Unityを起動しないためライセンスの有無に関係なく走り、フォークからのPRでも
+  # 結果が出る。リリースの場でしか動かない手順を、そこで初めて壊れたと気付く形に
+  # しないためのもの。
+  packaging:
+    name: Package build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          # 変更前の.metaと突き合わせるため、比較対象のブランチも辿れるようにする
+          fetch-depth: 0
+
+      # GUIDはbooth版の利用者のアバターから参照されているため、既存の.metaの
+      # GUIDが変わっていないことを先に確かめる
+      - name: Check meta GUIDs
+        if: github.event_name == 'pull_request'
+        run: .github/scripts/check-meta-guids.sh "origin/${{ github.base_ref }}"
+
+      - name: Build packages
+        run: .github/scripts/build-packages.sh "$CI_VERSION"
+
+      - name: Verify packages
+        run: |
+          .github/scripts/verify-packages.py "$CI_VERSION" \
+            package.json Runtime Editor LICENSE
+
+      # 同じ入力から同じバイト列が出ることを確かめる。
+      # zipはエントリごとに更新時刻を持つため、比較するのはunitypackageの方にする
+      - name: Check reproducibility
+        run: |
+          BOOTH_ZIP="VRCARKitBlendShapeGenerator_${CI_VERSION}.zip"
+          UNITYPACKAGE="VRCARKitBlendShapeGenerator_${CI_VERSION}.unitypackage"
+
+          unzip -p "$BOOTH_ZIP" "$UNITYPACKAGE" | sha256sum > first.sha256
+          .github/scripts/build-packages.sh "$CI_VERSION"
+          unzip -p "$BOOTH_ZIP" "$UNITYPACKAGE" | sha256sum > second.sha256
+
+          if ! diff first.sha256 second.sha256; then
+            echo "::error::同じ内容から生成したunitypackageが一致しません"
+            exit 1
+          fi
