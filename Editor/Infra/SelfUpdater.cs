@@ -5,6 +5,7 @@ using System.IO;
 using System.IO.Compression;
 using System.Linq;
 using System.Security.Cryptography;
+using System.Text;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.Networking;
@@ -28,11 +29,17 @@ namespace ARKitBlendShapeGenerator.Infra
         /// <summary>取り込みを要求した版。読み込み後に完了を知らせるために置く</summary>
         internal const string PendingCompletionKey = "ARKitBlendShapeGenerator.SelfUpdate.PendingTag";
 
-        /// <summary>退避先の場所。失敗したときに案内する</summary>
+        /// <summary>
+        /// 退避先の場所。失敗したときに案内する。
+        ///
+        /// EditorPrefsではなくSessionStateへ置く。前者はプロジェクトを跨いで共有されるため、
+        /// 複数のプロジェクトで同じ頃に更新すると、互いの退避先を上書きしてしまう
+        /// </summary>
         internal const string BackupPathKey = "ARKitBlendShapeGenerator.SelfUpdate.BackupPath";
 
         private const int RequestTimeoutSeconds = 60;
         private const string UnityPackageExtension = ".unitypackage";
+        private const string ManifestFileName = "package.json";
         private const string DigestPrefix = "sha256:";
 
         private static bool _isRunning;
@@ -131,7 +138,7 @@ namespace ARKitBlendShapeGenerator.Infra
             }
 
             var unityPackagePath = FileUtil.GetUniqueTempPathInProject() + UnityPackageExtension;
-            IReadOnlyList<string> packagedPathnames;
+            IReadOnlyList<UnityPackageEntry> entries;
 
             try
             {
@@ -139,7 +146,7 @@ namespace ARKitBlendShapeGenerator.Infra
 
                 using (var stream = File.OpenRead(unityPackagePath))
                 {
-                    packagedPathnames = UnityPackageContents.ReadPathnames(stream);
+                    entries = UnityPackageContents.Read(stream);
                 }
             }
             catch (Exception exception) when (IsFileFailure(exception))
@@ -149,11 +156,26 @@ namespace ARKitBlendShapeGenerator.Infra
                 return;
             }
 
+            var packagedPathnames = new List<string>(entries.Count);
+            foreach (var entry in entries)
+            {
+                packagedPathnames.Add(entry.Pathname);
+            }
+
             // 中身の欠けたものや別のパッケージを受け入れると、消すファイルの選択が破滅的に外れる
             if (!SelfUpdatePlan.IsExpectedPackage(packagedPathnames))
             {
                 Delete(unityPackagePath);
                 Fail(S("update.error.contents"));
+                return;
+            }
+
+            // 名前だけ合った別の版が添付されていることもある。
+            // ダイジェストはそのファイル自体と一致するため、中身のマニフェストで確かめる
+            if (!IsExpectedVersion(entries, tag))
+            {
+                Delete(unityPackagePath);
+                Fail(S("update.error.version", tag));
                 return;
             }
 
@@ -192,7 +214,7 @@ namespace ARKitBlendShapeGenerator.Infra
             }
 
             // 控えの場所は、この先で中断した場合にも辿れるよう先に残す
-            EditorPrefs.SetString(BackupPathKey, backupPath);
+            SessionState.SetString(BackupPathKey, backupPath);
 
             // ここから先はプロジェクトのファイルを書き換える。
             // 途中でアセンブリが読み直されると取り込みまで辿り着けないため、reloadを止めておく
@@ -220,6 +242,26 @@ namespace ARKitBlendShapeGenerator.Infra
                 EditorApplication.UnlockReloadAssemblies();
                 _isRunning = false;
             }
+        }
+
+        /// <summary>同梱されたpackage.jsonが、取りに行った版のものかどうか</summary>
+        private static bool IsExpectedVersion(IReadOnlyList<UnityPackageEntry> entries, string tag)
+        {
+            var manifestPath = SelfUpdatePlan.InstallRoot + "/" + ManifestFileName;
+
+            foreach (var entry in entries)
+            {
+                if (!string.Equals(entry.Pathname, manifestPath, StringComparison.Ordinal) || entry.Asset == null)
+                {
+                    continue;
+                }
+
+                var manifest = Encoding.UTF8.GetString(entry.Asset);
+                return PackageLocation.TryParseVersion(manifest, out var version)
+                    && PackageVersion.IsSameVersion(version, tag);
+            }
+
+            return false;
         }
 
         /// <summary>古い版にしか無いアセットを消し、消せなかったものを返す</summary>

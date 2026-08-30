@@ -17,7 +17,7 @@ namespace ARKitBlendShapeGenerator.Tests
     public class UnityPackageContentsTests
     {
         [Test]
-        public void ReadPathnames_ReadsTheDestinationOfEveryEntry()
+        public void Read_ReadsTheDestinationOfEveryEntry()
         {
             var package = BuildPackage(
                 ("11111111111111111111111111111111", "Assets/Example/Editor/Foo.cs", "class Foo {}"),
@@ -25,7 +25,7 @@ namespace ARKitBlendShapeGenerator.Tests
 
             using (var stream = new MemoryStream(package))
             {
-                Assert.That(UnityPackageContents.ReadPathnames(stream), Is.EqualTo(new[]
+                Assert.That(Pathnames(stream), Is.EqualTo(new[]
                 {
                     "Assets/Example/Editor/Foo.cs",
                     "Assets/Example/package.json",
@@ -35,19 +35,19 @@ namespace ARKitBlendShapeGenerator.Tests
 
         // フォルダのエントリは中身を持たない。取り込み先だけは並ぶ
         [Test]
-        public void ReadPathnames_IncludesFolderEntries()
+        public void Read_IncludesFolderEntries()
         {
             var package = BuildPackage(("33333333333333333333333333333333", "Assets/Example/Editor", null));
 
             using (var stream = new MemoryStream(package))
             {
-                Assert.That(UnityPackageContents.ReadPathnames(stream), Is.EqualTo(new[] { "Assets/Example/Editor" }));
+                Assert.That(Pathnames(stream), Is.EqualTo(new[] { "Assets/Example/Editor" }));
             }
         }
 
         // 途中まで読めた一覧を返すと、残りのファイルを消してよいと判断してしまう
         [Test]
-        public void ReadPathnames_Throws_WhenTheArchiveIsTruncated()
+        public void Read_Throws_WhenTheArchiveIsTruncated()
         {
             var package = BuildPackage(("44444444444444444444444444444444", "Assets/Example/Editor/Foo.cs", "class Foo {}"));
             var truncated = new byte[package.Length / 2];
@@ -55,8 +55,40 @@ namespace ARKitBlendShapeGenerator.Tests
 
             using (var stream = new MemoryStream(truncated))
             {
-                Assert.That(() => UnityPackageContents.ReadPathnames(stream), Throws.InstanceOf<Exception>());
+                Assert.That(() => UnityPackageContents.Read(stream), Throws.InstanceOf<Exception>());
             }
+        }
+
+        // 取り込む中身も読める。名前だけ合った別の版が添付された場合に、
+        // 同梱されたマニフェストで気付ける
+        [Test]
+        public void Read_ReadsTheContentOfEachAsset()
+        {
+            var package = BuildPackage(
+                ("55555555555555555555555555555555", "Assets/Example/package.json", @"{""version"":""0.2.0""}"),
+                ("66666666666666666666666666666666", "Assets/Example/Editor", null));
+
+            using (var stream = new MemoryStream(package))
+            {
+                var entries = UnityPackageContents.Read(stream);
+
+                Assert.That(entries.Count, Is.EqualTo(2));
+                Assert.That(Encoding.UTF8.GetString(entries[0].Asset), Is.EqualTo(@"{""version"":""0.2.0""}"));
+
+                // フォルダのエントリは中身を持たない
+                Assert.That(entries[1].Asset, Is.Null);
+            }
+        }
+
+        private static IEnumerable<string> Pathnames(Stream unityPackage)
+        {
+            var pathnames = new List<string>();
+            foreach (var entry in UnityPackageContents.Read(unityPackage))
+            {
+                pathnames.Add(entry.Pathname);
+            }
+
+            return pathnames;
         }
 
         /// <summary>

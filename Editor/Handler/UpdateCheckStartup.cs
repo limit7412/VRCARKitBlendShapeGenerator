@@ -127,13 +127,13 @@ namespace ARKitBlendShapeGenerator.Handler
             // タグは`v0.2.0`のようにも書ける。package.jsonのversionとは表記が揃わない
             if (PackageVersion.IsSameVersion(PackageLocation.Version, requested))
             {
-                EditorPrefs.DeleteKey(SelfUpdater.BackupPathKey);
+                SessionState.EraseString(SelfUpdater.BackupPathKey);
                 Debug.Log("[ARKitGenerator] " + S("update.completed", requested));
                 return;
             }
 
             // 取り込みが途中で終わった場合に備えて、退避先を知らせる
-            var backup = EditorPrefs.GetString(SelfUpdater.BackupPathKey, string.Empty);
+            var backup = SessionState.GetString(SelfUpdater.BackupPathKey, string.Empty);
             Debug.LogWarning("[ARKitGenerator] " + S("update.incomplete", requested, backup));
         }
     }

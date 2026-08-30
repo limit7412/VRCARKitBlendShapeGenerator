@@ -41,6 +41,15 @@ namespace ARKitBlendShapeGenerator.Tests
             Assert.That(tag, Is.Null);
         }
 
+        // 版を指定して引く場合、`latest`の対象から外れた版もそのまま返る
+        [TestCase(@"{""tag_name"":""0.2.0"",""prerelease"":true}")]
+        [TestCase(@"{""tag_name"":""0.2.0"",""draft"":true}")]
+        public void TryParseTag_RejectsAWithdrawnRelease(string json)
+        {
+            Assert.That(UpdateCheck.TryParseTag(json, out var tag), Is.False);
+            Assert.That(tag, Is.Null);
+        }
+
         [TestCase((string)null)]
         [TestCase("")]
         [TestCase("   ")]

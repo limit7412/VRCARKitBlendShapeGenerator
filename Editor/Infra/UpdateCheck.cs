@@ -316,6 +316,13 @@ namespace ARKitBlendShapeGenerator.Infra
                 return false;
             }
 
+            // 版を指定して引く場合、`latest`の対象から外れた版もそのまま返る。
+            // 不具合などで取り下げられた版を、古い知らせのまま入れるわけにはいかない
+            if (response.prerelease || response.draft)
+            {
+                return false;
+            }
+
             var candidate = response.tag_name.Trim();
             if (!PackageVersion.TryParse(candidate, out _))
             {
@@ -356,6 +363,8 @@ namespace ARKitBlendShapeGenerator.Infra
         {
             // JsonUtilityはフィールド名でJSONのキーと対応づけるため、APIの綴りに合わせる
             public string tag_name;
+            public bool prerelease;
+            public bool draft;
             public ReleaseAssetResponse[] assets;
         }
 

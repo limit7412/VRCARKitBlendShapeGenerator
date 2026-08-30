@@ -23,22 +23,26 @@ namespace ARKitBlendShapeGenerator.Domain
         private const int SizeLength = 12;
 
         private const string PathnameEntry = "pathname";
+        private const string AssetEntry = "asset";
 
         /// <summary>
-        /// 取り込み先のパスを読み取る。
+        /// 取り込み先と中身を読み取る。
         ///
         /// 壊れた書庫では読めたところまでを返さず、例外を投げる。
         /// 途中までの一覧を「新しい版の中身」として扱うと、
         /// 残りのファイルを消してよいと判断してしまう
         /// </summary>
-        public static IReadOnlyList<string> ReadPathnames(Stream unityPackage)
+        public static IReadOnlyList<UnityPackageEntry> Read(Stream unityPackage)
         {
             if (unityPackage == null)
             {
                 throw new ArgumentNullException(nameof(unityPackage));
             }
 
-            var pathnames = new List<string>();
+            // エントリは`<guid>/`の下に分かれて並び、中身と取り込み先の順序は決まっていない
+            var pathnames = new Dictionary<string, string>(StringComparer.Ordinal);
+            var assets = new Dictionary<string, byte[]>(StringComparer.Ordinal);
+            var order = new List<string>();
 
             using (var gzip = new GZipStream(unityPackage, CompressionMode.Decompress, leaveOpen: true))
             {
@@ -57,26 +61,58 @@ namespace ARKitBlendShapeGenerator.Domain
                     var size = ReadOctal(header, SizeOffset, SizeLength);
                     var content = ReadContent(gzip, size);
 
-                    if (IsPathnameEntry(name))
+                    if (!TrySplitEntry(name, out var guid, out var kind))
+                    {
+                        continue;
+                    }
+
+                    if (kind == PathnameEntry)
                     {
                         var pathname = Encoding.UTF8.GetString(content).Trim().Replace('\\', '/');
-                        if (pathname.Length > 0)
+                        if (pathname.Length == 0)
                         {
-                            pathnames.Add(pathname);
+                            continue;
                         }
+
+                        if (!pathnames.ContainsKey(guid))
+                        {
+                            order.Add(guid);
+                        }
+
+                        pathnames[guid] = pathname;
+                    }
+                    else if (kind == AssetEntry)
+                    {
+                        assets[guid] = content;
                     }
                 }
             }
 
-            return pathnames;
+            var entries = new List<UnityPackageEntry>(order.Count);
+            foreach (var guid in order)
+            {
+                assets.TryGetValue(guid, out var asset);
+                entries.Add(new UnityPackageEntry(pathnames[guid], asset));
+            }
+
+            return entries;
         }
 
-        private static bool IsPathnameEntry(string name)
+        private static bool TrySplitEntry(string name, out string guid, out string kind)
         {
-            // エントリは`<guid>/pathname`の形をとる
+            guid = null;
+            kind = null;
+
+            // エントリは`<guid>/asset`のような形をとる
             var separator = name.LastIndexOf('/');
-            return separator >= 0
-                && string.Equals(name.Substring(separator + 1), PathnameEntry, StringComparison.Ordinal);
+            if (separator <= 0)
+            {
+                return false;
+            }
+
+            guid = name.Substring(0, separator);
+            kind = name.Substring(separator + 1);
+            return true;
         }
 
         private static byte[] ReadContent(Stream stream, long size)
