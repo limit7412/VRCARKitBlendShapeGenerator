@@ -16,6 +16,9 @@ name: Test
 #
 # テスト対象に触れていない変更では、テストジョブをスキップする。
 # 判定は`on`の`paths`フィルタではなく`changes`ジョブと`if`で行う（理由は当該ジョブに記述）。
+#
+# 配布パッケージの組み立ての検証（`packaging`ジョブ）はUnityを使わないため、
+# ライセンスの有無にも`changes`の判定にも関わらず常に実行する。
 
 on:
   pull_request:
@@ -155,6 +158,124 @@ jobs:
             echo "::notice::テスト対象のファイルに変更がないためEditModeテストをスキップします"
           fi
           echo "relevant=$RELEVANT" >> "$GITHUB_OUTPUT"
+
+  # 配布パッケージの組み立てを検証する。
+  #
+  # booth用のunitypackageはGUIDを`.meta`から取るため、`.meta`の欠落やGUIDの取り違えは
+  # 「更新した瞬間にアバターのコンポーネントがMissingになる」形で利用者へ出る。
+  # リリースまで気付けない類の壊れ方なので、PRごとに確かめる。
+  #
+  # Unityを使わない検証なので、ライセンスの有無や`changes`の判定に関わらず常に実行する。
+  packaging:
+    name: Packaging
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      # 既存の`.meta`のGUIDが変わっていないことを、変更前の内容と突き合わせて確かめる。
+      # 配布済みのGUIDは利用者のアバターから参照されており、振り直すわけにはいかない。
+      #
+      # 突き合わせる相手はイベントで違う。
+      # PRではベースブランチだが、pushで同じようにブランチ名を使うと、取得できるのは
+      # 今まさにpushされた内容そのものになり、比較が素通りしてしまう。
+      # pushでは`before`が指す更新前のコミットを相手にする。
+      - name: Resolve comparison target
+        id: base
+        env:
+          PR_BASE: ${{ github.event.pull_request.base.ref }}
+          BEFORE: ${{ github.event.before }}
+        run: |
+          set -euo pipefail
+
+          if [ -n "$PR_BASE" ]; then
+            git fetch --no-tags --depth=1 origin "$PR_BASE"
+            echo "ref=FETCH_HEAD" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          # ブランチ作成時やforce push後、workflow_dispatchでは比較対象を定められない。
+          # GUIDの突き合わせだけを省き、残りの検証はそのまま行う
+          if [ -z "${BEFORE:-}" ] || [ "$BEFORE" = "0000000000000000000000000000000000000000" ]; then
+            echo "::notice::比較対象の更新前コミットが無いためGUIDの突き合わせを省略します"
+            echo "ref=" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          if ! git fetch --no-tags --depth=1 origin "$BEFORE"; then
+            echo "::warning::更新前のコミット($BEFORE)を取得できないためGUIDの突き合わせを省略します"
+            echo "ref=" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          echo "ref=FETCH_HEAD" >> "$GITHUB_OUTPUT"
+
+      - name: Verify packaging
+        env:
+          BASE: ${{ steps.base.outputs.ref }}
+        run: |
+          set -euo pipefail
+
+          if [ -n "$BASE" ]; then
+            python3 .github/scripts/booth_package.py verify --base-ref "$BASE"
+          else
+            python3 .github/scripts/booth_package.py verify
+          fi
+
+      # リリースとプレリリースが実際に通る経路をそのまま動かす。
+      # 上の検証はPython側だけを呼ぶため、バージョンの書き換えやVPM用zipの生成といった
+      # シェル側を壊した変更が素通りし、次のリリースで初めて資材が欠ける
+      - name: Build packages
+        run: |
+          set -euo pipefail
+
+          OUT="$RUNNER_TEMP/packages"
+          VERSION=9.9.9
+          .github/scripts/build-packages.sh "$VERSION" "$OUT"
+
+          # スクリプトはpackage.jsonのversionを書き換える。
+          # 後続のステップが元の内容を前提にできるよう戻す
+          git checkout -- package.json
+
+          VPM="$OUT/com.qazx7412.kx-vrc-arkit-blendshape-generator-${VERSION}.zip"
+          BOOTH="$OUT/VRCARKitBlendShapeGenerator_${VERSION}.zip"
+
+          for ZIP in "$VPM" "$BOOTH"; do
+            if [ ! -f "$ZIP" ]; then
+              echo "::error::$(basename "$ZIP") が作られていません"
+              exit 1
+            fi
+          done
+
+          # VPM用は`.meta`を含めず、直下にpackage.jsonを置く。
+          # リスティングの生成はこのpackage.jsonを読む
+          if unzip -Z1 "$VPM" | grep -q '\.meta$'; then
+            echo "::error::VPM用のzipへ .meta が入っています"
+            exit 1
+          fi
+          if ! unzip -Z1 "$VPM" | grep -qx 'package.json'; then
+            echo "::error::VPM用のzipの直下にpackage.jsonがありません"
+            exit 1
+          fi
+          if [ "$(unzip -p "$VPM" package.json | jq -r .version)" != "$VERSION" ]; then
+            echo "::error::VPM用のzipのversionが書き換わっていません"
+            exit 1
+          fi
+
+          # booth用の直下はunitypackage 1つだけ。
+          # package.jsonを置くとリスティングの生成がbooth用の配布物まで拾ってしまう
+          if [ "$(unzip -Z1 "$BOOTH" | wc -l)" != "1" ]; then
+            echo "::error::booth用のzipの直下が1ファイルではありません"
+            unzip -Z1 "$BOOTH"
+            exit 1
+          fi
+          if ! unzip -Z1 "$BOOTH" | grep -qx "VRCARKitBlendShapeGenerator_${VERSION}.unitypackage"; then
+            echo "::error::booth用のzipの中身が想定の.unitypackageではありません"
+            unzip -Z1 "$BOOTH"
+            exit 1
+          fi
+
+          echo "両方のzipを確認しました"
+          ls -la "$OUT"
 
   test:
     name: EditMode tests

@@ -82,15 +82,21 @@ jobs:
           fi
 
           # zipへ実際に入るファイルだけを対象とする。
-          # 判定の対象は「Create package zip」が固める内容と一致させること。
+          # 判定の対象は`.github/scripts/build-packages.sh`が固める内容と一致させること。
           # 一致していないと、パッケージの中身が同じプレリリースが積み上がるか、
           # 逆に中身が変わったのに作られないかのどちらかが起きる。
           #
           # テストコード(Tests/)とドキュメントはzipへ入らないため対象外。
-          # `.meta`はzip生成時に`-x "*.meta"`で除外されるため、これも対象外。
-          # このワークフロー自身も対象に含めない。手順を変えてもzipの中身は変わらず、
-          # 中身の同じプレリリースが増えるだけになる。
-          # 手順を変えて作り直したいときは`workflow_dispatch`から実行する。
+          # `.meta`と`LICENSE`はbooth用のunitypackageへ入るため対象に含める。
+          # VPM用のzipからは`-x "*.meta"`で除かれるが、判定は2つの配布物の和で行う。
+          #
+          # 直下の`Editor.meta` `Runtime.meta` `package.json.meta` `LICENSE.meta`は
+          # `Editor/*`のようなパターンに当たらないため、個別に並べる。
+          # これらもunitypackageのエントリになるので、漏らすと中身が変わったのに
+          # プレリリースが作られない。
+          # このワークフロー自身とスクリプトは対象に含めない。手順の変更でzipの中身が
+          # 変わることはあるが、その頻度でプレリリースを積むより、作り直したいときに
+          # `workflow_dispatch`から実行する方が扱いやすい。
           RELEVANT=false
           COUNT=0
           while IFS=$'\t' read -r NEW_PATH OLD_PATH; do
@@ -98,11 +104,8 @@ jobs:
             COUNT=$((COUNT + 1))
             for FILE in "$NEW_PATH" "$OLD_PATH"; do
               [ -n "$FILE" ] || continue
-              # `case`は先に書いたパターンで止まるため、除外を対象より前に置く
               case "$FILE" in
-                *.meta)
-                  ;;
-                Editor/*|Runtime/*|package.json)
+                Editor/*|Editor.meta|Runtime/*|Runtime.meta|package.json|package.json.meta|LICENSE|LICENSE.meta)
                   echo "パッケージの中身が変わる変更: $FILE"
                   RELEVANT=true
                   ;;
@@ -186,28 +189,10 @@ jobs:
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           echo "Version: $VERSION"
 
-      # 以降のzip生成はrelease.ymlの同名ステップと同じ内容にする。
-      # 片方だけ変更するとプレリリースと安定版で中身の違うパッケージができるため、
-      # 変更する場合は両方を揃えること。
-      - name: Update package.json version
-        run: |
-          jq '.version = "${{ steps.version.outputs.version }}"' package.json > package.json.tmp
-          mv package.json.tmp package.json
-
-      - name: Create package zip
-        run: |
-          PACKAGE_NAME="com.qazx7412.kx-vrc-arkit-blendshape-generator"
-          ZIP_NAME="${PACKAGE_NAME}-${{ steps.version.outputs.version }}.zip"
-
-          # Create zip with package contents
-          zip -r "$ZIP_NAME" \
-            package.json \
-            Runtime/ \
-            Editor/ \
-            -x "*.meta"
-
-          echo "Created: $ZIP_NAME"
-          ls -la "$ZIP_NAME"
+      # VPM用とbooth用のzipを作る。
+      # release.ymlも同じスクリプトを呼ぶため、プレリリースと安定版で中身が食い違わない
+      - name: Build packages
+        run: .github/scripts/build-packages.sh "${{ steps.version.outputs.version }}"
 
       - name: Create pre-release
         uses: softprops/action-gh-release@v3

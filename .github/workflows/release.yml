@@ -46,30 +46,15 @@ jobs:
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "Version: $VERSION"
 
-      - name: Update package.json version
-        run: |
-          jq '.version = "${{ steps.version.outputs.version }}"' package.json > package.json.tmp
-          mv package.json.tmp package.json
-
-      - name: Create package zip
-        run: |
-          PACKAGE_NAME="com.qazx7412.kx-vrc-arkit-blendshape-generator"
-          ZIP_NAME="${PACKAGE_NAME}-${{ steps.version.outputs.version }}.zip"
-
-          # Create zip with package contents
-          zip -r "$ZIP_NAME" \
-            package.json \
-            Runtime/ \
-            Editor/ \
-            -x "*.meta"
-
-          echo "Created: $ZIP_NAME"
-          ls -la "$ZIP_NAME"
+      # VPM用とbooth用のzipを作る。
+      # 生成の中身はprerelease.ymlと共通のスクリプトにあり、片方だけ変わることはない
+      - name: Build packages
+        run: .github/scripts/build-packages.sh "${{ steps.version.outputs.version }}"
 
       - name: Upload artifact
         uses: actions/upload-artifact@v7
         with:
-          name: vpm-package
+          name: packages
           path: "*.zip"
 
       - name: Upload to Release
