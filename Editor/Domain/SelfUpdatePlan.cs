@@ -164,7 +164,7 @@ namespace ARKitBlendShapeGenerator.Domain
         /// 手元にしか無いファイルは、利用者が自分で置いたものである可能性もあるが、
         /// パッケージのフォルダの中に限る。
         /// </summary>
-        /// <param name="installedAssetPaths">手元のフォルダにあるアセットのパス（.metaを除く）</param>
+        /// <param name="installedAssetPaths">手元のフォルダにあるアセットのパス（フォルダを含み、.metaを除く）</param>
         /// <param name="packagedPathnames">新しいunitypackageが持つ取り込み先のパス</param>
         public static IReadOnlyList<string> SelectObsoleteAssets(
             IEnumerable<string> installedAssetPaths,
@@ -196,6 +196,7 @@ namespace ARKitBlendShapeGenerator.Domain
                 return obsolete;
             }
 
+            var candidates = new List<string>();
             foreach (var path in installedAssetPaths)
             {
                 var normalized = Normalize(path);
@@ -204,11 +205,41 @@ namespace ARKitBlendShapeGenerator.Domain
                     continue;
                 }
 
-                obsolete.Add(normalized);
+                candidates.Add(normalized);
+            }
+
+            // 消すフォルダの中身は、そのフォルダごと消える。
+            // 中身まで並べると、先にフォルダが消えた時点で残りが「消せなかった」ものとして
+            // 返り、更新そのものが中止になる
+            var removedFolders = new HashSet<string>(candidates, StringComparer.Ordinal);
+            foreach (var candidate in candidates)
+            {
+                if (!HasAncestorIn(candidate, removedFolders))
+                {
+                    obsolete.Add(candidate);
+                }
             }
 
             obsolete.Sort(StringComparer.Ordinal);
             return obsolete;
+        }
+
+        /// <summary>そのパスの親をたどり、消す一覧に含まれるものがあるか</summary>
+        private static bool HasAncestorIn(string path, HashSet<string> paths)
+        {
+            var separator = path.LastIndexOf('/');
+            while (separator > 0)
+            {
+                path = path.Substring(0, separator);
+                if (paths.Contains(path))
+                {
+                    return true;
+                }
+
+                separator = path.LastIndexOf('/');
+            }
+
+            return false;
         }
 
         private static string Normalize(string path)

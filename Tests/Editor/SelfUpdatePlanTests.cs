@@ -147,6 +147,44 @@ namespace ARKitBlendShapeGenerator.Tests
             Assert.That(SelfUpdatePlan.SelectObsoleteAssets(installed, Enumerable.Empty<string>()), Is.Empty);
         }
 
+        // 消すフォルダの中身まで並べると、先にフォルダが消えた時点で残りが
+        // 「消せなかった」ものとして返り、更新そのものが中止になる
+        [Test]
+        public void SelectObsoleteAssets_KeepsOnlyTheTopmostOfARemovedFolder()
+        {
+            var installed = new[]
+            {
+                Root + "/Editor/Gone",
+                Root + "/Editor/Gone/Deeper",
+                Root + "/Editor/Gone/Deeper/Removed.cs",
+                Root + "/Editor/Gone/Removed.cs",
+                Root + "/Editor/Kept.cs",
+            };
+            var packaged = new[]
+            {
+                Root,
+                Root + "/Editor",
+                Root + "/Editor/Kept.cs",
+            };
+
+            Assert.That(
+                SelfUpdatePlan.SelectObsoleteAssets(installed, packaged),
+                Is.EqualTo(new[] { Root + "/Editor/Gone" }));
+        }
+
+        // 新しい版で無くなったフォルダを残すと、`.meta`ごと残った空のフォルダが、
+        // 同じGUIDを持つ移動後のフォルダとぶつかる
+        [Test]
+        public void SelectObsoleteAssets_IncludesAFolderTheNewPackageNoLongerHas()
+        {
+            var installed = new[] { Root + "/Editor/Gone", Root + "/Editor/Kept.cs" };
+            var packaged = new[] { Root, Root + "/Editor", Root + "/Editor/Kept.cs" };
+
+            Assert.That(
+                SelfUpdatePlan.SelectObsoleteAssets(installed, packaged),
+                Is.EqualTo(new[] { Root + "/Editor/Gone" }));
+        }
+
         /// <summary>このパッケージのunitypackageが必ず持つ取り込み先</summary>
         private static IEnumerable<string> ExpectedContents()
         {

@@ -33,9 +33,22 @@ namespace ARKitBlendShapeGenerator.Infra
     /// </summary>
     internal static class UpdateCheck
     {
-        /// <summary>最新の安定版を返すエンドポイント。自己更新も同じ応答からアセットを選ぶ</summary>
-        internal const string LatestReleaseApiUrl =
-            "https://api.github.com/repos/limit7412/VRCARKitBlendShapeGenerator/releases/latest";
+        private const string ReleasesApiUrl =
+            "https://api.github.com/repos/limit7412/VRCARKitBlendShapeGenerator/releases";
+
+        /// <summary>最新の安定版を返すエンドポイント</summary>
+        internal const string LatestReleaseApiUrl = ReleasesApiUrl + "/latest";
+
+        /// <summary>
+        /// 版を指定してリリースを引くエンドポイント。
+        ///
+        /// 自己更新は利用者が確かめた版を取りに行く。`latest`を引き直すと、知らせてから
+        /// 実行するまでに次の版が出た場合に、確かめたものと違う版を入れることになる
+        /// </summary>
+        internal static string ReleaseByTagApiUrl(string tag)
+        {
+            return ReleasesApiUrl + "/tags/" + Uri.EscapeDataString(tag ?? string.Empty);
+        }
 
         /// <summary>更新の入手先として案内するページ</summary>
         public const string ReleasesPageUrl =

@@ -424,6 +424,12 @@ msgstr "Stopped because the downloaded package does not contain what was expecte
 msgid "update.error.delete"
 msgstr "Stopped before importing because old files could not be deleted.\nCould not delete: {0}\nThe previous contents are kept at {1}."
 
+msgid "update.error.playing"
+msgstr "Cannot update while in play mode. Exit play mode and try again."
+
+msgid "update.error.scan"
+msgstr "Stopped because the installed files could not be inspected: {0}"
+
 
 
 msgid "update.error.backup"

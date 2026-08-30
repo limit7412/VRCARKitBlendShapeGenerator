@@ -67,10 +67,19 @@ namespace ARKitBlendShapeGenerator.Infra
                 return;
             }
 
+            // 再生中にスクリプトを差し替えるわけにはいかない
+            if (EditorApplication.isPlayingOrWillChangePlaymode)
+            {
+                Fail(S("update.error.playing"));
+                return;
+            }
+
             _isRunning = true;
 
-            // アセットのURLは応答ごとに変わりうるため、確認時のものを覚えず、その場で取り直す
-            Send(() => UnityWebRequest.Get(UpdateCheck.LatestReleaseApiUrl), request =>
+            // 版を指定して引く。`latest`を引き直すと、知らせてから実行するまでに次の版が
+            // 出た場合に、確かめたものと違う版が入る。
+            // アセットのURLは応答ごとに変わりうるため、確認時のものは覚えずここで取り直す
+            Send(() => UnityWebRequest.Get(UpdateCheck.ReleaseByTagApiUrl(tag)), request =>
             {
                 if (!UpdateCheck.TryParseRelease(request.downloadHandler?.text, out var latest, out var assets)
                     || latest != tag)
@@ -148,7 +157,18 @@ namespace ARKitBlendShapeGenerator.Infra
                 return;
             }
 
-            var obsolete = SelfUpdatePlan.SelectObsoleteAssets(EnumerateInstalledAssets(), packagedPathnames);
+            IReadOnlyList<string> obsolete;
+            try
+            {
+                // 走査はここで動く。権限の無いフォルダなどに当たると例外が出る
+                obsolete = SelfUpdatePlan.SelectObsoleteAssets(EnumerateInstalledAssets(), packagedPathnames);
+            }
+            catch (Exception exception) when (IsFileFailure(exception))
+            {
+                Delete(unityPackagePath);
+                Fail(S("update.error.scan", exception.Message));
+                return;
+            }
 
             string backupPath;
             try
@@ -159,6 +179,15 @@ namespace ARKitBlendShapeGenerator.Infra
             {
                 Delete(unityPackagePath);
                 Fail(S("update.error.backup", exception.Message));
+                return;
+            }
+
+            // 開始から取得までの間に再生へ入られることがある。
+            // ファイルへ触る直前にもう一度確かめる
+            if (EditorApplication.isPlayingOrWillChangePlaymode)
+            {
+                Delete(unityPackagePath);
+                Fail(S("update.error.playing"));
                 return;
             }
 
@@ -214,7 +243,12 @@ namespace ARKitBlendShapeGenerator.Infra
             return failed;
         }
 
-        /// <summary>手元のフォルダにあるアセットを、プロジェクトからの相対パスで並べる</summary>
+        /// <summary>
+        /// 手元のフォルダにあるアセットを、プロジェクトからの相対パスで並べる。
+        ///
+        /// フォルダも含める。新しい版で無くなったフォルダを残すと、`.meta`ごと残った
+        /// 空のフォルダが、同じGUIDを持つ移動後のフォルダとぶつかる
+        /// </summary>
         private static IEnumerable<string> EnumerateInstalledAssets()
         {
             var root = PackageLocation.Root;
@@ -223,8 +257,14 @@ namespace ARKitBlendShapeGenerator.Infra
                 yield break;
             }
 
+            foreach (var path in Directory.GetDirectories(root, "*", SearchOption.AllDirectories))
+            {
+                yield return path.Replace('\\', '/');
+            }
+
             foreach (var path in Directory.GetFiles(root, "*", SearchOption.AllDirectories))
             {
+                // .metaはアセットではなく、消すときもAssetDatabaseが一緒に始末する
                 if (path.EndsWith(".meta", StringComparison.OrdinalIgnoreCase))
                 {
                     continue;
