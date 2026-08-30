@@ -23,9 +23,25 @@ Jerry's Templatesと組み合わせて使用することで、フェイストラ
 
 ### 手動インストール
 
-1. Releasesからzipファイルをダウンロード
+1. Releasesから`com.qazx7412.kx-vrc-arkit-blendshape-generator-<version>.zip`をダウンロード
 2. VCCのプロジェクト管理画面で「Add Package」→「Add from Archive」を選択
 3. ダウンロードしたzipファイルを選択
+
+### unitypackage（booth版）
+
+VCC/ALCOMを使わずに導入する形式です。
+`VRCARKitBlendShapeGenerator_<version>.zip`を展開すると、同名のunitypackageが入っています。
+
+1. VRChat SDK (Avatars) とNDMFをプロジェクトへ先に導入する
+2. unitypackageをプロジェクトへインポートする
+
+`Assets/AtelierKairox/VRCARKitBlendShapeGenerator/`へ展開されます。
+
+VPM版とunitypackage版を同じプロジェクトへ同時に入れることはできません。
+どちらもアセンブリ名が同じであるため、Unityが重複を検出してコンパイルが通らなくなります。
+
+更新するときは、`Assets/AtelierKairox/VRCARKitBlendShapeGenerator/`を削除してから新しいunitypackageをインポートしてください。
+unitypackageの上書きインポートは、古いバージョンにあって新しいバージョンで無くなったファイルを消さないため、残ったファイルがコンパイルエラーの原因になります。
 
 ## 使用方法
 
