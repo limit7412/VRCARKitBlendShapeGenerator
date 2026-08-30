@@ -418,5 +418,9 @@ msgstr "The downloaded file does not match the digest reported by GitHub. The up
 msgid "update.error.archive"
 msgstr "Could not read the downloaded file: {0}"
 
+msgid "update.error.contents"
+msgstr "Stopped because the downloaded package does not contain what was expected."
+
+
 msgid "update.error.backup"
 msgstr "Stopped because the previous contents could not be backed up: {0}"

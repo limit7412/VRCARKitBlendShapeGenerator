@@ -36,10 +36,23 @@ namespace ARKitBlendShapeGenerator.Handler
 
             // 応答は起動後しばらくして返る。届いた時点で改めて見る
             UpdateCheck.ResultChanged += Announce;
+
+            // 再生中に届いた場合は知らせを見送るため、戻ってきたところで拾い直す。
+            // ドメインリロードを切っているプロジェクトでは、再生の前後で読み込みが起きない
+            EditorApplication.playModeStateChanged += OnPlayModeChanged;
+
             UpdateCheck.PollIfDue();
 
             // 前回の確認結果が残っていることもあるため、応答を待たずに一度見る
             Announce();
+        }
+
+        private static void OnPlayModeChanged(PlayModeStateChange change)
+        {
+            if (change == PlayModeStateChange.EnteredEditMode)
+            {
+                Announce();
+            }
         }
 
         private static void Announce()
@@ -111,7 +124,8 @@ namespace ARKitBlendShapeGenerator.Handler
 
             SessionState.EraseString(SelfUpdater.PendingCompletionKey);
 
-            if (PackageLocation.Version == requested)
+            // タグは`v0.2.0`のようにも書ける。package.jsonのversionとは表記が揃わない
+            if (PackageVersion.IsSameVersion(PackageLocation.Version, requested))
             {
                 EditorPrefs.DeleteKey(SelfUpdater.BackupPathKey);
                 Debug.Log("[ARKitGenerator] " + S("update.completed", requested));

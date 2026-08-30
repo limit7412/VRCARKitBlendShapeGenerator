@@ -22,11 +22,45 @@ namespace ARKitBlendShapeGenerator.Domain
 
         private const string BoothAssetPrefix = "VRCARKitBlendShapeGenerator_";
         private const string BoothAssetSuffix = ".zip";
+        private const string TagVersionPrefix = "v";
+
+        /// <summary>
+        /// このパッケージのunitypackageなら必ず持つ取り込み先。
+        ///
+        /// アセンブリの定義とマニフェストが欠けたものは、少なくともこのパッケージではない
+        /// </summary>
+        private static readonly string[] RequiredPathnames =
+        {
+            InstallRoot,
+            InstallRoot + "/package.json",
+            InstallRoot + "/Editor/ARKitBlendShapeGenerator.Editor.asmdef",
+            InstallRoot + "/Runtime/ARKitBlendShapeGenerator.Runtime.asmdef",
+        };
+
+        /// <summary>
+        /// タグから、配布物の名前に使われるバージョンを取り出す。
+        ///
+        /// release.ymlは先頭の`v`を落としてから資材を作るため、`v0.2.0`のタグからは
+        /// `VRCARKitBlendShapeGenerator_0.2.0.zip`ができる。同じ形にしないと取りに行く名前が外れる
+        /// </summary>
+        public static string AssetVersion(string tag)
+        {
+            if (string.IsNullOrWhiteSpace(tag))
+            {
+                return tag;
+            }
+
+            var trimmed = tag.Trim();
+            return trimmed.StartsWith(TagVersionPrefix, StringComparison.Ordinal)
+                ? trimmed.Substring(TagVersionPrefix.Length)
+                : trimmed;
+        }
 
         /// <summary>そのタグのリリースに添付されるbooth用zipの名前</summary>
         public static string BoothAssetName(string tag)
         {
-            return string.Format(CultureInfo.InvariantCulture, "{0}{1}{2}", BoothAssetPrefix, tag, BoothAssetSuffix);
+            return string.Format(
+                CultureInfo.InvariantCulture, "{0}{1}{2}", BoothAssetPrefix, AssetVersion(tag), BoothAssetSuffix);
         }
 
         /// <summary>
@@ -74,6 +108,50 @@ namespace ARKitBlendShapeGenerator.Domain
             }
 
             return false;
+        }
+
+        /// <summary>
+        /// 取り込もうとしている中身が、このパッケージのものかどうか。
+        ///
+        /// 消すファイルは「新しい版に無いもの」として選ぶため、中身の欠けたunitypackageや
+        /// 別のパッケージのものを受け入れると、手元のほとんどが消える。
+        /// ダイジェストは配布されたファイルそのものとは一致するので、この防ぎ方にはならない
+        /// </summary>
+        public static bool IsExpectedPackage(IEnumerable<string> packagedPathnames)
+        {
+            if (packagedPathnames == null)
+            {
+                return false;
+            }
+
+            var packaged = new HashSet<string>(StringComparer.Ordinal);
+            foreach (var pathname in packagedPathnames)
+            {
+                var normalized = Normalize(pathname);
+                if (normalized == null)
+                {
+                    continue;
+                }
+
+                // 取り込み先がフォルダの外を指すものが混ざっていれば、このパッケージではない
+                if (normalized != InstallRoot
+                    && !normalized.StartsWith(InstallRoot + "/", StringComparison.Ordinal))
+                {
+                    return false;
+                }
+
+                packaged.Add(normalized);
+            }
+
+            foreach (var required in RequiredPathnames)
+            {
+                if (!packaged.Contains(required))
+                {
+                    return false;
+                }
+            }
+
+            return true;
         }
 
         /// <summary>

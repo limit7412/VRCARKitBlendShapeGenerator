@@ -418,5 +418,9 @@ msgstr "ダウンロードしたファイルがGitHubの示すダイジェスト
 msgid "update.error.archive"
 msgstr "ダウンロードしたファイルを読めませんでした: {0}"
 
+msgid "update.error.contents"
+msgstr "ダウンロードしたパッケージの中身が想定と違うため中止しました。"
+
+
 msgid "update.error.backup"
 msgstr "更新前の内容を控えられなかったため中止しました: {0}"

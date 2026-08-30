@@ -140,6 +140,14 @@ namespace ARKitBlendShapeGenerator.Infra
                 return;
             }
 
+            // 中身の欠けたものや別のパッケージを受け入れると、消すファイルの選択が破滅的に外れる
+            if (!SelfUpdatePlan.IsExpectedPackage(packagedPathnames))
+            {
+                Delete(unityPackagePath);
+                Fail(S("update.error.contents"));
+                return;
+            }
+
             var obsolete = SelfUpdatePlan.SelectObsoleteAssets(EnumerateInstalledAssets(), packagedPathnames);
 
             string backupPath;

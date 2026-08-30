@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Linq;
 using NUnit.Framework;
 using ARKitBlendShapeGenerator.Domain;
@@ -18,6 +19,37 @@ namespace ARKitBlendShapeGenerator.Tests
         public void BoothAssetName_MatchesTheNameAttachedToARelease()
         {
             Assert.That(SelfUpdatePlan.BoothAssetName("0.2.0"), Is.EqualTo("VRCARKitBlendShapeGenerator_0.2.0.zip"));
+        }
+
+        // release.ymlは先頭の`v`を落としてから資材を作る。同じ形にしないと取りに行く名前が外れる
+        [TestCase("v0.2.0")]
+        [TestCase("0.2.0")]
+        public void BoothAssetName_DropsTheTagPrefix(string tag)
+        {
+            Assert.That(SelfUpdatePlan.BoothAssetName(tag), Is.EqualTo("VRCARKitBlendShapeGenerator_0.2.0.zip"));
+        }
+
+        [Test]
+        public void IsExpectedPackage_AcceptsThePackageItself()
+        {
+            Assert.That(SelfUpdatePlan.IsExpectedPackage(ExpectedContents()), Is.True);
+        }
+
+        // ルートだけの不完全な書庫を受け入れると、手元のほとんどが消える
+        [Test]
+        public void IsExpectedPackage_RejectsAnArchiveMissingTheEssentials()
+        {
+            Assert.That(SelfUpdatePlan.IsExpectedPackage(new[] { Root }), Is.False);
+            Assert.That(SelfUpdatePlan.IsExpectedPackage(new string[0]), Is.False);
+        }
+
+        [Test]
+        public void IsExpectedPackage_RejectsAnArchiveForAnotherPackage()
+        {
+            var other = ExpectedContents().ToList();
+            other.Add("Assets/SomeoneElse/Editor/Other.cs");
+
+            Assert.That(SelfUpdatePlan.IsExpectedPackage(other), Is.False);
         }
 
         [Test]
@@ -113,6 +145,18 @@ namespace ARKitBlendShapeGenerator.Tests
             var installed = new[] { Root + "/Editor/Domain/Kept.cs" };
 
             Assert.That(SelfUpdatePlan.SelectObsoleteAssets(installed, Enumerable.Empty<string>()), Is.Empty);
+        }
+
+        /// <summary>このパッケージのunitypackageが必ず持つ取り込み先</summary>
+        private static IEnumerable<string> ExpectedContents()
+        {
+            return new[]
+            {
+                Root,
+                Root + "/package.json",
+                Root + "/Editor/ARKitBlendShapeGenerator.Editor.asmdef",
+                Root + "/Runtime/ARKitBlendShapeGenerator.Runtime.asmdef",
+            };
         }
     }
 }
