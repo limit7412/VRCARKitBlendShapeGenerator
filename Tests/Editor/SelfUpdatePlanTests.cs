@@ -34,11 +34,12 @@ namespace ARKitBlendShapeGenerator.Tests
             Assert.That(SelfUpdatePlan.CanSelfUpdate(InstallLocation.Booth, "Assets/MyAssets/ARKitGenerator"), Is.False);
         }
 
-        [TestCase(InstallLocation.Vpm)]
-        [TestCase(InstallLocation.Unknown)]
-        public void CannotSelfUpdate_OutsideABoothInstall(InstallLocation location)
+        // InstallLocationはinternalであり、publicなテストメソッドの引数には置けない
+        [Test]
+        public void CannotSelfUpdate_OutsideABoothInstall()
         {
-            Assert.That(SelfUpdatePlan.CanSelfUpdate(location, Root), Is.False);
+            Assert.That(SelfUpdatePlan.CanSelfUpdate(InstallLocation.Vpm, Root), Is.False);
+            Assert.That(SelfUpdatePlan.CanSelfUpdate(InstallLocation.Unknown, Root), Is.False);
         }
 
         [Test]

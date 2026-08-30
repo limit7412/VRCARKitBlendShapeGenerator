@@ -36,12 +36,14 @@ namespace ARKitBlendShapeGenerator.Tests
             Assert.That(UpdateAnnouncement.ShouldAnnounce(InstallLocation.Booth, null, "0.2.0"), Is.False);
         }
 
-        // VPM版の更新はVCC/ALCOMが担うため、こちらから割り込まない
-        [TestCase(InstallLocation.Vpm)]
-        [TestCase(InstallLocation.Unknown)]
-        public void ShouldNotAnnounce_OutsideABoothInstall(InstallLocation location)
+        // VPM版の更新はVCC/ALCOMが担うため、こちらから割り込まない。
+        // InstallLocationはinternalであり、publicなテストメソッドの引数には置けないため、
+        // TestCaseで並べずに本体で確かめる
+        [Test]
+        public void ShouldNotAnnounce_OutsideABoothInstall()
         {
-            Assert.That(UpdateAnnouncement.ShouldAnnounce(location, "0.2.0", null), Is.False);
+            Assert.That(UpdateAnnouncement.ShouldAnnounce(InstallLocation.Vpm, "0.2.0", null), Is.False);
+            Assert.That(UpdateAnnouncement.ShouldAnnounce(InstallLocation.Unknown, "0.2.0", null), Is.False);
         }
     }
 }
