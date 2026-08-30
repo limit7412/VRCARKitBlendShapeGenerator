@@ -221,6 +221,62 @@ jobs:
             python3 .github/scripts/booth_package.py verify
           fi
 
+      # リリースとプレリリースが実際に通る経路をそのまま動かす。
+      # 上の検証はPython側だけを呼ぶため、バージョンの書き換えやVPM用zipの生成といった
+      # シェル側を壊した変更が素通りし、次のリリースで初めて資材が欠ける
+      - name: Build packages
+        run: |
+          set -euo pipefail
+
+          OUT="$RUNNER_TEMP/packages"
+          VERSION=9.9.9
+          .github/scripts/build-packages.sh "$VERSION" "$OUT"
+
+          # スクリプトはpackage.jsonのversionを書き換える。
+          # 後続のステップが元の内容を前提にできるよう戻す
+          git checkout -- package.json
+
+          VPM="$OUT/com.qazx7412.kx-vrc-arkit-blendshape-generator-${VERSION}.zip"
+          BOOTH="$OUT/VRCARKitBlendShapeGenerator_${VERSION}.zip"
+
+          for ZIP in "$VPM" "$BOOTH"; do
+            if [ ! -f "$ZIP" ]; then
+              echo "::error::$(basename "$ZIP") が作られていません"
+              exit 1
+            fi
+          done
+
+          # VPM用は`.meta`を含めず、直下にpackage.jsonを置く。
+          # リスティングの生成はこのpackage.jsonを読む
+          if unzip -Z1 "$VPM" | grep -q '\.meta$'; then
+            echo "::error::VPM用のzipへ`.meta`が入っています"
+            exit 1
+          fi
+          if ! unzip -Z1 "$VPM" | grep -qx 'package.json'; then
+            echo "::error::VPM用のzipの直下にpackage.jsonがありません"
+            exit 1
+          fi
+          if [ "$(unzip -p "$VPM" package.json | jq -r .version)" != "$VERSION" ]; then
+            echo "::error::VPM用のzipのversionが書き換わっていません"
+            exit 1
+          fi
+
+          # booth用の直下はunitypackage 1つだけ。
+          # package.jsonを置くとリスティングの生成がbooth用の配布物まで拾ってしまう
+          if [ "$(unzip -Z1 "$BOOTH" | wc -l)" != "1" ]; then
+            echo "::error::booth用のzipの直下が1ファイルではありません"
+            unzip -Z1 "$BOOTH"
+            exit 1
+          fi
+          if ! unzip -Z1 "$BOOTH" | grep -qx "VRCARKitBlendShapeGenerator_${VERSION}.unitypackage"; then
+            echo "::error::booth用のzipの中身が想定の.unitypackageではありません"
+            unzip -Z1 "$BOOTH"
+            exit 1
+          fi
+
+          echo "両方のzipを確認しました"
+          ls -la "$OUT"
+
   test:
     name: EditMode tests
     needs: [license, changes]

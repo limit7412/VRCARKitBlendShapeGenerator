@@ -318,9 +318,15 @@ def command_verify(args):
 
 
 def _diff_guids_against(repo_root, base_ref):
-    """`base_ref`にある`.meta`のGUIDが変わっていないか調べる。
+    """`base_ref`が配っていたGUIDが今も同じ意味で残っているか調べる。
 
-    GUIDは一度配布したら変えられないため、既存の`.meta`は追加と削除しか許さない
+    GUIDは一度配布したら変えられない。
+    利用者のアバターやプレハブはこの値でアセットを指しているため、振り直すと参照が切れる。
+
+    見るのは3つ。
+    パスが残っているのにGUIDが変わっていないか、
+    配っていたGUIDそのものが一覧から消えていないか（リネームで振り直すとこうなる）、
+    取り込み先ルートフォルダのGUIDが変わっていないか。
     """
     try:
         # `-z`でNUL区切りにする。
@@ -333,14 +339,17 @@ def _diff_guids_against(repo_root, base_ref):
     except (subprocess.CalledProcessError, FileNotFoundError) as error:
         return [f"`{base_ref}`の内容を取得できない: {error}"]
 
+    # 現在のリポジトリが持つGUIDの全体。
+    # 同梱対象に限らず拾うのは、対象から外れただけのアセットを「消えた」と誤って責めないため
+    live_guids = set()
+    for meta in repo_root.rglob("*.meta"):
+        match = GUID_PATTERN.search(meta.read_text(encoding="utf-8"))
+        if match:
+            live_guids.add(match.group(1))
+
     problems = []
     for name in listing:
         if not name or not name.endswith(".meta"):
-            continue
-
-        current = repo_root / name
-        if not current.exists():
-            # 削除は許す。同梱対象から外したファイルの`.meta`が残る方が紛らわしい
             continue
 
         old = subprocess.run(
@@ -350,15 +359,57 @@ def _diff_guids_against(repo_root, base_ref):
         if old.returncode != 0:
             continue
 
-        old_guid = GUID_PATTERN.search(old.stdout)
-        new_guid = GUID_PATTERN.search(current.read_text(encoding="utf-8"))
-        if old_guid and new_guid and old_guid.group(1) != new_guid.group(1):
+        old_match = GUID_PATTERN.search(old.stdout)
+        if not old_match:
+            continue
+        old_guid = old_match.group(1)
+
+        current = repo_root / name
+        if not current.exists():
+            # リネームは`.meta`ごと動かすのが正しく、その場合GUIDは新しいパスで生き残る。
+            # 消えているなら、振り直したか、配っていたアセットを消したかのどちらか
+            if old_guid not in live_guids:
+                problems.append(
+                    f"配っていたGUIDが失われている: {name} ({old_guid})。"
+                    "リネームなら`.meta`も一緒に動かし、削除なら参照が切れることを承知のうえで行うこと"
+                )
+            continue
+
+        new_match = GUID_PATTERN.search(current.read_text(encoding="utf-8"))
+        if new_match and old_guid != new_match.group(1):
             problems.append(
                 f"既存の`.meta`のGUIDが変わっている: {name} "
-                f"({old_guid.group(1)} → {new_guid.group(1)})"
+                f"({old_guid} → {new_match.group(1)})"
             )
 
+    problems.extend(_diff_root_folder_guid(repo_root, base_ref))
     return problems
+
+
+def _diff_root_folder_guid(repo_root, base_ref):
+    """取り込み先ルートフォルダのGUIDが変わっていないか調べる。
+
+    この値だけはリポジトリのルートに`.meta`を置く場所が無く、このスクリプトの定数として
+    持っている。`.meta`と同じく配布済みの値なので、同じように変化を止める
+    """
+    relative = f".github/scripts/{pathlib.Path(__file__).name}"
+
+    old = subprocess.run(
+        ["git", "show", f"{base_ref}:{relative}"],
+        cwd=repo_root, capture_output=True, text=True, check=False,
+    )
+    if old.returncode != 0:
+        # このスクリプト自体を導入した変更では、比較対象が無い
+        return []
+
+    match = re.search(r'ROOT_FOLDER_GUID = "([0-9a-f]{32})"', old.stdout)
+    if not match or match.group(1) == ROOT_FOLDER_GUID:
+        return []
+
+    return [
+        "取り込み先ルートフォルダのGUIDが変わっている: "
+        f"{match.group(1)} → {ROOT_FOLDER_GUID}"
+    ]
 
 
 def _report(failures):
