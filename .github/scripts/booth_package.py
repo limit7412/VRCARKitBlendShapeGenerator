@@ -339,11 +339,14 @@ def _diff_guids_against(repo_root, base_ref, shipped_guids):
     except (subprocess.CalledProcessError, FileNotFoundError) as error:
         return [f"`{base_ref}`の内容を取得できない: {error}"]
 
+    # ベース側の`.meta`はベース側の同梱一覧で判定する。
+    # 現在の一覧を当てると、一覧から項目を外した変更で「元々同梱していなかった」ことにでき、
+    # 配布物からアセットが丸ごと消えても素通りする
+    base_top_level = _read_base_included_top_level(repo_root, base_ref) or INCLUDED_TOP_LEVEL
+
     problems = []
     for name in listing:
-        # 見るのは配布物へ入る`.meta`だけ。
-        # 同梱対象の外にある`.meta`はそもそも配っていないため、消えても参照は切れない
-        if not _is_shipped_meta(name):
+        if not _is_shipped_meta(name, base_top_level):
             continue
 
         old = subprocess.run(
@@ -358,41 +361,56 @@ def _diff_guids_against(repo_root, base_ref, shipped_guids):
             continue
         old_guid = old_match.group(1)
 
+        # 同じパスに`.meta`が残っているなら、まずGUIDの振り直しを見る。
+        # こちらの方が原因を名指しできる
         current = repo_root / name
-        if not current.exists():
-            # リネームは`.meta`ごと動かすのが正しく、その場合GUIDは新しいパスで生き残る。
-            # 配布物の側から消えているなら、振り直したか、同梱対象の外へ出したか、
-            # アセットごと消したかのいずれかで、どれも利用者の参照を切る
-            if old_guid not in shipped_guids:
+        if current.exists():
+            new_match = GUID_PATTERN.search(current.read_text(encoding="utf-8"))
+            if new_match and old_guid != new_match.group(1):
                 problems.append(
-                    f"配っていたGUIDが配布物から消えている: {name} ({old_guid})。"
-                    "リネームなら`.meta`も一緒に動かすこと。"
-                    "同梱対象から外す・削除する場合は、利用者の参照が切れることを承知のうえで行うこと"
+                    f"既存の`.meta`のGUIDが変わっている: {name} "
+                    f"({old_guid} → {new_match.group(1)})"
                 )
-            continue
+                continue
 
-        new_match = GUID_PATTERN.search(current.read_text(encoding="utf-8"))
-        if new_match and old_guid != new_match.group(1):
+        # `.meta`が残っているかによらず、配っていたGUIDが今も配布物に入っているかを見る。
+        # `.meta`だけ残してアセットを消した場合、パスは存在するのに配布物からは消えている
+        if old_guid not in shipped_guids:
             problems.append(
-                f"既存の`.meta`のGUIDが変わっている: {name} "
-                f"({old_guid} → {new_match.group(1)})"
+                f"配っていたGUIDが配布物から消えている: {name} ({old_guid})。"
+                "リネームなら`.meta`も一緒に動かすこと。"
+                "同梱対象から外す・削除する場合は、利用者の参照が切れることを承知のうえで行うこと"
             )
 
     problems.extend(_diff_root_folder_guid(repo_root, base_ref))
     return problems
 
 
-def _is_shipped_meta(name):
-    """その`.meta`が配布物へ入るものかどうか。
+def _is_shipped_meta(name, included_top_level):
+    """その`.meta`が、渡された同梱一覧のもとで配布物へ入るものかどうか。
 
-    判定は`INCLUDED_TOP_LEVEL`から導く。
-    ここに別の一覧を書くと、同梱対象を変えたときに片方だけ古いまま残る
+    一覧を引数で受けるのは、ベース側の`.meta`をベース側の一覧で判定するため。
+    現在の一覧で判定すると、一覧そのものを狭めた変更で旧GUIDの消失を見逃す
     """
     if not name or not name.endswith(".meta"):
         return False
 
     asset = name[: -len(".meta")]
-    return any(asset == top or asset.startswith(top + "/") for top in INCLUDED_TOP_LEVEL)
+    return any(asset == top or asset.startswith(top + "/") for top in included_top_level)
+
+
+def _read_base_included_top_level(repo_root, base_ref):
+    """ベース側のスクリプトが持っていた同梱一覧。読めなければNone"""
+    relative = f".github/scripts/{pathlib.Path(__file__).name}"
+    old = subprocess.run(
+        ["git", "show", f"{base_ref}:{relative}"],
+        cwd=repo_root, capture_output=True, text=True, check=False,
+    )
+    if old.returncode != 0:
+        return None
+
+    match = re.search(r"INCLUDED_TOP_LEVEL = \[(.*?)\]", old.stdout, re.DOTALL)
+    return re.findall(r'"([^"]+)"', match.group(1)) if match else None
 
 
 def _diff_root_folder_guid(repo_root, base_ref):
