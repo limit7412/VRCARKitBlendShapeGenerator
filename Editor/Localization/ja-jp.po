@@ -421,6 +421,10 @@ msgstr "ダウンロードしたファイルを読めませんでした: {0}"
 msgid "update.error.contents"
 msgstr "ダウンロードしたパッケージの中身が想定と違うため中止しました。"
 
+msgid "update.error.delete"
+msgstr "古いファイルを削除できなかったため、取り込みを中止しました。\n削除できなかったもの: {0}\n更新前の内容は {1} に控えてあります。"
+
+
 
 msgid "update.error.backup"
 msgstr "更新前の内容を控えられなかったため中止しました: {0}"

@@ -162,14 +162,25 @@ namespace ARKitBlendShapeGenerator.Infra
                 return;
             }
 
+            // 控えの場所は、この先で中断した場合にも辿れるよう先に残す
+            EditorPrefs.SetString(BackupPathKey, backupPath);
+
             // ここから先はプロジェクトのファイルを書き換える。
             // 途中でアセンブリが読み直されると取り込みまで辿り着けないため、reloadを止めておく
+
             EditorApplication.LockReloadAssemblies();
             try
             {
-                DeleteObsolete(obsolete);
+                var failed = DeleteObsolete(obsolete);
+                if (failed.Count > 0)
+                {
+                    // 消せなかった古いファイルが新しい版と同居するとコンパイルが通らない。
+                    // 取り込みへ進むと、版だけが新しくなって壊れた状態が残る
+                    Delete(unityPackagePath);
+                    Fail(S("update.error.delete", string.Join(", ", failed), backupPath));
+                    return;
+                }
 
-                EditorPrefs.SetString(BackupPathKey, backupPath);
                 SessionState.SetString(PendingCompletionKey, tag);
 
                 // 取り込みを要求した時点で、この先のコードは差し替えの対象になる
@@ -182,24 +193,25 @@ namespace ARKitBlendShapeGenerator.Infra
             }
         }
 
-        private static void DeleteObsolete(IReadOnlyList<string> obsolete)
+        /// <summary>古い版にしか無いアセットを消し、消せなかったものを返す</summary>
+        private static IReadOnlyList<string> DeleteObsolete(IReadOnlyList<string> obsolete)
         {
+            var failed = new List<string>();
             if (obsolete.Count == 0)
             {
-                return;
+                return failed;
             }
 
             // .metaはAssetDatabaseが一緒に始末する
-            var failed = new List<string>();
             AssetDatabase.DeleteAssets(obsolete.ToArray(), failed);
 
-            // 消せなかったファイルが残ってもコンパイルが通らなくなるだけで、取り込みは進む。
-            // 何が残ったかは分かるようにしておく
             foreach (var path in failed)
             {
                 Debug.LogWarning(string.Format(
                     CultureInfo.InvariantCulture, "[ARKitGenerator] {0} を削除できませんでした", path));
             }
+
+            return failed;
         }
 
         /// <summary>手元のフォルダにあるアセットを、プロジェクトからの相対パスで並べる</summary>
