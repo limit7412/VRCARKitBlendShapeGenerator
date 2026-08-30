@@ -249,7 +249,7 @@ jobs:
           # VPM用は`.meta`を含めず、直下にpackage.jsonを置く。
           # リスティングの生成はこのpackage.jsonを読む
           if unzip -Z1 "$VPM" | grep -q '\.meta$'; then
-            echo "::error::VPM用のzipへ`.meta`が入っています"
+            echo "::error::VPM用のzipへ .meta が入っています"
             exit 1
           fi
           if ! unzip -Z1 "$VPM" | grep -qx 'package.json'; then
