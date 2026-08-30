@@ -27,6 +27,20 @@ Jerry's Templatesと組み合わせて使用することで、フェイストラ
 2. VCCのプロジェクト管理画面で「Add Package」→「Add from Archive」を選択
 3. ダウンロードしたzipファイルを選択
 
+### booth版（unitypackage）
+
+Releasesの `VRCARKitBlendShapeGenerator_<バージョン>.zip` に、unitypackageが1つ入っています。
+展開してUnityへドラッグすると `Assets/AtelierKairox/VRCARKitBlendShapeGenerator/` へ取り込まれます。
+
+**VPM版と同時に入れないでください。**
+どちらもアセンブリ名が同じため、1つのプロジェクトへ両方を入れるとコンパイルが通りません。
+
+更新するときは `Assets/AtelierKairox/VRCARKitBlendShapeGenerator/` をフォルダごと削除してから、新しいunitypackageを取り込んでください。
+unitypackageの取り込みはファイルの追加と上書きだけを行うため、上書きするだけでは、そのバージョンで削除されたファイルが残ります。
+
+アバターに追加済みのコンポーネントは、削除して入れ直しても失われません。
+配布物のGUIDをリポジトリで固定しており、バージョンが変わっても参照が切れないようにしています。
+
 ## 使用方法
 
 ### 基本的な使い方
@@ -167,7 +181,29 @@ CIでも実行されますが（後述）、Unityライセンスのsecretが未�
 4. EditModeタブで `ARKitBlendShapeGenerator.Editor.Tests` を実行する
 
 `testables` へ追加しないとテストアセンブリがコンパイルされず、Test Runnerの一覧にも現れません。
-テストは配布物には含みません（リリース用のzipへ入れるのは `package.json` と `Runtime/` `Editor/` だけです）。
+テストは配布物には含みません（配布物の中身は「配布パッケージ」に書いています）。
+
+### 配布パッケージ
+
+リリースへ添付するzipは `.github/scripts/build-packages.sh` が作ります。
+release.ymlとprerelease.ymlの両方がこれを呼ぶため、安定版とプレリリースで中身が食い違うことはありません。
+
+| 生成物 | 中身 | 用途 |
+| ---- | ---- | ---- |
+| `com.qazx7412.kx-vrc-arkit-blendshape-generator-<版>.zip` | `package.json` `Runtime/` `Editor/`（`.meta` を除く） | VCC/ALCOM |
+| `VRCARKitBlendShapeGenerator_<版>.zip` | unitypackage 1つ | booth |
+
+unitypackageは `.github/scripts/booth_package.py` がUnityを使わずに組み立てます。
+unitypackageの実体はgzip tarで、アセット1件につきGUIDを名前とするディレクトリを持ち、その中に中身とメタと取り込み先のパスを並べた形式です。
+リリース経路へUnityライセンスを持ち込まずに済ませるため、Pythonで直接組み立てています。
+
+booth用zipの直下に `package.json` を置かないことが条件になります。
+VPMリスティングの生成はリリースのzipをすべて舐めて直下の `package.json` を読むため、置いてしまうとbooth用の配布物がリスティングへ混ざります。
+`packaging` ジョブがこれを検証します。
+
+同梱対象のGUIDは `.meta` としてリポジトリで固定しています。
+生成のたびに振り直すと、更新した瞬間に利用者のアバターからコンポーネントの参照が切れます。
+**同梱対象の `.meta` のGUIDは変更しないでください。** ファイルの追加時に新しいGUIDを起こすのは問題ありません。
 
 ### CIでのテスト実行
 
@@ -178,6 +214,10 @@ CIでも実行されますが（後述）、Unityライセンスのsecretが未�
 スキップの判定はワークフローの `changes` ジョブが行い、テストジョブはskippedとして完了します。
 `on` の `paths` フィルタを使っていないのは、そちらで起動を止めるとチェック自体が作られず、テストをrequired status checkに指定したときにPRをマージできなくなるためです。
 判定に使うパスの一覧は `changes` ジョブにのみ書かれています。テストが読むファイルを増やしたときは、この一覧にも追加してください。
+
+同じワークフローの `packaging` ジョブが、配布パッケージの組み立てを検証します。
+こちらはUnityを使わないため、ライセンスの有無にも変更パスの判定にも関わらず常に実行されます。
+検証するのは、同梱対象すべてに `.meta` があること、GUIDが重複していないこと、配布済みのGUID（`ARKitBlendShapeGeneratorComponent`）が変わっていないこと、取り込み先が `Assets/AtelierKairox/VRCARKitBlendShapeGenerator/` の外へ出ていないこと、booth用zipの直下にVPM用の `package.json` が居ないこと、同じ入力から2回作って同一のバイト列になることです。
 
 このリポジトリはUnityプロジェクトではないため、ワークフローは実行のたびに最小のUnityプロジェクトを組み立て、その `Packages/` へこのリポジトリを置きます。
 VPM依存（VRChat SDK / NDMF）はUnity Package Managerでは解決できないので、[vrc-get](https://github.com/vrc-get/vrc-get)で先に導入してから[game-ci](https://game.ci/)のテストランナーを回します。

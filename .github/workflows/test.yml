@@ -16,6 +16,9 @@ name: Test
 #
 # テスト対象に触れていない変更では、テストジョブをスキップする。
 # 判定は`on`の`paths`フィルタではなく`changes`ジョブと`if`で行う（理由は当該ジョブに記述）。
+#
+# 配布パッケージの組み立ての検証（`packaging`ジョブ）はUnityを使わないため、
+# ライセンスの有無にも`changes`の判定にも関わらず常に実行する。
 
 on:
   pull_request:
@@ -155,6 +158,30 @@ jobs:
             echo "::notice::テスト対象のファイルに変更がないためEditModeテストをスキップします"
           fi
           echo "relevant=$RELEVANT" >> "$GITHUB_OUTPUT"
+
+  # 配布パッケージの組み立てを検証する。
+  #
+  # booth用のunitypackageはGUIDを`.meta`から取るため、`.meta`の欠落やGUIDの取り違えは
+  # 「更新した瞬間にアバターのコンポーネントがMissingになる」形で利用者へ出る。
+  # リリースまで気付けない類の壊れ方なので、PRごとに確かめる。
+  #
+  # Unityを使わない検証なので、ライセンスの有無や`changes`の判定に関わらず常に実行する。
+  packaging:
+    name: Packaging
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      # 既存の`.meta`のGUIDが変わっていないことを、比較対象のブランチと突き合わせて確かめる。
+      # 配布済みのGUIDは利用者のアバターから参照されており、振り直すわけにはいかない
+      - name: Fetch base branch
+        env:
+          BASE_REF: ${{ github.event.pull_request.base.ref || github.event.repository.default_branch }}
+        run: git fetch --no-tags --depth=1 origin "$BASE_REF"
+
+      - name: Verify packaging
+        run: python3 .github/scripts/booth_package.py verify --base-ref FETCH_HEAD
 
   test:
     name: EditMode tests
