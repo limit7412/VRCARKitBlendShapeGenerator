@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Globalization;
 using UnityEditor;
 using UnityEngine;
@@ -32,8 +33,22 @@ namespace ARKitBlendShapeGenerator.Infra
     /// </summary>
     internal static class UpdateCheck
     {
-        private const string LatestReleaseApiUrl =
-            "https://api.github.com/repos/limit7412/VRCARKitBlendShapeGenerator/releases/latest";
+        private const string ReleasesApiUrl =
+            "https://api.github.com/repos/limit7412/VRCARKitBlendShapeGenerator/releases";
+
+        /// <summary>最新の安定版を返すエンドポイント</summary>
+        internal const string LatestReleaseApiUrl = ReleasesApiUrl + "/latest";
+
+        /// <summary>
+        /// 版を指定してリリースを引くエンドポイント。
+        ///
+        /// 自己更新は利用者が確かめた版を取りに行く。`latest`を引き直すと、知らせてから
+        /// 実行するまでに次の版が出た場合に、確かめたものと違う版を入れることになる
+        /// </summary>
+        internal static string ReleaseByTagApiUrl(string tag)
+        {
+            return ReleasesApiUrl + "/tags/" + Uri.EscapeDataString(tag ?? string.Empty);
+        }
 
         /// <summary>更新の入手先として案内するページ</summary>
         public const string ReleasesPageUrl =
@@ -43,6 +58,7 @@ namespace ARKitBlendShapeGenerator.Infra
         private const string LastAttemptKey = "ARKitBlendShapeGenerator.UpdateCheck.LastAttemptUtcTicks";
         private const string LatestTagKey = "ARKitBlendShapeGenerator.UpdateCheck.LatestTag";
         private const string DismissedTagKey = "ARKitBlendShapeGenerator.UpdateCheck.DismissedTag";
+        private const string AnnouncedTagKey = "ARKitBlendShapeGenerator.UpdateCheck.AnnouncedTag";
 
         private const double CheckIntervalHours = 24.0;
         private const int RequestTimeoutSeconds = 15;
@@ -92,6 +108,13 @@ namespace ARKitBlendShapeGenerator.Infra
                 EnsureStateCached();
                 return _cachedPendingTag;
             }
+        }
+
+        /// <summary>ポップアップで知らせた版。まだ無ければ空</summary>
+        public static string AnnouncedTag
+        {
+            get { return EditorPrefs.GetString(AnnouncedTagKey, string.Empty); }
+            set { EditorPrefs.SetString(AnnouncedTagKey, value ?? string.Empty); }
         }
 
         /// <summary>この版については以後知らせない</summary>
@@ -259,7 +282,18 @@ namespace ARKitBlendShapeGenerator.Infra
         /// </summary>
         internal static bool TryParseTag(string json, out string tag)
         {
+            return TryParseRelease(json, out tag, out _);
+        }
+
+        /// <summary>
+        /// releases/latestの応答から、タグと添付されたアセットの一覧を取り出す。
+        ///
+        /// 自己更新はアセットの側も要るが、応答は通知と同じものなので解釈も1箇所にまとめる
+        /// </summary>
+        internal static bool TryParseRelease(string json, out string tag, out ReleaseAsset[] assets)
+        {
             tag = null;
+            assets = Array.Empty<ReleaseAsset>();
 
             if (string.IsNullOrWhiteSpace(json))
             {
@@ -282,6 +316,13 @@ namespace ARKitBlendShapeGenerator.Infra
                 return false;
             }
 
+            // 版を指定して引く場合、`latest`の対象から外れた版もそのまま返る。
+            // 不具合などで取り下げられた版を、古い知らせのまま入れるわけにはいかない
+            if (response.prerelease || response.draft)
+            {
+                return false;
+            }
+
             var candidate = response.tag_name.Trim();
             if (!PackageVersion.TryParse(candidate, out _))
             {
@@ -289,7 +330,32 @@ namespace ARKitBlendShapeGenerator.Infra
             }
 
             tag = candidate;
+            assets = ToReleaseAssets(response.assets);
             return true;
+        }
+
+        private static ReleaseAsset[] ToReleaseAssets(ReleaseAssetResponse[] responses)
+        {
+            if (responses == null)
+            {
+                return Array.Empty<ReleaseAsset>();
+            }
+
+            var assets = new List<ReleaseAsset>(responses.Length);
+            foreach (var response in responses)
+            {
+                if (response == null || string.IsNullOrWhiteSpace(response.name))
+                {
+                    continue;
+                }
+
+                assets.Add(new ReleaseAsset(
+                    response.name.Trim(),
+                    response.browser_download_url?.Trim(),
+                    response.digest?.Trim()));
+            }
+
+            return assets.ToArray();
         }
 
         [Serializable]
@@ -297,6 +363,19 @@ namespace ARKitBlendShapeGenerator.Infra
         {
             // JsonUtilityはフィールド名でJSONのキーと対応づけるため、APIの綴りに合わせる
             public string tag_name;
+            public bool prerelease;
+            public bool draft;
+            public ReleaseAssetResponse[] assets;
+        }
+
+        [Serializable]
+        private class ReleaseAssetResponse
+        {
+            public string name;
+            public string browser_download_url;
+
+            /// <summary>`sha256:`で始まるダイジェスト。付かない応答もある</summary>
+            public string digest;
         }
     }
 }

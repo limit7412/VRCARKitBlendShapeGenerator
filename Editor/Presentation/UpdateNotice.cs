@@ -60,7 +60,20 @@ namespace ARKitBlendShapeGenerator.Presentation
             EditorGUILayout.HelpBox(DescribeUpdate(tag), MessageType.Info);
 
             EditorGUILayout.BeginHorizontal();
-            if (GUILayout.Button(S("update.open_releases")))
+
+            // booth版には版を管理する主体がいないため、ここから入れ替えまで行う。
+            // VPM版はVCC/ALCOMの記録とずれるので案内にとどめる
+            if (SelfUpdater.IsSupported)
+            {
+                using (new EditorGUI.DisabledScope(SelfUpdater.IsRunning))
+                {
+                    if (GUILayout.Button(S("update.run")))
+                    {
+                        RunWithConfirmation(tag);
+                    }
+                }
+            }
+            else if (GUILayout.Button(S("update.open_releases")))
             {
                 Application.OpenURL(UpdateCheck.ReleasesPageUrl);
             }
@@ -74,6 +87,24 @@ namespace ARKitBlendShapeGenerator.Presentation
             EditorGUILayout.Space();
         }
 
+        /// <summary>
+        /// 取り込みはUndoできず、手元の改変も上書きする。
+        /// 押し間違いで走らないよう、実行の前に一度確かめる
+        /// </summary>
+        private static void RunWithConfirmation(string tag)
+        {
+            if (!EditorUtility.DisplayDialog(
+                    S("dialog.title"),
+                    S("update.confirm", tag, SelfUpdatePlan.InstallRoot),
+                    S("update.run"),
+                    S("common.cancel")))
+            {
+                return;
+            }
+
+            SelfUpdater.Run(tag);
+        }
+
         private static string DescribeUpdate(string tag)
         {
             switch (PackageLocation.Location)
@@ -81,7 +112,9 @@ namespace ARKitBlendShapeGenerator.Presentation
                 case InstallLocation.Vpm:
                     return S("update.available.vpm", tag);
                 case InstallLocation.Booth:
-                    return S("update.available.booth", tag);
+                    return SelfUpdater.IsSupported
+                        ? S("update.available.booth_updatable", tag)
+                        : S("update.available.booth", tag);
                 default:
                     return S("update.available.unknown", tag);
             }

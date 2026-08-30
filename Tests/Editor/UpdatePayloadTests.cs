@@ -41,6 +41,15 @@ namespace ARKitBlendShapeGenerator.Tests
             Assert.That(tag, Is.Null);
         }
 
+        // 版を指定して引く場合、`latest`の対象から外れた版もそのまま返る
+        [TestCase(@"{""tag_name"":""0.2.0"",""prerelease"":true}")]
+        [TestCase(@"{""tag_name"":""0.2.0"",""draft"":true}")]
+        public void TryParseTag_RejectsAWithdrawnRelease(string json)
+        {
+            Assert.That(UpdateCheck.TryParseTag(json, out var tag), Is.False);
+            Assert.That(tag, Is.Null);
+        }
+
         [TestCase((string)null)]
         [TestCase("")]
         [TestCase("   ")]
@@ -51,6 +60,43 @@ namespace ARKitBlendShapeGenerator.Tests
         {
             Assert.That(UpdateCheck.TryParseTag(json, out var tag), Is.False);
             Assert.That(tag, Is.Null);
+        }
+
+        // 自己更新は同じ応答からアセットを選ぶ
+        [Test]
+        public void TryParseRelease_ReadsTheAttachedAssets()
+        {
+            const string json = @"{""tag_name"":""0.2.0"",""assets"":[" +
+                @"{""name"":""VRCARKitBlendShapeGenerator_0.2.0.zip""," +
+                @"""browser_download_url"":""https://example/booth.zip""," +
+                @"""digest"":""sha256:abc""}]}";
+
+            Assert.That(UpdateCheck.TryParseRelease(json, out var tag, out var assets), Is.True);
+            Assert.That(tag, Is.EqualTo("0.2.0"));
+            Assert.That(assets.Length, Is.EqualTo(1));
+            Assert.That(assets[0].Name, Is.EqualTo("VRCARKitBlendShapeGenerator_0.2.0.zip"));
+            Assert.That(assets[0].DownloadUrl, Is.EqualTo("https://example/booth.zip"));
+            Assert.That(assets[0].Digest, Is.EqualTo("sha256:abc"));
+        }
+
+        // ダイジェストの付かない応答もあるが、アセットの選択そのものは行える
+        [Test]
+        public void TryParseRelease_AcceptsAnAssetWithoutADigest()
+        {
+            const string json = @"{""tag_name"":""0.2.0"",""assets"":[" +
+                @"{""name"":""VRCARKitBlendShapeGenerator_0.2.0.zip""," +
+                @"""browser_download_url"":""https://example/booth.zip""}]}";
+
+            Assert.That(UpdateCheck.TryParseRelease(json, out _, out var assets), Is.True);
+            Assert.That(assets.Length, Is.EqualTo(1));
+            Assert.That(string.IsNullOrEmpty(assets[0].Digest), Is.True);
+        }
+
+        [Test]
+        public void TryParseRelease_ReturnsNoAssets_WhenTheResponseHasNone()
+        {
+            Assert.That(UpdateCheck.TryParseRelease(@"{""tag_name"":""0.2.0""}", out _, out var assets), Is.True);
+            Assert.That(assets, Is.Empty);
         }
 
         [Test]

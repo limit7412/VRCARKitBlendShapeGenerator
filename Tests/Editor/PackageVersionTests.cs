@@ -80,5 +80,23 @@ namespace ARKitBlendShapeGenerator.Tests
         {
             Assert.That(PackageVersion.IsUpdateAvailable(current, latest), Is.False);
         }
+
+        // タグは`v0.2.0`のようにも書ける。package.jsonのversionとは表記が揃わない
+        [TestCase("0.2.0", "0.2.0")]
+        [TestCase("0.2.0", "v0.2.0")]
+        [TestCase("0.2", "0.2.0")]
+        public void IsSameVersion_IsTrue_ForTheSameVersionWrittenDifferently(string left, string right)
+        {
+            Assert.That(PackageVersion.IsSameVersion(left, right), Is.True);
+        }
+
+        [TestCase("0.2.0", "0.2.1")]
+        [TestCase("0.2.0", "0.2.0-test1")]
+        [TestCase("0.2.0", "")]
+        [TestCase(null, "0.2.0")]
+        public void IsSameVersion_IsFalse_WhenTheyDifferOrCannotBeRead(string left, string right)
+        {
+            Assert.That(PackageVersion.IsSameVersion(left, right), Is.False);
+        }
     }
 }

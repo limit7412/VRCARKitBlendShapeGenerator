@@ -35,7 +35,8 @@ Releasesの `VRCARKitBlendShapeGenerator_<バージョン>.zip` に、unitypacka
 **VPM版と同時に入れないでください。**
 どちらもアセンブリ名が同じため、1つのプロジェクトへ両方を入れるとコンパイルが通りません。
 
-更新するときは `Assets/AtelierKairox/VRCARKitBlendShapeGenerator/` をフォルダごと削除してから、新しいunitypackageを取り込んでください。
+更新は下の「更新の確認」の通知から行えます。
+手で入れ直す場合は `Assets/AtelierKairox/VRCARKitBlendShapeGenerator/` をフォルダごと削除してから、新しいunitypackageを取り込んでください。
 unitypackageの取り込みはファイルの追加と上書きだけを行うため、上書きするだけでは、そのバージョンで削除されたファイルが残ります。
 
 アバターに追加済みのコンポーネントは、削除して入れ直しても失われません。
@@ -43,7 +44,8 @@ unitypackageの取り込みはファイルの追加と上書きだけを行う�
 
 ### 更新の確認
 
-新しいバージョンが出ているかを[Releases](https://github.com/limit7412/VRCARKitBlendShapeGenerator/releases/latest)へ問い合わせ、インスペクタの先頭で知らせます。
+新しいバージョンが出ているかを[Releases](https://github.com/limit7412/VRCARKitBlendShapeGenerator/releases/latest)へ問い合わせます。
+確認はエディタの読み込み時に自動で走るため、インスペクタを開く必要はありません。
 
 エディタから外部へ通信するため、確認するかどうかは初回にインスペクタで尋ねます。
 確認しないことを選べば通信は行いません。
@@ -51,8 +53,23 @@ unitypackageの取り込みはファイルの追加と上書きだけを行う�
 
 選択は Preferences > ARKit BlendShape Generator からいつでも変更できます。
 
-更新の手段はインストール方法で違うため、案内もそれに合わせて変わります。
-`Packages/` 配下（VCC/ALCOM経由）ならVCC/ALCOMから、`Assets/` 配下（unitypackageから導入）なら上の「booth版」の手順で更新してください。
+更新の手段はインストール方法で違うため、扱いもそれに合わせて変わります。
+
+`Packages/` 配下（VCC/ALCOM経由）の場合は、新しいバージョンが出ていることをインスペクタで知らせるだけにとどめます。
+バージョンはVCC/ALCOMが `vpm-manifest.json` で管理しているため、こちらでファイルを置き換えると管理側の記録と実態がずれます。
+
+`Assets/` 配下（unitypackageから導入）の場合は、そのまま更新できます。
+新しいバージョンを見つけると、そのバージョンについて一度だけダイアログで知らせます。
+そこで「あとで」を選んだ場合は、インスペクタの先頭に出る「更新する」ボタンからいつでも実行できます。
+
+更新は、Releasesからbooth用zipを取得し、GitHubが示すダイジェスト（sha256）と照合してから取り込みます。
+取り込みの前に、新しいバージョンに無くなったファイルを削除し、更新前のフォルダを `Temp/` へ控えます。
+取り込みは取り消せないため、実行前に確認を挟みます。
+フォルダの中を自分で書き換えている場合は、先に控えを取ってください。
+
+フォルダを `Assets/AtelierKairox/VRCARKitBlendShapeGenerator/` から動かしている場合、この更新は行えません。
+取り込み先はunitypackageの側で決まっており、手元の位置へは追従しないため、実行すると同じアセンブリがプロジェクトに二組できてしまいます。
+この場合は上の「booth版」の手順で入れ直してください。
 
 ## 使用方法
 
