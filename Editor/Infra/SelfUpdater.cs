@@ -45,6 +45,9 @@ namespace ARKitBlendShapeGenerator.Infra
 
         private static bool _isRunning;
 
+        /// <summary>取り込みを頼んだパッケージの名前。完了の合図を選り分けるために控える</summary>
+        private static string _requestedPackageName;
+
         /// <summary>更新の実行中。ボタンを二重に押されても始めない</summary>
         public static bool IsRunning
         {
@@ -253,11 +256,13 @@ namespace ARKitBlendShapeGenerator.Infra
         /// 新しいコードが効くのはエディタを開き直したときになり、それまでインスペクタは
         /// 古い版の判断で描かれ続ける。
         ///
-        /// 完了の合図は取り込むパッケージの名前で絞らない。
-        /// 名前の付き方に頼って取りこぼすより、他の取り込みで一度多く読み直すほうが害が無い
+        /// 完了の合図はグローバルで、別のunitypackageの取り込みでも鳴る。
+        /// 頼んだものだけを拾えるよう、名前を控えてから要求する
         /// </summary>
         private static void Import(string unityPackagePath)
         {
+            _requestedPackageName = Path.GetFileNameWithoutExtension(unityPackagePath);
+
             AssetDatabase.importPackageCompleted += OnImportCompleted;
             AssetDatabase.importPackageFailed += OnImportFailed;
             AssetDatabase.importPackageCancelled += OnImportCancelled;
@@ -268,6 +273,11 @@ namespace ARKitBlendShapeGenerator.Infra
 
         private static void OnImportCompleted(string packageName)
         {
+            if (!IsRequested(packageName))
+            {
+                return;
+            }
+
             StopWatchingImport();
 
             // 取り込まれたスクリプトをコンパイルさせ、ドメインリロードへつなげる。
@@ -278,6 +288,11 @@ namespace ARKitBlendShapeGenerator.Infra
 
         private static void OnImportFailed(string packageName, string errorMessage)
         {
+            if (!IsRequested(packageName))
+            {
+                return;
+            }
+
             StopWatchingImport();
             SessionState.EraseString(PendingCompletionKey);
             Fail(S("update.error.import", errorMessage, SessionState.GetString(BackupPathKey, string.Empty)));
@@ -285,9 +300,28 @@ namespace ARKitBlendShapeGenerator.Infra
 
         private static void OnImportCancelled(string packageName)
         {
+            if (!IsRequested(packageName))
+            {
+                return;
+            }
+
             StopWatchingImport();
             SessionState.EraseString(PendingCompletionKey);
             Fail(S("update.error.import_cancelled", SessionState.GetString(BackupPathKey, string.Empty)));
+        }
+
+        /// <summary>
+        /// 自分が頼んだ取り込みの合図かどうか。
+        ///
+        /// 別の取り込みで読み直すと、UpdateCheckStartupがまだ古い版を見たまま
+        /// PendingCompletionKeyを消してしまい、終わっていない更新を失敗として報告する。
+        /// その後で本来の取り込みが終わっても、購読を解いた後では読み直しが起きない。
+        ///
+        /// 一致しない間は購読を続ける。取りこぼしても待ち続けるだけで、誤って先へ進むことはない
+        /// </summary>
+        private static bool IsRequested(string packageName)
+        {
+            return string.Equals(packageName, _requestedPackageName, StringComparison.Ordinal);
         }
 
         /// <summary>
@@ -302,6 +336,8 @@ namespace ARKitBlendShapeGenerator.Infra
             AssetDatabase.importPackageCompleted -= OnImportCompleted;
             AssetDatabase.importPackageFailed -= OnImportFailed;
             AssetDatabase.importPackageCancelled -= OnImportCancelled;
+
+            _requestedPackageName = null;
         }
 
         /// <summary>同梱されたpackage.jsonが、取りに行った版のものかどうか</summary>
