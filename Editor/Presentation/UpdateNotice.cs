@@ -7,7 +7,7 @@ using static ARKitBlendShapeGenerator.Localization;
 namespace ARKitBlendShapeGenerator.Presentation
 {
     /// <summary>
-    /// 更新の確認についての問いかけと、新しい版が出ているときの案内をインスペクタの先頭へ描く。
+    /// 新しい版が出ているときの案内をインスペクタの先頭へ描く。
     ///
     /// 案内の文面はインストール形態で変わる。
     /// VPM版の版数はVCC/ALCOMがvpm-manifest.jsonで管理しているため、
@@ -18,35 +18,10 @@ namespace ARKitBlendShapeGenerator.Presentation
     {
         public static void Draw()
         {
-            switch (UpdateCheck.Preference)
-            {
-                case UpdateCheckPreference.Unset:
-                    DrawConsent();
-                    break;
-                case UpdateCheckPreference.Enabled:
-                    UpdateCheck.PollIfDue();
-                    DrawAvailableUpdate();
-                    break;
-            }
-        }
-
-        private static void DrawConsent()
-        {
-            EditorGUILayout.HelpBox(S("update.consent.description"), MessageType.Info);
-
-            EditorGUILayout.BeginHorizontal();
-            if (GUILayout.Button(S("update.consent.enable")))
-            {
-                UpdateCheck.Preference = UpdateCheckPreference.Enabled;
-            }
-
-            if (GUILayout.Button(S("update.consent.disable")))
-            {
-                UpdateCheck.Preference = UpdateCheckPreference.Disabled;
-            }
-            EditorGUILayout.EndHorizontal();
-
-            EditorGUILayout.Space();
+            // 確認を止めているかどうかはPollIfDueが見る。
+            // 止めていれば知らせる版も残らないため、ここは案内だけを組み立てる
+            UpdateCheck.PollIfDue();
+            DrawAvailableUpdate();
         }
 
         private static void DrawAvailableUpdate()
@@ -122,10 +97,9 @@ namespace ARKitBlendShapeGenerator.Presentation
     }
 
     /// <summary>
-    /// 更新確認の入切をPreferencesからも変えられるようにする。
+    /// 更新確認の入切をPreferencesから変えられるようにする。
     ///
-    /// インスペクタの問いかけで「確認しない」を選ぶと、以後その問いかけは出ない。
-    /// 選び直す場所がここになる
+    /// 確認は既定で行うため、外部への通信を望まない利用者にはここが止める場所になる
     /// </summary>
     internal static class UpdateCheckSettingsProvider
     {
@@ -136,7 +110,7 @@ namespace ARKitBlendShapeGenerator.Presentation
             {
                 guiHandler = _ =>
                 {
-                    var enabled = UpdateCheck.Preference == UpdateCheckPreference.Enabled;
+                    var enabled = UpdateCheck.IsEnabled;
                     var changed = EditorGUILayout.Toggle(S("update.settings.enabled"), enabled);
                     if (changed != enabled)
                     {

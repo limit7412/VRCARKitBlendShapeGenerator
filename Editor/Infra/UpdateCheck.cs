@@ -8,10 +8,14 @@ using ARKitBlendShapeGenerator.Domain;
 
 namespace ARKitBlendShapeGenerator.Infra
 {
-    /// <summary>更新確認を行うかどうかについての利用者の選択</summary>
+    /// <summary>
+    /// 更新確認を行うかどうかについての利用者の選択。
+    ///
+    /// 値はEditorPrefsへそのまま入るため、既に選ばれているものと対応がずれないようにする
+    /// </summary>
     internal enum UpdateCheckPreference
     {
-        /// <summary>まだ尋ねていない。この状態では通信しない</summary>
+        /// <summary>まだ選ばれていない。この状態では確認する</summary>
         Unset = 0,
 
         /// <summary>確認する</summary>
@@ -24,9 +28,13 @@ namespace ARKitBlendShapeGenerator.Infra
     /// <summary>
     /// GitHubのreleasesから最新の安定版を調べ、手元より新しければ知らせる。
     ///
-    /// エディタが黙って外部へ通信するのは避けたいので、利用者が選ぶまでは何もしない。
-    /// 確認するときも1日1回までとし、失敗しても黙って次の機会へ回す。
+    /// 確認は既定で行う。始める前に尋ねる形だと、選ばずに閉じた利用者へは通知が届かず、
+    /// 直っている不具合を踏み続けることになる。
+    /// 送るのはリリース情報の取得要求だけで、確認は1日1回まで、失敗しても黙って次の機会へ回す。
     /// 更新の通知は無くても生成の妨げにならず、警告を積む価値が無い。
+    ///
+    /// 通信を望まない利用者はPreferencesから止められる。
+    /// 止めた選択はEditorPrefsに残り、こちらから確認する側へ戻すことはない。
     ///
     /// 判断の材料はEditorPrefsに置くが、問い合わせるのはインスペクタの描画のたびになるため、
     /// 結果はメモリへ持ち、変化したときだけ読み直す
@@ -76,6 +84,16 @@ namespace ARKitBlendShapeGenerator.Infra
 
         /// <summary>確認の結果が変わったときに発火する。インスペクタの再描画に使う</summary>
         public static event Action ResultChanged;
+
+        /// <summary>
+        /// 更新を確認するか。
+        ///
+        /// 選ばれていない状態は確認する側へ倒すため、判定はこれを通す
+        /// </summary>
+        public static bool IsEnabled
+        {
+            get { return Preference != UpdateCheckPreference.Disabled; }
+        }
 
         /// <summary>更新確認についての選択</summary>
         public static UpdateCheckPreference Preference
@@ -131,7 +149,7 @@ namespace ARKitBlendShapeGenerator.Infra
         /// </summary>
         public static void PollIfDue()
         {
-            if (Preference != UpdateCheckPreference.Enabled || _isRequestInFlight)
+            if (!IsEnabled || _isRequestInFlight)
             {
                 return;
             }
@@ -183,7 +201,7 @@ namespace ARKitBlendShapeGenerator.Infra
 
         private static string ComputePendingTag(UpdateCheckPreference preference)
         {
-            if (preference != UpdateCheckPreference.Enabled)
+            if (preference == UpdateCheckPreference.Disabled)
             {
                 return null;
             }

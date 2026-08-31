@@ -346,15 +346,6 @@ msgid "validation.duplicate.message"
 msgstr "The same ARKit name cannot be used in multiple custom mappings.\nDuplicates: {0}"
 
 # Update check
-msgid "update.consent.description"
-msgstr "Check GitHub Releases for a newer version?\nThe check runs at most once a day and only requests release information. You can change this later in Preferences > ARKit BlendShape Generator."
-
-msgid "update.consent.enable"
-msgstr "Check for updates"
-
-msgid "update.consent.disable"
-msgstr "Do not check"
-
 msgid "update.available.vpm"
 msgstr "Version {0} is available.\nUpdate through VCC/ALCOM."
 
@@ -374,7 +365,7 @@ msgid "update.settings.enabled"
 msgstr "Check for updates"
 
 msgid "update.settings.description"
-msgstr "Queries GitHub Releases at most once a day and shows a notice in the inspector when a newer version is available."
+msgstr "Queries GitHub Releases at most once a day and shows a notice in the inspector when a newer version is available.\nThis is on by default. Turning it off stops the request."
 
 msgid "update.available.booth_updatable"
 msgstr "Version {0} is available.\nYou can update from here."
