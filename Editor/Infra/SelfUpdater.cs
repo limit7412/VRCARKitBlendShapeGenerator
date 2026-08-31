@@ -221,31 +221,30 @@ namespace ARKitBlendShapeGenerator.Infra
             SessionState.SetString(BackupPathKey, backupPath);
 
             // ここから先はプロジェクトのファイルを書き換える。
-            // 削除の途中でアセンブリが読み直されると、消えたファイルのまま取り込みへ辿り着けない。
-            // 止めるのは削除の間だけでよく、取り込みは要求を積むだけで走るのはこの後になる
+            // 消したC#やasmdefが保留のリロードを起こす。それが取り込みの要求より先に走ると、
+            // 古いファイルを消しただけで新しい版が入らないまま、実行中のコードが捨てられる。
+            // 要求を積み終えるまでreloadを止めておく
 
-            IReadOnlyList<string> failed;
             EditorApplication.LockReloadAssemblies();
             try
             {
-                failed = DeleteObsolete(obsolete);
+                var failed = DeleteObsolete(obsolete);
+                if (failed.Count > 0)
+                {
+                    // 消せなかった古いファイルが新しい版と同居するとコンパイルが通らない。
+                    // 取り込みへ進むと、版だけが新しくなって壊れた状態が残る
+                    Delete(unityPackagePath);
+                    Fail(S("update.error.delete", string.Join(", ", failed), backupPath));
+                    return;
+                }
+
+                SessionState.SetString(PendingCompletionKey, tag);
+                Import(unityPackagePath);
             }
             finally
             {
                 EditorApplication.UnlockReloadAssemblies();
             }
-
-            if (failed.Count > 0)
-            {
-                // 消せなかった古いファイルが新しい版と同居するとコンパイルが通らない。
-                // 取り込みへ進むと、版だけが新しくなって壊れた状態が残る
-                Delete(unityPackagePath);
-                Fail(S("update.error.delete", string.Join(", ", failed), backupPath));
-                return;
-            }
-
-            SessionState.SetString(PendingCompletionKey, tag);
-            Import(unityPackagePath);
         }
 
         /// <summary>
@@ -267,8 +266,19 @@ namespace ARKitBlendShapeGenerator.Infra
             AssetDatabase.importPackageFailed += OnImportFailed;
             AssetDatabase.importPackageCancelled += OnImportCancelled;
 
-            // 要求した時点で、この先のコードは差し替えの対象になる
-            AssetDatabase.ImportPackage(unityPackagePath, false);
+            try
+            {
+                // 要求した時点で、この先のコードは差し替えの対象になる
+                AssetDatabase.ImportPackage(unityPackagePath, false);
+            }
+            catch (Exception exception) when (IsFileFailure(exception))
+            {
+                // ここで投げられると合図は届かない。待ち続けると更新ボタンが戻らないうえ、
+                // 次に手で取り込まれたパッケージを自己更新の結果として扱ってしまう
+                StopWatchingImport();
+                SessionState.EraseString(PendingCompletionKey);
+                Fail(S("update.error.import", exception.Message, SessionState.GetString(BackupPathKey, string.Empty)));
+            }
         }
 
         private static void OnImportCompleted(string packageName)
