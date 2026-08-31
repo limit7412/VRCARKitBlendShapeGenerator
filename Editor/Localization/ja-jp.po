@@ -427,5 +427,11 @@ msgstr "手元のファイルを調べられなかったため中止しました
 
 
 
+msgid "update.error.import"
+msgstr "取り込みに失敗しました: {0}\n更新前の内容は {1} に控えてあります。"
+
+msgid "update.error.import_cancelled"
+msgstr "取り込みが中止されました。\n更新前の内容は {0} に控えてあります。"
+
 msgid "update.error.backup"
 msgstr "更新前の内容を控えられなかったため中止しました: {0}"
