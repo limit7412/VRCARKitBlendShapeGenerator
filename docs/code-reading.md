@@ -109,8 +109,9 @@ NDMFのGenerating Phaseで、Jerry's Templatesより先に実行されるよう�
 ### 更新の確認
 
 インスペクタの先頭に、新しいバージョンが出ているかの案内を出す。
-GitHubのreleasesへ問い合わせるのは `UpdateCheck` で、確認するかどうかを利用者が選ぶまでは通信しない。
-確認する場合も1日1回までとし、失敗しても黙って次の機会へ回す。
+GitHubのreleasesへ問い合わせるのは `UpdateCheck` で、確認は既定で行う。
+確認は1日1回までとし、失敗しても黙って次の機会へ回す。
+通信を望まない利用者は Preferences > ARKit BlendShape Generator から止められる。
 
 案内の文面はインストール形態で変わる。
 形態の判別は `PackageLocation` がasmdefの位置をUnityへ問い合わせ、そのパスの解釈を `PackageInstallation` が行う。
@@ -148,8 +149,8 @@ VPM版でファイルを置き換えないのは、版数をVCC/ALCOMが `vpm-ma
   このほかインスペクタも、編集中に同じ判定（`CustomMappingValidation`）でエラーを表示する
 - **重複コンポーネントの排除**：`DisallowMultipleComponent` は同一GameObject内しか防げないため、アバター単位の一意性は `DuplicateComponentGuard` が `OnValidate` フック経由で担保する。
   ビルド時にも `SelectPrimaryComponent` で1つに絞る
-- **更新確認の外部通信**：Editorから外部へ出る通信はここだけで、利用者が確認を選ぶまでは行わない。
-  選択は `EditorPrefs` に持ち、インスペクタの問いかけと Preferences > ARKit BlendShape Generator のどちらからも変えられる
+- **更新確認の外部通信**：Editorから外部へ出る通信はここだけで、既定で行う。
+  止めた選択は `EditorPrefs` に持ち、Preferences > ARKit BlendShape Generator から変えられる
 - **文言**：Editor側でユーザーへ見せる文字列は直接書かず、`Localization.S(キー)` で引く。
   文言の実体は `Editor/Localization/*.po` にある。
   例外はRuntimeコンポーネントの `[Header]` と `[Tooltip]` で、Editorアセンブリにある `Localization` をRuntime側からは参照できないため、カスタムエディタが無効なとき用の英語文言を直接持っている
