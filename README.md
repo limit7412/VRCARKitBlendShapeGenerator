@@ -189,93 +189,12 @@ BlendShapeは線形合成されるため、焼き込み先を複数選ぶと、�
 
 ## 開発
 
-コード全体の構造と読み始めの入口は [docs/code-reading.md](docs/code-reading.md) にまとめています。
+開発者向けの情報は `docs/` にまとめています。
 
-### テスト
-
-生成ロジックのテストは `Tests/Editor` にEditModeテストとして置いています。
-メッシュの読み書きは `IMeshRepository` 越しに行っているため、テストでは `UnityEngine.Mesh` を使わずインメモリ実装（`FakeMeshRepository`）へ差し替えて検証します。
-
-`Editor/` `Runtime/` を変更したときは、PRを出す前に手元で実行してください。
-CIでも実行されますが（後述）、Unityライセンスのsecretが未設定のリポジトリやフォークではスキップされます。
-
-1. このリポジトリをUnityプロジェクトの `Packages/` 以下へ配置する（VCC/ALCOM経由で導入したものは書き換えられないため、開発時はクローンを直接置く）
-2. `Packages/manifest.json` の `testables` にパッケージ名を追加する
-
-    ```json
-    {
-      "dependencies": { },
-      "testables": [ "com.qazx7412.kx-vrc-arkit-blendshape-generator" ]
-    }
-    ```
-
-3. Unityメニュー > Window > General > Test Runner を開く
-4. EditModeタブで `ARKitBlendShapeGenerator.Editor.Tests` を実行する
-
-`testables` へ追加しないとテストアセンブリがコンパイルされず、Test Runnerの一覧にも現れません。
-テストは配布物には含みません（配布物の中身は「配布パッケージ」に書いています）。
-
-### 配布パッケージ
-
-リリースへ添付するzipは `.github/scripts/build-packages.sh` が作ります。
-release.ymlとprerelease.ymlの両方がこれを呼ぶため、安定版とプレリリースで中身が食い違うことはありません。
-
-| 生成物 | 中身 | 用途 |
-| ---- | ---- | ---- |
-| `com.qazx7412.kx-vrc-arkit-blendshape-generator-<版>.zip` | `package.json` `Runtime/` `Editor/`（`.meta` を除く） | VCC/ALCOM |
-| `VRCARKitBlendShapeGenerator_<版>.zip` | unitypackage 1つ | booth |
-
-unitypackageは `.github/scripts/booth_package.py` がUnityを使わずに組み立てます。
-unitypackageの実体はgzip tarで、アセット1件につきGUIDを名前とするディレクトリを持ち、その中に中身とメタと取り込み先のパスを並べた形式です。
-リリース経路へUnityライセンスを持ち込まずに済ませるため、Pythonで直接組み立てています。
-
-booth用zipの直下に `package.json` を置かないことが条件になります。
-VPMリスティングの生成はリリースのzipをすべて舐めて直下の `package.json` を読むため、置いてしまうとbooth用の配布物がリスティングへ混ざります。
-`packaging` ジョブがこれを検証します。
-
-同梱対象のGUIDは `.meta` としてリポジトリで固定しています。
-生成のたびに振り直すと、更新した瞬間に利用者のアバターからコンポーネントの参照が切れます。
-**同梱対象の `.meta` のGUIDは変更しないでください。** ファイルの追加時に新しいGUIDを起こすのは問題ありません。
-
-### CIでのテスト実行
-
-`.github/workflows/test.yml` が、PRごとにEditModeテストを実行します。
-結果は「EditMode Test Results」チェックとしてPRに出ます。
-
-テストが読むのは `Editor/` `Runtime/` `Tests/` `package.json` とワークフロー自身だけなので、これらに触れないPRではテストジョブをスキップします。
-スキップの判定はワークフローの `changes` ジョブが行い、テストジョブはskippedとして完了します。
-`on` の `paths` フィルタを使っていないのは、そちらで起動を止めるとチェック自体が作られず、テストをrequired status checkに指定したときにPRをマージできなくなるためです。
-判定に使うパスの一覧は `changes` ジョブにのみ書かれています。テストが読むファイルを増やしたときは、この一覧にも追加してください。
-
-同じワークフローの `packaging` ジョブが、配布パッケージの組み立てを検証します。
-こちらはUnityを使わないため、ライセンスの有無にも変更パスの判定にも関わらず常に実行されます。
-検証するのは、同梱対象すべてに `.meta` があること、GUIDが重複していないこと、配布済みのGUID（`ARKitBlendShapeGeneratorComponent`）が変わっていないこと、取り込み先が `Assets/AtelierKairox/VRCARKitBlendShapeGenerator/` の外へ出ていないこと、booth用zipの直下にVPM用の `package.json` が居ないこと、同じ入力から2回作って同一のバイト列になることです。
-
-このリポジトリはUnityプロジェクトではないため、ワークフローは実行のたびに最小のUnityプロジェクトを組み立て、その `Packages/` へこのリポジトリを置きます。
-VPM依存（VRChat SDK / NDMF）はUnity Package Managerでは解決できないので、[vrc-get](https://github.com/vrc-get/vrc-get)で先に導入してから[game-ci](https://game.ci/)のテストランナーを回します。
-
-実行にはリポジトリのsecretsへUnityライセンスの登録が必要です。
-ライセンスの種類で使うsecretが違います。取得手順は[game-ciのドキュメント](https://game.ci/docs/github/activation)を参照してください。
-
-| secret | 内容 |
-| ---- | ---- |
-| `UNITY_EMAIL` | Unityアカウントのメールアドレス（どちらの種類でも必要） |
-| `UNITY_PASSWORD` | Unityアカウントのパスワード（どちらの種類でも必要） |
-| `UNITY_LICENSE` | Personalの場合。ライセンスファイル（`.ulf`）の中身 |
-| `UNITY_SERIAL` | Pro/Plusの場合。シリアル |
-
-`UNITY_LICENSE` を登録するとそちらで認証するため、シリアルを使う場合は登録しないでください。
-
-`.ulf` は認証ファイル（`.alf`）を作った**Unityのバージョンに紐づきます**。
-別のバージョンで作ったものを登録すると、ログインには成功したうえで `Code 20110 (serial invalid)` で認証に失敗します。
-このリポジトリのCIは 2022.3.6f1 で動かすため、`.alf` も同じバージョンで作ってください。
-
-どちらのsecretも未設定のときはテストジョブがスキップされ、ワークフローは失敗しません。
-フォークからのPRはsecretsを受け取れないため、同様にスキップされます。
-
-なお、テストの実行はPRのコードをUnityで動かすことであり、そのUnityはアカウントの認証情報を持ちます。
-同一リポジトリのブランチから作ったPRではsecretsが読めるため、**このリポジトリへの書き込み権限は認証情報へのアクセスと同義**です。
-外部のコントリビューターを迎える場合は、secretsを承認必須のGitHub Environmentへ移すことを検討してください。
+- [コードリーディングガイド](docs/code-reading.md)：コード全体の構造と読み始めの入口
+- [開発環境とテストの実行](docs/development.md)：テストの置き場所と手元での実行手順
+- [配布パッケージ](docs/packaging.md)：リリースzipの構成とGUIDを固定している理由
+- [CIでのテスト実行](docs/ci.md)：PRごとのテストと検証、Unityライセンスの設定
 
 ## ライセンス
 
