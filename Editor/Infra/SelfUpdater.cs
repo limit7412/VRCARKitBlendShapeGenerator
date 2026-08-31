@@ -20,8 +20,9 @@ namespace ARKitBlendShapeGenerator.Infra
     /// 手順を分けているのは、プロジェクトのファイルへ触れるのを最後に寄せるため。
     /// 取得と検証と展開を先に済ませ、どれかが失敗した場合は手元に手を付けずに終わる。
     ///
-    /// 取り込みは自分自身を差し替える。要求した時点でエディタのアセンブリが読み直されるため、
-    /// 以降の処理をここへ書いても実行されない。完了の知らせはSessionStateへ残し、
+    /// 取り込みは自分自身を差し替える。
+    /// ImportPackageは要求を積んで戻るため、完了の合図を受けてから読み直させる。
+    /// 読み直しでこのクラスごと入れ替わるので、完了の知らせはSessionStateへ残し、
     /// 読み込み後にUpdateCheckStartupが拾う
     /// </summary>
     internal static class SelfUpdater
@@ -217,31 +218,90 @@ namespace ARKitBlendShapeGenerator.Infra
             SessionState.SetString(BackupPathKey, backupPath);
 
             // ここから先はプロジェクトのファイルを書き換える。
-            // 途中でアセンブリが読み直されると取り込みまで辿り着けないため、reloadを止めておく
+            // 削除の途中でアセンブリが読み直されると、消えたファイルのまま取り込みへ辿り着けない。
+            // 止めるのは削除の間だけでよく、取り込みは要求を積むだけで走るのはこの後になる
 
+            IReadOnlyList<string> failed;
             EditorApplication.LockReloadAssemblies();
             try
             {
-                var failed = DeleteObsolete(obsolete);
-                if (failed.Count > 0)
-                {
-                    // 消せなかった古いファイルが新しい版と同居するとコンパイルが通らない。
-                    // 取り込みへ進むと、版だけが新しくなって壊れた状態が残る
-                    Delete(unityPackagePath);
-                    Fail(S("update.error.delete", string.Join(", ", failed), backupPath));
-                    return;
-                }
-
-                SessionState.SetString(PendingCompletionKey, tag);
-
-                // 取り込みを要求した時点で、この先のコードは差し替えの対象になる
-                AssetDatabase.ImportPackage(unityPackagePath, false);
+                failed = DeleteObsolete(obsolete);
             }
             finally
             {
                 EditorApplication.UnlockReloadAssemblies();
-                _isRunning = false;
             }
+
+            if (failed.Count > 0)
+            {
+                // 消せなかった古いファイルが新しい版と同居するとコンパイルが通らない。
+                // 取り込みへ進むと、版だけが新しくなって壊れた状態が残る
+                Delete(unityPackagePath);
+                Fail(S("update.error.delete", string.Join(", ", failed), backupPath));
+                return;
+            }
+
+            SessionState.SetString(PendingCompletionKey, tag);
+            Import(unityPackagePath);
+        }
+
+        /// <summary>
+        /// 取り込みを要求し、終わったところで読み直させる。
+        ///
+        /// ImportPackageは要求を積んで戻る。完了を待たずに終えると、ファイルだけが入れ替わり、
+        /// 動いているアセンブリは古いまま残る。
+        /// 新しいコードが効くのはエディタを開き直したときになり、それまでインスペクタは
+        /// 古い版の判断で描かれ続ける。
+        ///
+        /// 完了の合図は取り込むパッケージの名前で絞らない。
+        /// 名前の付き方に頼って取りこぼすより、他の取り込みで一度多く読み直すほうが害が無い
+        /// </summary>
+        private static void Import(string unityPackagePath)
+        {
+            AssetDatabase.importPackageCompleted += OnImportCompleted;
+            AssetDatabase.importPackageFailed += OnImportFailed;
+            AssetDatabase.importPackageCancelled += OnImportCancelled;
+
+            // 要求した時点で、この先のコードは差し替えの対象になる
+            AssetDatabase.ImportPackage(unityPackagePath, false);
+        }
+
+        private static void OnImportCompleted(string packageName)
+        {
+            StopWatchingImport();
+
+            // 取り込まれたスクリプトをコンパイルさせ、ドメインリロードへつなげる。
+            // リロードで静的フィールドが捨てられ、インスペクタが新しい版で描き直される
+            AssetDatabase.Refresh();
+            EditorUtility.RequestScriptReload();
+        }
+
+        private static void OnImportFailed(string packageName, string errorMessage)
+        {
+            StopWatchingImport();
+            SessionState.EraseString(PendingCompletionKey);
+            Fail(S("update.error.import", errorMessage, SessionState.GetString(BackupPathKey, string.Empty)));
+        }
+
+        private static void OnImportCancelled(string packageName)
+        {
+            StopWatchingImport();
+            SessionState.EraseString(PendingCompletionKey);
+            Fail(S("update.error.import_cancelled", SessionState.GetString(BackupPathKey, string.Empty)));
+        }
+
+        /// <summary>
+        /// 合図の購読をやめる。
+        ///
+        /// 実行中の印はここでは下ろさない。
+        /// 完了なら直後の読み直しで静的フィールドごと消え、失敗と中止はFailが下ろす。
+        /// 取り込みが終わるまで下ろさないことで、その間の二度押しも防げる
+        /// </summary>
+        private static void StopWatchingImport()
+        {
+            AssetDatabase.importPackageCompleted -= OnImportCompleted;
+            AssetDatabase.importPackageFailed -= OnImportFailed;
+            AssetDatabase.importPackageCancelled -= OnImportCancelled;
         }
 
         /// <summary>同梱されたpackage.jsonが、取りに行った版のものかどうか</summary>

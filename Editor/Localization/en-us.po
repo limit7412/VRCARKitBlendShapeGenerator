@@ -427,5 +427,11 @@ msgstr "Stopped because the installed files could not be inspected: {0}"
 
 
 
+msgid "update.error.import"
+msgstr "The import failed: {0}\nThe previous contents are kept at {1}."
+
+msgid "update.error.import_cancelled"
+msgstr "The import was cancelled.\nThe previous contents are kept at {0}."
+
 msgid "update.error.backup"
 msgstr "Stopped because the previous contents could not be backed up: {0}"
