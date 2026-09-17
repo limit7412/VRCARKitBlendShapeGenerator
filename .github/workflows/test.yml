@@ -40,6 +40,11 @@ env:
   UNITY_VERSION: 2022.3.6f1
   PACKAGE_NAME: com.qazx7412.kx-vrc-arkit-blendshape-generator
   VRC_GET_VERSION: v1.9.2
+  # unity-test-runnerが取得するgame-ci CLIの版。
+  # 既定のlatestは版の解決にGitHub APIを叩き、共有ランナーでは他のジョブと
+  # 同じIPで無認証の上限に達して403で止まることがある。版を指定すると
+  # リリースの配布URLから直接取得するためAPIを使わない
+  GAME_CI_CLI_VERSION: v0.1.66
 
 jobs:
   # secretsコンテキストはジョブの`if`で参照できないため、
@@ -399,6 +404,7 @@ jobs:
         with:
           projectPath: TestProject
           unityVersion: ${{ env.UNITY_VERSION }}
+          cliVersion: ${{ env.GAME_CI_CLI_VERSION }}
           testMode: editmode
           artifactsPath: artifacts
           githubToken: ${{ secrets.GITHUB_TOKEN }}
