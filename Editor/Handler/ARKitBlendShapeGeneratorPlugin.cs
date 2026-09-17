@@ -19,9 +19,20 @@ namespace ARKitBlendShapeGenerator.Handler
 
         protected override void Configure()
         {
-            // Generating Phaseで実行（Jerry's Templatesより先に動作）
-            InPhase(BuildPhase.Generating)
-                .BeforePlugin("com.adjerry91.vrcft-templates")
+            // Transforming Phaseで、表情改変で崩れたシェイプキーを直すツールの後に実行する。
+            // 生成は既存シェイプキーの変形を写し取るため、修正前のまばたきや口から生成すると
+            // 崩れたままのARKit BlendShapeになる。
+            // Avatar Blink Fixは打ち消し修正をTransformingで、ベイク修正をGeneratingで行う
+            // （Fermata併用時はベイクもTransformingへ遅延する）ため、両方の後ろへ置く。
+            // Face BlendShape FixはGeneratingで動くので、フェーズの順序だけで先行が決まる。
+            // NDMFの制約はプラグインごとの仮想アンカーへ結び付くため、相手が未導入でも
+            // 別フェーズでも指定できる。
+            // Modular Avatarより前に置くのは、Jerry's Templates（MAプレハブ）を含む
+            // アニメーションの統合より先にシェイプキーを揃えておくため。
+            InPhase(BuildPhase.Transforming)
+                .AfterPlugin("dev.lemoneru.avatar-blink-fix")
+                .AfterPlugin("dev.lemoneru.avatar-blink-fix.redefine")
+                .BeforePlugin("nadena.dev.modular-avatar")
                 .Run("Generate ARKit BlendShapes", ctx =>
                 {
                     var components = ctx.AvatarRootObject

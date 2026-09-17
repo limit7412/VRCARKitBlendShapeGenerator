@@ -62,7 +62,11 @@ Domainを `UnityEngine.Mesh` から切り離しているのは、生成ロジッ
 ### ビルド時
 
 エントリポイントは `Editor/Handler/ARKitBlendShapeGeneratorPlugin.cs` である。
-NDMFのGenerating Phaseで、Jerry's Templatesより先に実行されるよう登録している。
+NDMFのTransforming Phaseで、Avatar Blink Fixの後、Modular Avatarの前に実行されるよう登録している。
+生成は既存シェイプキーの変形を写し取るため、表情改変で崩れたシェイプキーを直すツールより後に動かないと、崩れたままのARKit BlendShapeになる。
+Avatar Blink Fixの打ち消し修正はTransformingで動くので、Generatingに置いたままでは追い越せない。
+Face BlendShape FixはGeneratingで動くため、フェーズの順序だけで先行が決まる。
+Modular Avatarより前に置くのは、Jerry's Templates（MAプレハブ）を含むアニメーションの統合より先にシェイプキーを揃えておくためである。
 
 1. アバター内のコンポーネントを収集し、`GenerateBlendShapesUseCase.SelectPrimaryComponent` で1つに絞る（アバタールート直付けを優先）
 2. `GenerateBlendShapesUseCase.ExecuteForBuild` が、カスタムマッピングの重複検証、対象レンダラーの解決、メッシュの複製を行い、複製へ生成してからレンダラーへ差し替える
