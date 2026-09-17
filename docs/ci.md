@@ -16,6 +16,7 @@
 VPM依存（VRChat SDK / NDMF）はUnity Package Managerでは解決できないので、[vrc-get](https://github.com/vrc-get/vrc-get)で先に導入してから[game-ci](https://game.ci/)のテストランナーを回す。
 game-ciのCLIはテストでもプロジェクトでgitを呼んでバージョンを決めるため、組み立てたプロジェクトは空のコミットを1つ持つgitリポジトリにしてから渡す（詳細はワークフロー内のコメントに書いている）。
 CLIの版はワークフローの `UNITY_TEST_RUNNER_CLI_VERSION` で固定している。既定の `latest` は版の解決にGitHub APIを使い、共有ランナーでは無認証の上限に達して失敗することがある。
+固定している版がライセンス処理の作り直し前のものである理由もワークフローのコメントに書いている。新しい版へ上げるときは、`UNITY_LICENSE` の `.ulf` で認証が通るかを先に確かめること。
 
 ## Unityライセンスの設定
 

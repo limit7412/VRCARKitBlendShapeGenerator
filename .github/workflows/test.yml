@@ -44,10 +44,15 @@ env:
   # 既定のlatestは版の解決にGitHub APIを叩き、共有ランナーでは他のジョブと
   # 同じIPで無認証の上限に達して403で止まることがある。版を指定すると
   # リリースの配布URLから直接取得するためAPIを使わない。
+  # v0.1.51以降はライセンス処理が作り直され、UNITY_LICENSEの.ulfを機械の
+  # 紐付け違いで退けてアカウント認証へ切り替える。この認証はPersonalの
+  # シートを割り当てられず失敗するため、作り直し前の版に留める。
+  # v0.1.50はunity-test-runner v4.4.0が渡す引数（--dockerShmSize等）を
+  # 全て受け付ける最も古い版。
   # 名前をGAME_CI_で始めてはいけない。game-ci CLIはGAME_CI_<オプション名>の
   # 環境変数を自分のオプションとして読み、対応するオプションが無いと
   # "Unknown argument" で起動前に失敗する
-  UNITY_TEST_RUNNER_CLI_VERSION: v0.1.66
+  UNITY_TEST_RUNNER_CLI_VERSION: v0.1.50
 
 jobs:
   # secretsコンテキストはジョブの`if`で参照できないため、
