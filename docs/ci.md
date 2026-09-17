@@ -14,6 +14,7 @@
 
 このリポジトリはUnityプロジェクトではないため、ワークフローは実行のたびに最小のUnityプロジェクトを組み立て、その `Packages/` へこのリポジトリを置く。
 VPM依存（VRChat SDK / NDMF）はUnity Package Managerでは解決できないので、[vrc-get](https://github.com/vrc-get/vrc-get)で先に導入してから[game-ci](https://game.ci/)のテストランナーを回す。
+game-ciのCLIはテストでもプロジェクトでgitを呼んでバージョンを決めるため、組み立てたプロジェクトは空のコミットを1つ持つgitリポジトリにしてから渡す（詳細はワークフロー内のコメントに書いている）。
 
 ## Unityライセンスの設定
 

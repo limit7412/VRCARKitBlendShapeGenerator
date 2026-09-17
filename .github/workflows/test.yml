@@ -370,6 +370,23 @@ jobs:
           restore-keys: |
             Library-${{ env.UNITY_VERSION }}-
 
+      # game-ci CLIは、テストでもバージョン決定のためにprojectPathを作業ディレクトリとして
+      # gitを呼ぶ。TestProjectはこのジョブで組み立てた素のディレクトリなので、そのままだと
+      # "fatal: not a git repository" でUnityを起動する前に止まる。
+      # 未コミットの変更があるとdirtyと判定されて同じく拒否されるため、コミットまで済ませる。
+      # 決まったバージョンはテストに使われず、リポジトリとして成立していれば足りるので、
+      # 全てを無視する.gitignoreと空のコミット1つで作る。キャッシュから戻したLibraryや
+      # テスト中に増えるartifactsがdirtyの原因にならない。
+      - name: Make the test project a git repository for game-ci
+        working-directory: TestProject
+        run: |
+          set -euo pipefail
+          printf '*\n' > .gitignore
+          git init --quiet
+          git config user.email "ci@example.invalid"
+          git config user.name "CI"
+          git commit --quiet --allow-empty -m "Test project fixture"
+
       # 他のアクションはNode 24を実行環境とする版へ上げているが、これはv4が最新であり
       # Node 20のまま。上流が新しいメジャーを出すまでは追随できない。
       - name: Run EditMode tests
