@@ -7,12 +7,15 @@ name: Test
 # VPM依存（VRChat SDK / NDMF）はUnity Package Managerでは解決できないため、
 # vrc-getで先に入れてからテストランナーを回す。
 #
-# 実行にはUnityライセンスのsecret登録が必要。ライセンスの種類で使うsecretが違う:
-#   Personal … UNITY_LICENSE（ライセンスファイル(.ulf)の中身）+ UNITY_EMAIL + UNITY_PASSWORD
+# 実行にはUnityアカウントのsecret登録が必要。ライセンスの種類で使うsecretが違う:
+#   Personal … UNITY_EMAIL + UNITY_PASSWORD
 #   Pro/Plus … UNITY_SERIAL + UNITY_EMAIL + UNITY_PASSWORD
 # 取得手順は https://game.ci/docs/github/activation を参照。
-# UNITY_LICENSEを登録するとそちらで認証するため、シリアルを使う場合は登録しない。
-# どちらも未設定の場合、テストジョブはスキップされる（フォークからのPRを含む）。
+# ライセンスファイル(.ulf)のUNITY_LICENSEは使わない。Personalの.ulfは要求した機械に
+# 紐付き、ランナー側の機械識別が変わると退けられるうえ、Unityが手動認証を廃止したため
+# 作り直せない（docs/ci.md）。
+# UNITY_EMAIL / UNITY_PASSWORD が未設定の場合、テストジョブはスキップされる
+# （フォークからのPRを含む）。
 #
 # テスト対象に触れていない変更では、テストジョブをスキップする。
 # 判定は`on`の`paths`フィルタではなく`changes`ジョブと`if`で行う（理由は当該ジョブに記述）。
@@ -35,9 +38,12 @@ permissions:
   pull-requests: read
 
 env:
-  # package.jsonの unity / unityRelease に合わせる。
-  # 変更する場合は unityci/editor に ubuntu-<version>-base-3 タグが存在するか確認する
-  UNITY_VERSION: 2022.3.6f1
+  # package.jsonの unity / unityRelease（2022.3.6f1）より新しい版で動かす。
+  # Personalのアカウント認証には同梱のライセンスクライアントに --include-personal が
+  # 要り、2022.3.6f1のクライアント（1.12.1）は持っていない。2022.3.62f3はgame-ciが
+  # UNITY_EMAIL / UNITY_PASSWORD だけで認証できることを確認している版。
+  # 変更する場合は unityci/editor に ubuntu-<version>-linux-il2cpp-3 タグが存在するか確認する
+  UNITY_VERSION: 2022.3.62f3
   PACKAGE_NAME: com.qazx7412.kx-vrc-arkit-blendshape-generator
   VRC_GET_VERSION: v1.9.2
   # unity-test-runnerが取得するgame-ci CLIの版。
@@ -60,14 +66,14 @@ jobs:
     steps:
       - id: check
         env:
-          UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
-          UNITY_SERIAL: ${{ secrets.UNITY_SERIAL }}
+          UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
+          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
         run: |
-          if [ -n "$UNITY_LICENSE" ] || [ -n "$UNITY_SERIAL" ]; then
+          if [ -n "$UNITY_EMAIL" ] && [ -n "$UNITY_PASSWORD" ]; then
             echo "available=true" >> "$GITHUB_OUTPUT"
           else
             echo "available=false" >> "$GITHUB_OUTPUT"
-            echo "::notice::UNITY_LICENSE / UNITY_SERIAL が未設定のためEditModeテストをスキップします"
+            echo "::notice::UNITY_EMAIL / UNITY_PASSWORD が未設定のためEditModeテストをスキップします"
           fi
 
   # 変更がテスト対象に触れているかを判定する。
@@ -399,21 +405,14 @@ jobs:
       # Node 20のまま。上流が新しいメジャーを出すまでは追随できない。
       - name: Run EditMode tests
         uses: game-ci/unity-test-runner@v4
+        # UNITY_LICENSEは渡さない。渡すとgame-ciが.ulfでの認証を先に試し、
+        # 機械の紐付け違いで退けられた後のフォールバックはPersonalを取得できない。
+        # 渡さなければ、UNITY_SERIALがあればシリアル、無ければアカウント（Personal）で
+        # 認証する
         env:
-          UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
           UNITY_SERIAL: ${{ secrets.UNITY_SERIAL }}
           UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
           UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
-          # 認証方式をUnityアカウント（Personal）に固定する。
-          # game-ci CLIはGAME_CI_<オプション名>の環境変数をオプションとして読むので、
-          # これは --unityLicensingMethod personal と同じ意味になる。
-          # 自動選択に任せるとUNITY_LICENSEの.ulfを先に試す。Personalの.ulfは要求した
-          # 機械に紐付くため、ランナー側の機械識別が変わると "Machine bindings don't
-          # match" で退けられる。その後のフォールバックはライセンスクライアントだけを
-          # 使い、このUnity版のクライアント（1.12.1）は--include-personalを持たないため
-          # "No seat available" で失敗する。personalを最初から選んだ場合だけ、
-          # クライアントが非対応ならエディタ本体でアカウント認証する経路へ進む
-          GAME_CI_UNITY_LICENSING_METHOD: personal
         with:
           projectPath: TestProject
           unityVersion: ${{ env.UNITY_VERSION }}
