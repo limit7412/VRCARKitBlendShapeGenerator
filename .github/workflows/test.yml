@@ -404,6 +404,16 @@ jobs:
           UNITY_SERIAL: ${{ secrets.UNITY_SERIAL }}
           UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
           UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
+          # 認証方式をUnityアカウント（Personal）に固定する。
+          # game-ci CLIはGAME_CI_<オプション名>の環境変数をオプションとして読むので、
+          # これは --unityLicensingMethod personal と同じ意味になる。
+          # 自動選択に任せるとUNITY_LICENSEの.ulfを先に試す。Personalの.ulfは要求した
+          # 機械に紐付くため、ランナー側の機械識別が変わると "Machine bindings don't
+          # match" で退けられる。その後のフォールバックはライセンスクライアントだけを
+          # 使い、このUnity版のクライアント（1.12.1）は--include-personalを持たないため
+          # "No seat available" で失敗する。personalを最初から選んだ場合だけ、
+          # クライアントが非対応ならエディタ本体でアカウント認証する経路へ進む
+          GAME_CI_UNITY_LICENSING_METHOD: personal
         with:
           projectPath: TestProject
           unityVersion: ${{ env.UNITY_VERSION }}
