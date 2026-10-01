@@ -20,7 +20,9 @@ namespace ARKitBlendShapeGenerator.Tests
         };
 
         // 口領域を模した直方体（左右2 × 上下2 × 前後2）に、口から離れた頂点を1つ足した構成。
-        // 唇の境界線は口領域の重心Y=0に決まり、上側（Y=+0.01）と下側（Y=-0.01）はブレンド帯の外に出る
+        // 唇の境界線は口領域の重心Y=0に決まり、上側（Y=+0.01）と下側（Y=-0.01）はブレンド帯の外に出る。
+        // 分割するシェイプのソース名は口領域の検出候補（う、お 等）と重ならないものにする。
+        // 候補に当たると口から離れた頂点まで口領域に含まれ、境界線がずれる
         private const float SideX = 0.05f;
         private const float UpperY = 0.01f;
         private const float LowerY = -0.01f;
@@ -187,11 +189,11 @@ namespace ARKitBlendShapeGenerator.Tests
         {
             var source = new FakeMeshRepository(MouthVertices())
                 .AddShape("vrc.v_aa", RegionDeltas(Vector3.down * 0.02f))
-                .AddShape("う", UniformDeltas(MouthVertices().Length, Vector3.forward));
+                .AddShape("すぼめ", UniformDeltas(MouthVertices().Length, Vector3.forward));
             var target = new FakeMeshRepository(MouthVertices());
 
             var result = BlendShapeGenerationEngine.Generate(
-                source, target, null, AutoMapping("mouthFunnel", "う"),
+                source, target, null, AutoMapping("mouthFunnel", "すぼめ"),
                 CreateOptions(BlendShapeNaming.UnifiedExpressions), null);
 
             Assert.That(result.GeneratedShapes, Is.EqualTo(new[] { "LipFunnelUpper", "LipFunnelLower" }));
@@ -230,7 +232,7 @@ namespace ARKitBlendShapeGenerator.Tests
             // 打ち消しを足し終えた形を分割するので、上下を足すと打ち消し込みの形に戻る
             var source = new FakeMeshRepository(MouthVertices())
                 .AddShape("vrc.v_aa", RegionDeltas(Vector3.down * 0.02f))
-                .AddShape("う", UniformDeltas(MouthVertices().Length, Vector3.forward))
+                .AddShape("すぼめ", UniformDeltas(MouthVertices().Length, Vector3.forward))
                 .AddShape("口角", UniformDeltas(MouthVertices().Length, Vector3.forward * 0.25f));
             var target = new FakeMeshRepository(MouthVertices());
             var options = CreateOptions(BlendShapeNaming.UnifiedExpressions);
@@ -243,7 +245,7 @@ namespace ARKitBlendShapeGenerator.Tests
             options.MouthCancellationTargets = new HashSet<string> { "mouthFunnel" };
 
             BlendShapeGenerationEngine.Generate(
-                source, target, null, AutoMapping("mouthFunnel", "う"), options, null);
+                source, target, null, AutoMapping("mouthFunnel", "すぼめ"), options, null);
 
             var upper = target.FindShape("LipFunnelUpper").Frames[0].DeltaVertices;
             var lower = target.FindShape("LipFunnelLower").Frames[0].DeltaVertices;
