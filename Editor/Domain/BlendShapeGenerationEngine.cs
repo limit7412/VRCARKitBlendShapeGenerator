@@ -524,6 +524,10 @@ namespace ARKitBlendShapeGenerator.Domain
 
             var vertices = sourceMesh.GetVertices();
 
+            // 展開後の出力名の重なりを除く。計画はカスタム → 自動 → 変換の順なので先勝ちでカスタムが残る
+            // （カスタムでUE名を直接付けた定義と、同じUE名へ変換される自動マッピングが共存しうる）
+            var plannedOutputNames = new HashSet<string>();
+
             foreach (var planned in plannedBlendShapes)
             {
                 // 実体化して初めて失敗が分かると、手続き的生成の要否を書き込み前に決められない。
@@ -537,8 +541,9 @@ namespace ARKitBlendShapeGenerator.Domain
 
                 foreach (var output in OutputBlendShapeNameTable.Resolve(planned.ArkitName, options.OutputNaming))
                 {
-                    // 既存のARKitシェイプキーからの変換では、ARKit名の出力先は元のシェイプキーそのもの
-                    if (planned.IsConversion && output.Name == planned.ArkitName)
+                    // 既存のARKitシェイプキーからの変換では、対象に同名があればそれが元のシェイプキーそのもの。
+                    // 対象がソースの複製でなく同名を持たない場合は、複写として書く
+                    if (planned.IsConversion && output.Name == planned.ArkitName && targetExistingNames.Contains(output.Name))
                     {
                         continue;
                     }
@@ -547,6 +552,12 @@ namespace ARKitBlendShapeGenerator.Domain
                     if (!options.OverwriteExisting && targetExistingNames.Contains(output.Name))
                     {
                         Log(logger, options, $"Skip (exists): {output.Name}");
+                        continue;
+                    }
+
+                    if (!plannedOutputNames.Add(output.Name))
+                    {
+                        Log(logger, options, $"Skip (output name already planned): {output.Name}");
                         continue;
                     }
 
@@ -591,6 +602,7 @@ namespace ARKitBlendShapeGenerator.Domain
                     options,
                     customMappedNames,
                     plannedArkitNames,
+                    plannedOutputNames,
                     targetExistingNames,
                     adjacentDuplicateName,
                     cancellation,
@@ -931,6 +943,7 @@ namespace ARKitBlendShapeGenerator.Domain
             BlendShapeGenerationOptions options,
             HashSet<string> customMappedNames,
             HashSet<string> plannedArkitNames,
+            HashSet<string> plannedOutputNames,
             HashSet<string> targetExistingNames,
             string adjacentDuplicateName,
             MouthCancellationDelta cancellation,
@@ -968,6 +981,12 @@ namespace ARKitBlendShapeGenerator.Domain
 
                 foreach (var output in OutputBlendShapeNameTable.Resolve(arkitName, options.OutputNaming))
                 {
+                    if (plannedOutputNames.Contains(output.Name))
+                    {
+                        Log(logger, options, $"Skip procedural (output name already planned): {output.Name}");
+                        continue;
+                    }
+
                     if (targetExistingNames.Contains(output.Name))
                     {
                         if (!options.OverwriteExisting)
@@ -979,6 +998,7 @@ namespace ARKitBlendShapeGenerator.Domain
                         namesToReplace.Add(output.Name);
                     }
 
+                    plannedOutputNames.Add(output.Name);
                     outputsToGenerate.Add((arkitName, output));
                 }
             }
@@ -1084,7 +1104,10 @@ namespace ARKitBlendShapeGenerator.Domain
 
                 customMappedNames.Add(mapping.arkitName);
 
-                if (existingShapes.ContainsKey(mapping.arkitName) && !options.OverwriteExisting)
+                // ARKit名で書くときだけ、ソースに同名があれば計画の時点で除く。
+                // ほかの種別では出力名が別になるため、既存との重なりは出力名へ展開した側で判定する
+                if (SkipsExistingArkitName(options) &&
+                    existingShapes.ContainsKey(mapping.arkitName) && !options.OverwriteExisting)
                 {
                     Log(logger, options, $"Skip custom (exists): {mapping.arkitName}");
                     continue;
@@ -1148,7 +1171,8 @@ namespace ARKitBlendShapeGenerator.Domain
                     continue;
                 }
 
-                if (existingShapes.ContainsKey(mapping.arkitName) && !options.OverwriteExisting)
+                if (SkipsExistingArkitName(options) &&
+                    existingShapes.ContainsKey(mapping.arkitName) && !options.OverwriteExisting)
                 {
                     Log(logger, options, $"Skip auto (exists in source): {mapping.arkitName}");
                     continue;
@@ -1167,6 +1191,16 @@ namespace ARKitBlendShapeGenerator.Domain
                 plannedBlendShapes.Add(new PlannedBlendShape(mapping.arkitName, sourcesWithSide));
                 processedArkitNames.Add(mapping.arkitName);
             }
+        }
+
+        /// <summary>
+        /// 計画の段階でARKit名の既存シェイプキーを除くか。
+        /// ARKit名で書くときは出力名が正準名と一致するので、ここで除けば出力名の判定と同じ結果になる。
+        /// ほかの種別では出力名が別なので、ここで除くと出力名の生成まで止めてしまう
+        /// </summary>
+        private static bool SkipsExistingArkitName(BlendShapeGenerationOptions options)
+        {
+            return options.OutputNaming == BlendShapeNaming.ARKit;
         }
 
         private static List<(int index, float weight)> FindAutoSources(
@@ -1261,6 +1295,11 @@ namespace ARKitBlendShapeGenerator.Domain
             DeltaScratch scratch,
             IGenerationLogger logger)
         {
+            if (planned.IsConversion)
+            {
+                return BuildConversionBlendShape(sourceMesh, planned, outputName, mask, options, logger);
+            }
+
             int vertexCount = sourceMesh.VertexCount;
             var deltaVertices = new Vector3[vertexCount];
             var deltaNormals = new Vector3[vertexCount];
@@ -1290,8 +1329,7 @@ namespace ARKitBlendShapeGenerator.Domain
                 int targetFrame = frameCount - 1;
                 sourceMesh.GetBlendShapeFrameVertices(index, targetFrame, srcDeltaV, srcDeltaN, srcDeltaT);
 
-                // 既存ARKitシェイプキーの変換は形を変えない複写なので、強度係数を掛けない
-                float adjustedWeight = planned.IsConversion ? weight : weight * options.IntensityMultiplier;
+                float adjustedWeight = weight * options.IntensityMultiplier;
                 for (int i = 0; i < vertexCount; i++)
                 {
                     float sideMultiplier = 1.0f;
@@ -1317,9 +1355,8 @@ namespace ARKitBlendShapeGenerator.Domain
                 return null;
             }
 
-            // 打ち消しのみのBlendShapeを作らないよう、ソースから生成できた場合だけ焼き込む。
-            // 既存ARKitシェイプキーの変換には焼き込まない（元のシェイプキーに焼き込み済みでありうる）
-            if (!planned.IsConversion && cancellation != null && cancellation.AppliesTo(planned.ArkitName))
+            // 打ち消しのみのBlendShapeを作らないよう、ソースから生成できた場合だけ焼き込む
+            if (cancellation != null && cancellation.AppliesTo(planned.ArkitName))
             {
                 for (int i = 0; i < vertexCount; i++)
                 {
@@ -1335,15 +1372,65 @@ namespace ARKitBlendShapeGenerator.Domain
             // 先に切り出すと、分割した出力先を足し合わせても元の形に戻らなくなる
             ApplyOutputMask(mask, deltaVertices, deltaNormals, deltaTangents);
 
-            Log(logger, options, planned.IsConversion
-                ? $"Converted: {outputName} from existing {planned.ArkitName}"
-                : $"Generated: {outputName} from {sourceCount} source(s)");
+            Log(logger, options, $"Generated: {outputName} from {sourceCount} source(s)");
             return new BlendShapeData(
                 outputName,
                 new List<BlendShapeFrameData>
                 {
                     new BlendShapeFrameData(100f, deltaVertices, deltaNormals, deltaTangents),
                 });
+        }
+
+        /// <summary>
+        /// 既存ARKitシェイプキーを出力名へ複写する。
+        /// 形を変えない複写なので、全フレームをウェイトごと写し、強度係数と打ち消しは適用しない
+        /// （元のシェイプキーが既に最終的な形で、打ち消しも焼き込み済みでありうる）。
+        /// 出力先の範囲（左右・上下）だけを各フレームに掛ける
+        /// </summary>
+        private static BlendShapeData BuildConversionBlendShape(
+            IMeshRepository sourceMesh,
+            PlannedBlendShape planned,
+            string outputName,
+            OutputMask mask,
+            BlendShapeGenerationOptions options,
+            IGenerationLogger logger)
+        {
+            int vertexCount = sourceMesh.VertexCount;
+            var frames = new List<BlendShapeFrameData>();
+
+            foreach (var (index, _, _) in planned.Sources)
+            {
+                if (index < 0 || index >= sourceMesh.BlendShapeCount)
+                {
+                    continue;
+                }
+
+                int frameCount = sourceMesh.GetBlendShapeFrameCount(index);
+                for (int frameIndex = 0; frameIndex < frameCount; frameIndex++)
+                {
+                    var deltaVertices = new Vector3[vertexCount];
+                    var deltaNormals = new Vector3[vertexCount];
+                    var deltaTangents = new Vector3[vertexCount];
+                    sourceMesh.GetBlendShapeFrameVertices(index, frameIndex, deltaVertices, deltaNormals, deltaTangents);
+                    ApplyOutputMask(mask, deltaVertices, deltaNormals, deltaTangents);
+
+                    frames.Add(new BlendShapeFrameData(
+                        sourceMesh.GetBlendShapeFrameWeight(index, frameIndex),
+                        deltaVertices,
+                        deltaNormals,
+                        deltaTangents));
+                }
+
+                break;
+            }
+
+            if (frames.Count == 0)
+            {
+                return null;
+            }
+
+            Log(logger, options, $"Converted: {outputName} from existing {planned.ArkitName} ({frames.Count} frame(s))");
+            return new BlendShapeData(outputName, frames);
         }
 
         /// <summary>

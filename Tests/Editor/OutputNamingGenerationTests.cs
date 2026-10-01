@@ -323,10 +323,12 @@ namespace ARKitBlendShapeGenerator.Tests
             Assert.That(target.Shapes.Count, Is.EqualTo(1));
         }
 
-        [Test]
-        public void Generate_PrefersCustomMapping_OverExistingArkitShape()
+        [TestCase(true)]
+        [TestCase(false)]
+        public void Generate_PrefersCustomMapping_OverExistingArkitShape(bool overwriteExisting)
         {
-            // カスタムマッピングは利用者の明示的な指定なので、既存ARKitシェイプキーより優先する
+            // カスタムマッピングは利用者の明示的な指定なので、既存ARKitシェイプキーより優先する。
+            // UE名の出力先は既存のjawOpenと重ならないため、上書きがOFFでもカスタム定義から生成される
             var source = new FakeMeshRepository(TwoVertices())
                 .AddShape("あ", Vector3.up, Vector3.up)
                 .AddShape("jawOpen", Vector3.forward, Vector3.forward);
@@ -336,9 +338,65 @@ namespace ARKitBlendShapeGenerator.Tests
 
             BlendShapeGenerationEngine.Generate(
                 source, target, CustomMapping("jawOpen", "あ"), null,
-                CreateOptions(BlendShapeNaming.UnifiedExpressions, overwriteExisting: true), null);
+                CreateOptions(BlendShapeNaming.UnifiedExpressions, overwriteExisting: overwriteExisting), null);
 
             Assert.That(target.FindShape("JawOpen").Frames[0].DeltaVertices[0], Is.EqualTo(Vector3.up));
+            Assert.That(target.FindShape("jawOpen").Frames[0].DeltaVertices[0], Is.EqualTo(Vector3.forward));
+        }
+
+        [Test]
+        public void Generate_WritesArkitCopy_WhenConvertingInBothModeAndTargetLacksIt()
+        {
+            // 対象がソースの複製でなくARKit名を持たないときは、変換元の複写としてARKit名も書く
+            var source = new FakeMeshRepository(TwoVertices())
+                .AddShape("jawOpen", Vector3.forward, Vector3.forward);
+            var target = new FakeMeshRepository(TwoVertices());
+
+            var result = BlendShapeGenerationEngine.Generate(
+                source, target, null, null, CreateOptions(BlendShapeNaming.Both), null);
+
+            Assert.That(result.GeneratedShapes, Is.EqualTo(new[] { "jawOpen", "JawOpen" }));
+            Assert.That(target.FindShape("jawOpen").Frames[0].DeltaVertices[0], Is.EqualTo(Vector3.forward));
+        }
+
+        [Test]
+        public void Generate_CopiesEveryFrameAndWeight_WhenConvertingExistingArkitShape()
+        {
+            // 変換は形を変えない複写なので、中間フレームとそのウェイトも保つ
+            var source = new FakeMeshRepository(TwoVertices())
+                .AddShapeFrame("jawOpen", 50f, Vector3.forward * 0.2f, Vector3.forward * 0.2f)
+                .AddShapeFrame("jawOpen", 100f, Vector3.forward, Vector3.forward);
+            var target = new FakeMeshRepository(TwoVertices())
+                .AddShapeFrame("jawOpen", 50f, Vector3.forward * 0.2f, Vector3.forward * 0.2f)
+                .AddShapeFrame("jawOpen", 100f, Vector3.forward, Vector3.forward);
+
+            BlendShapeGenerationEngine.Generate(
+                source, target, null, null, CreateOptions(BlendShapeNaming.UnifiedExpressions), null);
+
+            var converted = target.FindShape("JawOpen");
+            Assert.That(converted.Frames.Count, Is.EqualTo(2));
+            Assert.That(converted.Frames[0].Weight, Is.EqualTo(50f));
+            Assert.That(converted.Frames[0].DeltaVertices[0], Is.EqualTo(Vector3.forward * 0.2f));
+            Assert.That(converted.Frames[1].Weight, Is.EqualTo(100f));
+            Assert.That(converted.Frames[1].DeltaVertices[0], Is.EqualTo(Vector3.forward));
+        }
+
+        [Test]
+        public void Generate_KeepsCustomDefinition_WhenAutoMappingConvertsToTheSameOutputName()
+        {
+            // UE名を直接付けたカスタム定義と、同じUE名へ変換される自動マッピングが共存しても、出力は1件でカスタムが残る
+            var source = new FakeMeshRepository(TwoVertices())
+                .AddShape("vrc.blink", Vector3.up, Vector3.up)
+                .AddShape("wink", Vector3.forward, Vector3.forward);
+            var target = new FakeMeshRepository(TwoVertices());
+
+            var result = BlendShapeGenerationEngine.Generate(
+                source, target, CustomMapping("EyeClosedLeft", "wink"), AutoMapping("eyeBlinkLeft", "vrc.blink"),
+                CreateOptions(BlendShapeNaming.UnifiedExpressions), null);
+
+            Assert.That(result.GeneratedShapes, Is.EqualTo(new[] { "EyeClosedLeft" }));
+            Assert.That(target.CountShapes("EyeClosedLeft"), Is.EqualTo(1));
+            Assert.That(target.FindShape("EyeClosedLeft").Frames[0].DeltaVertices[0], Is.EqualTo(Vector3.forward));
         }
 
         [Test]
