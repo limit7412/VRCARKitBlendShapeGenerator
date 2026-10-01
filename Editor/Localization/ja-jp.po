@@ -82,7 +82,7 @@ msgid "inspector.output_naming.experimental"
 msgstr "ARKit以外は、VRChatのネイティブフェイストラッキング（High Fidelity Face Tracking）への対応に向けた実験的な機能です。SDKの仕様が公開されるまで、Unified Expressions名への対応表と分割のしかたは変わる可能性があります。\nUnified Expressions名を出すときは、メッシュに同名のARKit BlendShapeが既にあればそれを変換元にし、VRChat/MMDのシェイプキーからは作り直しません。"
 
 msgid "inspector.output_naming.both_note"
-msgstr "「両方」ではARKit名とUnified Expressions名の両方を生成します。使われない側は残るため、Avatar Optimizerの Trace and Optimize など、未使用のBlendShapeを取り除くツールと併用してください。"
+msgstr "「両方」ではARKit名とUnified Expressions名の両方を生成します。使われない側は残るため、AAO: Avatar Optimizer の Trace and Optimize など、未使用のBlendShapeを取り除くツールと併用してください。"
 
 msgid "enum.naming.arkit"
 msgstr "ARKit"

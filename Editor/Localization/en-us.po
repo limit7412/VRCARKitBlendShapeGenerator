@@ -82,7 +82,7 @@ msgid "inspector.output_naming.experimental"
 msgstr "Anything other than ARKit is an experimental feature ahead of VRChat's native face tracking (High Fidelity Face Tracking). Until the SDK is released, the mapping to Unified Expressions names and the way shapes are split may change.\nWhen Unified Expressions names are generated, an existing ARKit blend shape of the same name on the mesh is used as the conversion source instead of regenerating from the VRChat/MMD shape keys."
 
 msgid "inspector.output_naming.both_note"
-msgstr "Both generates the ARKit and the Unified Expressions names. The unused set stays on the mesh, so combine it with a tool that removes unused blend shapes, such as Trace and Optimize in Avatar Optimizer."
+msgstr "Both generates the ARKit and the Unified Expressions names. The unused set stays on the mesh, so combine it with a tool that removes unused blend shapes, such as Trace and Optimize in AAO: Avatar Optimizer."
 
 msgid "enum.naming.arkit"
 msgstr "ARKit"

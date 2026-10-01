@@ -163,7 +163,7 @@ Unified ExpressionsでARKitの1つが左右や上下に分かれる名前は、�
 対応表の全体は [docs/mapping.md](docs/mapping.md) にまとめています。
 
 「両方」では使われない側のBlendShapeがメッシュに残ります。
-Avatar Optimizerの Trace and Optimize など、未使用のBlendShapeを取り除くツールと併用してください。
+AAO: Avatar Optimizer の Trace and Optimize など、未使用のBlendShapeを取り除くツールと併用してください。
 ネイティブフェイストラッキングの参照をそうしたツールが認識するまでは、両方とも取り除かれる可能性があります。
 
 ### 口の手続き的生成

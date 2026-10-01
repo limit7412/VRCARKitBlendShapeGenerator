@@ -192,7 +192,7 @@ namespace ARKitBlendShapeGenerator
         ARKit,
         [Tooltip("Unified Expressions names (experimental)")]
         UnifiedExpressions,
-        [Tooltip("Both ARKit and Unified Expressions names (experimental; the unused set is left for tools such as Avatar Optimizer to remove)")]
+        [Tooltip("Both ARKit and Unified Expressions names (experimental; the unused set is left for tools such as AAO: Avatar Optimizer to remove)")]
         Both
     }
 
