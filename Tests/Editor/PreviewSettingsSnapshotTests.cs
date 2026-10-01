@@ -24,6 +24,7 @@ namespace ARKitBlendShapeGenerator.Tests
                 OverwriteExisting = false,
                 EnableProceduralMouthShapes = false,
                 EnableMouthCancellation = false,
+                OutputNaming = BlendShapeNaming.ARKit,
                 MouthCancellationSignature = 123,
                 CustomMappingsSignature = 456,
                 TargetRendererInstanceId = 789,
@@ -79,6 +80,17 @@ namespace ARKitBlendShapeGenerator.Tests
         {
             var current = CreateSnapshot();
             current.EnableLeftRightSplit = !current.EnableLeftRightSplit;
+
+            Assert.That(
+                current.CompareWith(CreateSnapshot()),
+                Is.EqualTo(PreviewSettingsChange.Structural));
+        }
+
+        [Test]
+        public void CompareWith_ReturnsStructural_WhenOutputNamingChanged()
+        {
+            var current = CreateSnapshot();
+            current.OutputNaming = BlendShapeNaming.UnifiedExpressions;
 
             Assert.That(
                 current.CompareWith(CreateSnapshot()),

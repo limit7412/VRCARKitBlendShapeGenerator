@@ -37,6 +37,7 @@ namespace ARKitBlendShapeGenerator.Domain
         public bool OverwriteExisting { get; set; }
         public bool EnableProceduralMouthShapes { get; set; }
         public bool EnableMouthCancellation { get; set; }
+        public BlendShapeNaming OutputNaming { get; set; }
         public int MouthCancellationSignature { get; set; }
         public int CustomMappingsSignature { get; set; }
         public int TargetRendererInstanceId { get; set; }
@@ -58,6 +59,7 @@ namespace ARKitBlendShapeGenerator.Domain
                 OverwriteExisting != other.OverwriteExisting ||
                 EnableProceduralMouthShapes != other.EnableProceduralMouthShapes ||
                 EnableMouthCancellation != other.EnableMouthCancellation ||
+                OutputNaming != other.OutputNaming ||
                 MouthCancellationSignature != other.MouthCancellationSignature ||
                 CustomMappingsSignature != other.CustomMappingsSignature ||
                 TargetRendererInstanceId != other.TargetRendererInstanceId)

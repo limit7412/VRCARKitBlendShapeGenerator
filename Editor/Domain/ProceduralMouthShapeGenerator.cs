@@ -61,13 +61,6 @@ namespace ARKitBlendShapeGenerator.Domain
         private const float UpperUpRatio = 0.12f;
         private const float LowerDownRatio = 0.15f;
 
-        private enum LipMask
-        {
-            All,
-            Upper,
-            Lower,
-        }
-
         internal sealed class MouthRegionContext
         {
             public readonly Vector3[] Vertices;
@@ -341,11 +334,11 @@ namespace ARKitBlendShapeGenerator.Domain
                     continue;
                 }
 
-                if (lipMask == LipMask.Upper)
+                if (lipMask == BlendShapeLipMask.Upper)
                 {
                     weight *= 1f - context.LowerRatios[i];
                 }
-                else if (lipMask == LipMask.Lower)
+                else if (lipMask == BlendShapeLipMask.Lower)
                 {
                     weight *= context.LowerRatios[i];
                 }
@@ -417,12 +410,12 @@ namespace ARKitBlendShapeGenerator.Domain
             string arkitName,
             out Vector3 direction,
             out float ratio,
-            out LipMask lipMask,
+            out BlendShapeLipMask lipMask,
             out BlendShapeSide side)
         {
             direction = Vector3.zero;
             ratio = 0f;
-            lipMask = LipMask.All;
+            lipMask = BlendShapeLipMask.All;
             side = BlendShapeSide.Both;
 
             switch (arkitName)
@@ -438,50 +431,50 @@ namespace ARKitBlendShapeGenerator.Domain
                 case "jawLeft":
                     direction = Vector3.left;
                     ratio = JawTranslateRatio;
-                    lipMask = LipMask.Lower;
+                    lipMask = BlendShapeLipMask.Lower;
                     return true;
                 case "jawRight":
                     direction = Vector3.right;
                     ratio = JawTranslateRatio;
-                    lipMask = LipMask.Lower;
+                    lipMask = BlendShapeLipMask.Lower;
                     return true;
                 case "jawForward":
                     direction = Vector3.forward;
                     ratio = JawForwardRatio;
-                    lipMask = LipMask.Lower;
+                    lipMask = BlendShapeLipMask.Lower;
                     return true;
                 case "mouthShrugUpper":
                     direction = Vector3.forward;
                     ratio = ShrugForwardRatio;
-                    lipMask = LipMask.Upper;
+                    lipMask = BlendShapeLipMask.Upper;
                     return true;
                 case "mouthShrugLower":
                     direction = Vector3.forward;
                     ratio = ShrugForwardRatio;
-                    lipMask = LipMask.Lower;
+                    lipMask = BlendShapeLipMask.Lower;
                     return true;
                 case "mouthUpperUpLeft":
                     direction = Vector3.up;
                     ratio = UpperUpRatio;
-                    lipMask = LipMask.Upper;
+                    lipMask = BlendShapeLipMask.Upper;
                     side = BlendShapeSide.LeftOnly;
                     return true;
                 case "mouthUpperUpRight":
                     direction = Vector3.up;
                     ratio = UpperUpRatio;
-                    lipMask = LipMask.Upper;
+                    lipMask = BlendShapeLipMask.Upper;
                     side = BlendShapeSide.RightOnly;
                     return true;
                 case "mouthLowerDownLeft":
                     direction = Vector3.down;
                     ratio = LowerDownRatio;
-                    lipMask = LipMask.Lower;
+                    lipMask = BlendShapeLipMask.Lower;
                     side = BlendShapeSide.LeftOnly;
                     return true;
                 case "mouthLowerDownRight":
                     direction = Vector3.down;
                     ratio = LowerDownRatio;
-                    lipMask = LipMask.Lower;
+                    lipMask = BlendShapeLipMask.Lower;
                     side = BlendShapeSide.RightOnly;
                     return true;
                 default:

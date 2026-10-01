@@ -39,6 +39,10 @@ namespace ARKitBlendShapeGenerator
         [Tooltip("Overwrite existing ARKit blend shapes")]
         public bool overwriteExisting = false;
 
+        [Header("Output Naming (Experimental)")]
+        [Tooltip("Naming of the generated blend shapes. ARKit is the current standard for Jerry's Templates. Unified Expressions and Both are experimental, ahead of VRChat's native face tracking (High Fidelity Face Tracking); the mapping may change once the SDK is released")]
+        public BlendShapeNaming outputNaming = BlendShapeNaming.ARKit;
+
         [Header("Procedural Mouth Generation")]
         [Tooltip("Procedurally generate mouth-related blend shapes (mouthLeft/Right, jaw*, etc.) that cannot be derived from existing blend shapes, by moving vertices in the mouth region")]
         public bool enableProceduralMouthShapes = false;
@@ -174,6 +178,22 @@ namespace ARKitBlendShapeGenerator
         LeftOnly,
         [Tooltip("Apply to the avatar's right half (mesh local X > 0) only")]
         RightOnly
+    }
+
+    /// <summary>
+    /// 生成するBlendShapeの出力名の種別
+    ///
+    /// 生成の計画と合成は常にARKit名で行い、出力名はメッシュへ書く直前に変換する。
+    /// Unified Expressionsと両方は、VRChatのネイティブフェイストラッキングへの対応に向けた実験的な選択肢
+    /// </summary>
+    public enum BlendShapeNaming
+    {
+        [Tooltip("ARKit names (for Jerry's Templates ARKit)")]
+        ARKit,
+        [Tooltip("Unified Expressions names (experimental)")]
+        UnifiedExpressions,
+        [Tooltip("Both ARKit and Unified Expressions names (experimental; the unused set is left for tools such as AAO: Avatar Optimizer to remove)")]
+        Both
     }
 
     /// <summary>

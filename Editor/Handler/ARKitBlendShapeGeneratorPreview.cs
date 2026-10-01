@@ -278,6 +278,7 @@ namespace ARKitBlendShapeGenerator.Handler
                     ProceduralMouthIntensity = context.Observe(component, c => c.proceduralMouthIntensity),
                     EnableMouthCancellation = context.Observe(component, c => c.enableMouthCancellation),
                     MouthCancellationStrength = context.Observe(component, c => c.mouthCancellationStrength),
+                    OutputNaming = context.Observe(component, c => c.outputNaming),
                     MouthCancellationSignature = PreviewSettingsSnapshot.BuildMouthCancellationSignature(
                         component.mouthCancellationSources,
                         component.mouthCancellationTargets),

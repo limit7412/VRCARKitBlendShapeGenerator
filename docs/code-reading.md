@@ -81,12 +81,16 @@ Modular Avatarより前に置くのは、Jerry's Templates（MAプレハブ）�
    自動マッピングより優先され、ソースを持つ有効な定義のARKit名は自動側の対象から外れる
 2. 自動マッピングを収集する（`CollectAutoMappings`）。
    `ARKitMappingTable` が持つVRChat/MMD名との照合で決まる
-3. 口の打ち消しデルタを組み立てる（`BuildMouthCancellationDelta`）
-4. 書き込み計画を立てる（上書き対象は元の位置への置き換え、それ以外は末尾への追加）
-5. 手続き的な口の生成を計画へ加える（`CollectProceduralMouthShapes`）。
+3. 出力名の種別がARKit以外なら、メッシュに既にあるARKitシェイプキーを変換元として計画へ加える（`CollectExistingArkitConversions`）。
+   自動マッピングで同じ名前が計画されていてもこちらを優先し、カスタムマッピングには譲る
+4. 口の打ち消しデルタを組み立てる（`BuildMouthCancellationDelta`）
+5. 書き込み計画を立てる（上書き対象は元の位置への置き換え、それ以外は末尾への追加）。
+   計画はARKit名のままで、ここで `OutputBlendShapeNameTable` により出力名へ展開する。
+   左右や上下に分かれる出力先は `OutputMask` で頂点ごとの係数にし、組み立て終えたデルタに掛ける
+6. 手続き的な口の生成を計画へ加える（`CollectProceduralMouthShapes`）。
    シェイプキーから生成できなかったものへのフォールバックで、変形の実体は `ProceduralMouthShapeGenerator` にある。
    ただしソースを持つ有効なカスタムマッピングのARKit名は、その生成が失敗していてもユーザー設定を尊重して対象外になる
-6. まとめて書き込む（`WriteBlendShapes`）
+7. まとめて書き込む（`WriteBlendShapes`）
 
 生成する各BlendShapeのデルタ（頂点ごとの変位）は計画の段階では作らず、書き込む直前に1件ずつ実体化する。
 生成シェイプ数×頂点数分のメモリを一度に抱えないための構造で、こうした設計の理由はコード中のコメントが説明している。
