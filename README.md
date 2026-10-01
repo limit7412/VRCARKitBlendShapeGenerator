@@ -69,6 +69,7 @@ Releasesの `VRCARKitBlendShapeGenerator_<バージョン>.zip` に、unitypacka
 | **Enable Left Right Split** | 頂点のX座標による左右分割を行う（まばたき等を左右別々に生成）。OFFにするとカスタムマッピングのSide指定も無視され、両側に適用される |
 | **Blend Width** | 左右分割時のグラデーション幅（中央付近で左右をブレンドする範囲、0.001〜0.1。メッシュローカル座標で中心から片側への幅を指定するため、グラデーション全体は指定値の2倍） |
 | **Overwrite Existing** | 既存のARKit BlendShapeを上書きする |
+| **Output Naming** | 生成するBlendShapeの名前の体系（デフォルト: ARKit）。Unified Expressionsと両方は実験的な選択肢で、後述の「出力名の種別（実験的）」を参照 |
 | **Enable Procedural Mouth Shapes** | 既存シェイプキーから生成できない口周りのBlendShapeを頂点移動で自動生成する（デフォルト: 無効） |
 | **Procedural Mouth Intensity** | 手続き的生成の変形量係数（0.1〜2.0） |
 | **Enable Mouth Cancellation** | 生成した口関連BlendShapeに、指定したBlendShapeの打ち消し成分を焼き込む（デフォルト: 無効） |
@@ -136,6 +137,34 @@ VRChat/MMDの標準的なBlendShape名（vrc.blink, まばたき, あ, い, う�
 視線（Eye Look）は `EyeUp_L` や `目上` といったシェイプキーを持つアバターが少ないため、多くの場合はカスタムマッピングでの手動設定が必要です。
 ARKit名ごとの対応シェイプキー名は、インスペクタの「自動マッピング一覧（参照用）」で確認できます。
 `mouthPucker` だけは口元が破綻しやすいため自動生成せず、理由と経緯は [docs/mapping.md](docs/mapping.md) にまとめています。
+
+### 出力名の種別（実験的）
+
+`Output Naming` で、生成するBlendShapeの名前の体系を選べます。
+
+- **ARKit**（デフォルト）: Jerry's TemplatesのARKitテンプレート向けで、これまでどおりの動作です
+- **Unified Expressions**: VRCFTが定めるUnified Expressionsの名前で生成します
+- **両方**: ARKit名とUnified Expressions名の両方を生成します
+
+**ARKit以外は、VRChatのネイティブフェイストラッキング（High Fidelity Face Tracking）への対応に向けた実験的な機能です。**
+SDKの仕様が公開されるまで、Unified Expressions名への対応表と分割のしかたは変わる可能性があります。
+
+生成の中身はどの種別でもARKit名を基準に決まり、名前の変換はメッシュへ書く直前に行われます。
+そのため、カスタムマッピングと口の打ち消しの焼き込み先はARKit名のまま指定します。
+ARKit名として知らない名前をカスタムマッピングに付けた場合は、変換せずそのまま出します。
+
+Unified Expressions名を出すとき、メッシュに同名のARKit BlendShape（`jawOpen` など）が既にあれば、VRChat/MMDのシェイプキーから作り直さず、そのARKit BlendShapeを変換元にします。
+変換は形を変えない複写なので、強度係数と口の打ち消しは掛かりません。
+カスタムマッピングで同じARKit名を指定している場合は、そちらが優先されます。
+
+Unified ExpressionsでARKitの1つが左右や上下に分かれる名前は、変形を分割して出します。
+左右（`BrowInnerUpLeft/Right` など）は左右分割の設定に従い、上下（`LipFunnelUpper/Lower`、`MouthUpperLeft` + `MouthLowerLeft` など）は口の手続き的生成と同じ口領域の検出で唇の境界線を求めて分けます。
+口のシェイプキー（`vrc.v_aa`、`あ` など）が無く境界線を求められないアバターでは、上下どちらにも元の形を半分の強度で出します。
+対応表の全体は [docs/mapping.md](docs/mapping.md) にまとめています。
+
+「両方」では使われない側のBlendShapeがメッシュに残ります。
+Avatar Optimizerの Trace and Optimize など、未使用のBlendShapeを取り除くツールと併用してください。
+ネイティブフェイストラッキングの参照をそうしたツールが認識するまでは、両方とも取り除かれる可能性があります。
 
 ### 口の手続き的生成
 

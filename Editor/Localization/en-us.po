@@ -68,6 +68,31 @@ msgstr "Overwrite Existing"
 msgid "prop.overwrite_existing.tooltip"
 msgstr "Overwrite existing ARKit blend shapes"
 
+# Output naming (experimental)
+msgid "inspector.section.output_naming"
+msgstr "Output Naming (Experimental)"
+
+msgid "prop.output_naming"
+msgstr "Naming"
+
+msgid "prop.output_naming.tooltip"
+msgstr "Naming of the generated blend shapes. ARKit targets the Jerry's Templates ARKit template and behaves as before. Unified Expressions and Both are experimental options ahead of VRChat's native face tracking."
+
+msgid "inspector.output_naming.experimental"
+msgstr "Anything other than ARKit is an experimental feature ahead of VRChat's native face tracking (High Fidelity Face Tracking). Until the SDK is released, the mapping to Unified Expressions names and the way shapes are split may change.\nWhen Unified Expressions names are generated, an existing ARKit blend shape of the same name on the mesh is used as the conversion source instead of regenerating from the VRChat/MMD shape keys."
+
+msgid "inspector.output_naming.both_note"
+msgstr "Both generates the ARKit and the Unified Expressions names. The unused set stays on the mesh, so combine it with a tool that removes unused blend shapes, such as Trace and Optimize in Avatar Optimizer."
+
+msgid "enum.naming.arkit"
+msgstr "ARKit"
+
+msgid "enum.naming.unified_expressions"
+msgstr "Unified Expressions (Experimental)"
+
+msgid "enum.naming.both"
+msgstr "Both (Experimental)"
+
 msgid "prop.enable_procedural_mouth"
 msgstr "Enable Procedural Generation"
 

@@ -31,6 +31,36 @@ Weightはソースごとの変形に掛ける係数のため、0を指定して�
 インスペクタの「自動マッピング一覧（参照用）」に、ARKit名ごとの対応シェイプキー名が表示される。
 この一覧はマッピング定義から生成しているため、定義を変更すれば表示も追随する。
 
+## Unified Expressions名への対応表
+
+`Output Naming` をUnified Expressionsか両方にすると、ARKit名で計画した生成物を次の対応で出力する。
+対応表の実体は `Editor/Domain/OutputBlendShapeNameTable.cs` にある。
+
+表にない名前は、先頭を大文字にするだけで対応する（`jawOpen` → `JawOpen`、`eyeWideLeft` → `EyeWideLeft` など）。
+ARKit名として知らない名前（カスタムマッピングで自由に付けた名前）は変換しない。
+
+| ARKit名 | Unified Expressions名 | 分け方 |
+|---|---|---|
+| eyeBlinkLeft / Right | EyeClosedLeft / Right | 名前のみ |
+| mouthClose | MouthClosed | 名前のみ |
+| mouthShrugUpper / Lower | MouthRaiserUpper / Lower | 名前のみ |
+| mouthRollUpper / Lower | LipSuckUpper / Lower | 名前のみ |
+| mouthPucker | LipPucker | 名前のみ |
+| browInnerUp | BrowInnerUpLeft + BrowInnerUpRight | 左右分割 |
+| cheekPuff | CheekPuffLeft + CheekPuffRight | 左右分割 |
+| mouthPress | MouthPressLeft + MouthPressRight | 左右分割 |
+| mouthFunnel | LipFunnelUpper + LipFunnelLower | 上下分割 |
+| mouthLeft | MouthUpperLeft + MouthLowerLeft | 上下分割 |
+| mouthRight | MouthUpperRight + MouthLowerRight | 上下分割 |
+
+`browDownLeft/Right` と `mouthSmileLeft/Right` は、Unified Expressionsでは複数の基底キー（BrowLowerer + BrowPinch、MouthCornerPull + MouthCornerSlant）に分かれているが、同名の統合キー `BrowDownLeft/Right`、`MouthSmileLeft/Right` が定義されているため、先頭の大文字化だけで対応する。
+基底キーに分けるには形の情報が足りず、同じ形を両方に出すと同時に動いたときに二重になる。
+
+左右分割は左右分割の設定（`Enable Left Right Split`）に従い、OFFのときは両側に元の形を出す。
+上下分割は口の手続き的生成と同じ口領域の検出で唇の境界線を求め、境界線より上を上側、下を下側に分ける。
+境界付近はブレンド帯で滑らかに遷移し、上側と下側を足すと元の形に戻る。
+口のシェイプキーが無く境界線を求められないメッシュでは、上下どちらにも元の形を半分の強度で出す。
+
 ## mouthPucker を自動生成しない理由
 
 `mouthPucker` は「う」から生成すると口元が破綻しやすいため、自動マッピングとプリセット（「VRChat標準表情のみで設定」）のどちらにも含めていない。

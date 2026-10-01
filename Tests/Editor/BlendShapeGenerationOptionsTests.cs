@@ -39,10 +39,12 @@ namespace ARKitBlendShapeGenerator.Tests
             component.overwriteExisting = true;
             component.enableProceduralMouthShapes = true;
             component.proceduralMouthIntensity = 1.4f;
+            component.outputNaming = BlendShapeNaming.Both;
             component.debugMode = true;
 
             var options = BlendShapeGenerationOptions.FromComponent(component);
 
+            Assert.That(options.OutputNaming, Is.EqualTo(BlendShapeNaming.Both));
             Assert.That(options.IntensityMultiplier, Is.EqualTo(0.8f));
             Assert.That(options.EnableLeftRightSplit, Is.False);
             Assert.That(options.BlendWidth, Is.EqualTo(0.05f));
