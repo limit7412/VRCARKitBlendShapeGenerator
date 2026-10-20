@@ -1,0 +1,41 @@
+{
+    "name": "ARKitBlendShapeGenerator.Editor.AAOCompat.Tests",
+    "rootNamespace": "ARKitBlendShapeGenerator.AAOCompat",
+    "references": [
+        "UnityEngine.TestRunner",
+        "UnityEditor.TestRunner",
+        "ARKitBlendShapeGenerator.Editor",
+        "ARKitBlendShapeGenerator.Editor.AAOCompat",
+        "ARKitBlendShapeGenerator.Runtime",
+        "VRC.SDKBase",
+        "VRC.SDK3A"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": true,
+    "precompiledReferences": [
+        "nunit.framework.dll"
+    ],
+    "autoReferenced": false,
+    "defineConstraints": [
+        "UNITY_INCLUDE_TESTS",
+        "KX_AAO_API",
+        "KX_VRC_NATIVE_FACE_TRACKING"
+    ],
+    "versionDefines": [
+        {
+            "name": "com.anatawa12.avatar-optimizer",
+            "expression": "[1.6.0,2.0.0)",
+            "define": "KX_AAO_API"
+        },
+        {
+            "name": "com.vrchat.avatars",
+            "expression": "3.10.6-beta.2",
+            "define": "KX_VRC_NATIVE_FACE_TRACKING"
+        }
+    ],
+    "noEngineReferences": false
+}

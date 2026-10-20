@@ -374,6 +374,10 @@ jobs:
           vrc-get repo add https://vpm.nadena.dev/vpm.json || true
           vrc-get install com.vrchat.avatars --yes
           vrc-get install nadena.dev.ndmf --yes
+          # AAO互換アセンブリ（Editor/AAOCompat）とそのテストは、AAOが入っているときだけ
+          # コンパイルされる（asmdefのdefineConstraints）。無いとテストが0件のまま通ってしまう。
+          # AAOはcuratedリポジトリから引ける
+          vrc-get install com.anatawa12.avatar-optimizer --yes
           cat Packages/vpm-manifest.json
 
       - name: Cache Library

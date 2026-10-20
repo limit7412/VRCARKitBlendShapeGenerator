@@ -62,7 +62,7 @@ namespace ARKitBlendShapeGenerator.Infra
         /// <summary>
         /// SDKの faceTrackingMeshes が有効と見なす件数の上限（SDK 3.10.6-beta.2）
         /// </summary>
-        private const int FaceTrackingMeshLimit = 16;
+        internal const int FaceTrackingMeshLimit = 16;
 
         public static bool IsSupported
         {

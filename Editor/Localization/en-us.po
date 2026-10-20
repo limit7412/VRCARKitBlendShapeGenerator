@@ -485,3 +485,13 @@ msgstr "The tracking keys of the installed VRChat SDK do not match this tool's t
 
 msgid "log.face_tracking_set.mesh_limit"
 msgstr "Face Tracking Meshes is full, so the target mesh \"{0}\" could not be added. Review Face Tracking Meshes on the Avatar Descriptor."
+
+# Working with AAO: Avatar Optimizer (interim until AAO treats the Blendshapes Set as a reference)
+msgid "log.aao_compat.marked"
+msgstr "Told Avatar Optimizer that {0} blend shapes on {1} meshes are driven by native face tracking."
+
+msgid "log.aao_compat.resolved"
+msgstr "Checked the Blendshapes Set after Avatar Optimizer ({0} assignments renamed, {1} meshes added to Face Tracking Meshes)."
+
+msgid "log.aao_compat.removed"
+msgstr "Avatar Optimizer removed blend shapes, so {0} assignments in the Blendshapes Set were cleared: {1}"
