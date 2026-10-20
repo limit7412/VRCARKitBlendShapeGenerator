@@ -100,7 +100,7 @@ msgid "prop.write_face_tracking_set.tooltip"
 msgstr "ビルド時に、VRChatのネイティブフェイストラッキング用のBlendshapes Set（トラッキングキーから生成したBlendShapeへの対応）をAvatar Descriptorへ書き込み、対象メッシュをFace Tracking Meshesへ登録します。ネイティブフェイストラッキングに対応したVRChat SDKが必要で、それより前のSDKでは何も書き込みません。"
 
 msgid "inspector.face_tracking_set.note"
-msgstr "生成したBlendShapeはビルド中にしか存在しないため、SDKのアップロード前チェックでは「解決できない」警告が出ますが、アップロードは止まりません。Set内の対応はビルドの成果物で検証されます。\nJerry's Templatesと同時に使うと、同じBlendShapeをアニメーターとネイティブFTの両方が動かします。"
+msgstr "生成したBlendShapeはビルド中にしか存在しないため、SDKのアップロード前チェックでは「解決できない」警告が出ますが、アップロードは止まりません。Set内の対応はビルドの成果物で検証されます。\n視線とまぶたの割り当ては、Avatar DescriptorのEye LookとEyelidsをFace Trackingにしているときだけ使われます（この設定は書き換えません）。\nJerry's Templatesと同時に使うと、同じBlendShapeをアニメーターとネイティブFTの両方が動かします。"
 
 msgid "prop.enable_procedural_mouth"
 msgstr "手続き的生成を有効化"
@@ -475,7 +475,7 @@ msgid "log.face_tracking_set.written"
 msgstr "ネイティブフェイストラッキングのBlendshapes Set「{0}」をAvatar Descriptorへ書き込みました（割り当て {1} / {2} キー）。アップロード前のチェックでは、ビルド中にしか存在しない生成物を参照するため「解決できない」警告が出ますが、アップロードは止まりません。"
 
 msgid "log.face_tracking_set.unsupported"
-msgstr "導入されているVRChat SDKにネイティブフェイストラッキングの項目が無いため、Blendshapes Setを書き込みませんでした。SDK 3.10.6以降（ベータを含む）が必要です。"
+msgstr "導入されているVRChat SDKにネイティブフェイストラッキングの項目が無いため、Blendshapes Setを書き込みませんでした。SDK 3.10.6-beta.2以降が必要です。"
 
 msgid "log.face_tracking_set.descriptor_not_found"
 msgstr "アバタールートにVRCAvatarDescriptorが無いため、Blendshapes Setを書き込みませんでした。"

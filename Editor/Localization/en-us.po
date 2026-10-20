@@ -100,7 +100,7 @@ msgid "prop.write_face_tracking_set.tooltip"
 msgstr "At build time, write a Blendshapes Set for VRChat's native face tracking (tracking keys mapped to the generated blend shapes) into the Avatar Descriptor and register the target mesh as a face tracking mesh. Requires a VRChat SDK with native face tracking; on older SDKs nothing is written."
 
 msgid "inspector.face_tracking_set.note"
-msgstr "The generated blend shapes exist only during the build, so the SDK's pre-upload check reports them as unresolved. That warning does not block the upload; the set is validated against the built avatar.\nWhen combined with Jerry's Templates, the same blend shapes are driven by both the animator and native face tracking."
+msgstr "The generated blend shapes exist only during the build, so the SDK's pre-upload check reports them as unresolved. That warning does not block the upload; the set is validated against the built avatar.\nThe eye look and eyelid assignments are used only while Eye Look and Eyelids on the Avatar Descriptor are set to Face Tracking (this option does not change those settings).\nWhen combined with Jerry's Templates, the same blend shapes are driven by both the animator and native face tracking."
 
 msgid "prop.enable_procedural_mouth"
 msgstr "Enable Procedural Generation"
@@ -475,7 +475,7 @@ msgid "log.face_tracking_set.written"
 msgstr "Wrote the native face tracking Blendshapes Set \"{0}\" to the Avatar Descriptor ({1} of {2} keys assigned). The pre-upload check reports unresolved blend shapes because the generated shapes exist only during the build; that warning does not block the upload."
 
 msgid "log.face_tracking_set.unsupported"
-msgstr "The installed VRChat SDK has no native face tracking settings, so the Blendshapes Set was not written. SDK 3.10.6 or later (including betas) is required."
+msgstr "The installed VRChat SDK has no native face tracking settings, so the Blendshapes Set was not written. SDK 3.10.6-beta.2 or later is required."
 
 msgid "log.face_tracking_set.descriptor_not_found"
 msgstr "No VRCAvatarDescriptor on the avatar root, so the Blendshapes Set was not written."
