@@ -18,6 +18,7 @@ CIでも実行されるが（[ci.md](ci.md)）、Unityライセンスのsecret�
 
 3. Unityメニュー > Window > General > Test Runner を開く
 4. EditModeタブで `ARKitBlendShapeGenerator.Editor.Tests` を実行する
+5. AAO: Avatar Optimizer とネイティブフェイストラッキング対応のVRChat SDK（3.10.6-beta.2以降）が入っているプロジェクトでは、`ARKitBlendShapeGenerator.Editor.AAOCompat.Tests` も表示されるので併せて実行する（どちらかが無いプロジェクトではコンパイルされず、一覧にも出ない）
 
 `testables` へ追加しないとテストアセンブリがコンパイルされず、Test Runnerの一覧にも現れない。
 テストは配布物には含まない（配布物の中身は [packaging.md](packaging.md) に書いている）。

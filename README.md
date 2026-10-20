@@ -165,7 +165,7 @@ Unified ExpressionsでARKitの1つが左右や上下に分かれる名前は、�
 
 「両方」では使われない側のBlendShapeがメッシュに残ります。
 AAO: Avatar Optimizer の Trace and Optimize など、未使用のBlendShapeを取り除くツールと併用してください。
-ネイティブフェイストラッキングの参照をそうしたツールが認識するまでは、両方とも取り除かれる可能性があります。
+ネイティブフェイストラッキングのBlendshapes Setが参照する側は、AAOと併用する場合は本ツールが取り除かれないように守ります（後述の「AAO: Avatar Optimizer との併用」を参照）。
 
 ### ネイティブフェイストラッキングのBlendshapes Set（実験的）
 
@@ -194,7 +194,19 @@ SDKのアップロード前チェックはビルド前のアバターに対し�
 
 ネイティブフェイストラッキングに対応していないVRChat SDK（3.10.6-beta.2より前）では、この設定を有効にしても何も書き込みません。
 Jerry's Templatesと同時に使うと、同じBlendShapeをアニメーターとネイティブフェイストラッキングの両方が動かすため、どちらか一方にしてください。
-AAO: Avatar Optimizer がBlendshapes Setからの参照を認識するまでは、Trace and Optimize が生成物を取り除いてSetの対応が解決できなくなります（AAO 1.9.20で確認）。
+
+#### AAO: Avatar Optimizer との併用
+
+AAO: Avatar Optimizer（1.9.20で確認）は、BlendShapeが使われているかをアニメーターから判定し、Blendshapes Setからの参照は見ません。
+そのため、そのままではTrace and Optimizeがネイティブフェイストラッキング用のBlendShapeを未使用として固定・統合し、Setの対応が解決できなくなります。
+
+本ツールはAAOが導入されているとき、ビルド中に次を行ってこれを防ぎます（設定は不要です）。
+
+- AAOの直前に、Face Tracking Meshesの各メッシュについてBlendshapes Setが動かすBlendShapeを、AAOの公開APIで「実行時に動く」と伝える。固定と統合の対象から外れる
+- AAOの直後に、AAOが別の名前や別のメッシュへ移したBlendShapeに合わせてSetを書き直し、移動先のメッシュをFace Tracking Meshesへ加える。AAOが取り除いたBlendShapeの割り当ては空にして警告を出す
+
+対象は本ツールが書いたSetに限らず、Avatar Descriptorに書かれている全てのSetです。
+AAOがSetからの参照を認識するようになったら、この仮対応は本ツールの更新で取り除きます。
 
 ### 口の手続き的生成
 
