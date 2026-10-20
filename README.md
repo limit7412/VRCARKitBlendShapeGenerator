@@ -70,6 +70,7 @@ Releasesの `VRCARKitBlendShapeGenerator_<バージョン>.zip` に、unitypacka
 | **Blend Width** | 左右分割時のグラデーション幅（中央付近で左右をブレンドする範囲、0.001〜0.1。メッシュローカル座標で中心から片側への幅を指定するため、グラデーション全体は指定値の2倍） |
 | **Overwrite Existing** | 既存のARKit BlendShapeを上書きする |
 | **Output Naming** | 生成するBlendShapeの名前の体系（デフォルト: ARKit）。Unified Expressionsと両方は実験的な選択肢で、後述の「出力名の種別（実験的）」を参照 |
+| **Write Native FT Blendshapes Set** | ビルド時に、VRChatのネイティブフェイストラッキング用のBlendshapes SetをAvatar Descriptorへ書き込む（デフォルト: 無効）。後述の「ネイティブフェイストラッキングのBlendshapes Set（実験的）」を参照 |
 | **Enable Procedural Mouth Shapes** | 既存シェイプキーから生成できない口周りのBlendShapeを頂点移動で自動生成する（デフォルト: 無効） |
 | **Procedural Mouth Intensity** | 手続き的生成の変形量係数（0.1〜2.0） |
 | **Enable Mouth Cancellation** | 生成した口関連BlendShapeに、指定したBlendShapeの打ち消し成分を焼き込む（デフォルト: 無効） |
@@ -165,6 +166,32 @@ Unified ExpressionsでARKitの1つが左右や上下に分かれる名前は、�
 「両方」では使われない側のBlendShapeがメッシュに残ります。
 AAO: Avatar Optimizer の Trace and Optimize など、未使用のBlendShapeを取り除くツールと併用してください。
 ネイティブフェイストラッキングの参照をそうしたツールが認識するまでは、両方とも取り除かれる可能性があります。
+
+### ネイティブフェイストラッキングのBlendshapes Set（実験的）
+
+VRChatのネイティブフェイストラッキングは、Avatar Descriptorの **Blendshapes Sets** に書かれた「トラッキングキー → シェイプキー名」の対応だけを動かします。
+キーと同じ名前のシェイプキーがあっても、自動では対応づけられません。
+対応を埋めるSDKの自動入力（Auto Fill）はエディタ上のメッシュを見るため、ビルド中にしか存在しない本ツールの生成物は見つけられません。
+
+`Write Native FT Blendshapes Set` を有効にすると、ビルド時に次を行います。
+
+- Unified Expressionsのトラッキングキーごとに、生成したBlendShapeへの対応を持つBlendshapes Setを1つ、Avatar Descriptorへ追加する（既に本ツールが追加したSetがあれば置き換える）
+- 対象のSkinnedMeshRendererを **Face Tracking Meshes** に加える
+- Descriptorのフェイストラッキングが無効なら有効にする
+
+対応は、生成されたBlendShapeの名前から決めます。
+Unified Expressions名を出していればその名前を、ARKit名しか無いキーはARKit名を使い、どちらも生成されていないキーは空のままにします。
+Unified Expressionsで左右や上下に分かれているキーのうち、本ツールが1つのBlendShapeで出すもの（`LipSuckUpper`、`LipPucker` など）は、分かれたキーのそれぞれへ同じBlendShapeを割り当てます。
+キーごとの対応表は [docs/mapping.md](docs/mapping.md) にまとめています。
+
+**アップロード前の警告について。**
+SDKのアップロード前チェックはビルド前のアバターに対して行われるため、生成物を参照するSetの対応は「解決できない（unresolved）」として警告されます。
+この警告はアップロードを止めません。
+ビルドの成果物では対応が解決され、Face Tracking Operationsのパフォーマンスランクにも反映されます。
+
+ネイティブフェイストラッキングに対応していないVRChat SDKでは、この設定を有効にしても何も書き込みません。
+Jerry's Templatesと同時に使うと、同じBlendShapeをアニメーターとネイティブフェイストラッキングの両方が動かすため、どちらか一方にしてください。
+AAO: Avatar Optimizer がBlendshapes Setからの参照を認識するまでは、Trace and Optimize が生成物を取り除いてSetの対応が解決できなくなります（AAO 1.9.20で確認）。
 
 ### 口の手続き的生成
 
