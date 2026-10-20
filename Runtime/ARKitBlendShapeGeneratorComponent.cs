@@ -43,6 +43,9 @@ namespace ARKitBlendShapeGenerator
         [Tooltip("Naming of the generated blend shapes. ARKit is the current standard for Jerry's Templates. Unified Expressions and Both are experimental, ahead of VRChat's native face tracking (High Fidelity Face Tracking); the mapping may change once the SDK is released")]
         public BlendShapeNaming outputNaming = BlendShapeNaming.ARKit;
 
+        [Tooltip("Write a Blendshapes Set for VRChat's native face tracking into the Avatar Descriptor at build time, mapping each tracking key to the generated blend shapes, and register the target mesh as a face tracking mesh. Requires a VRChat SDK with native face tracking; on older SDKs nothing is written")]
+        public bool writeFaceTrackingBlendshapesSet = false;
+
         [Header("Procedural Mouth Generation")]
         [Tooltip("Procedurally generate mouth-related blend shapes (mouthLeft/Right, jaw*, etc.) that cannot be derived from existing blend shapes, by moving vertices in the mouth region")]
         public bool enableProceduralMouthShapes = false;

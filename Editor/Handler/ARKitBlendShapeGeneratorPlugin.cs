@@ -51,7 +51,15 @@ namespace ARKitBlendShapeGenerator.Handler
 
                     if (primaryComponent != null)
                     {
-                        GenerateBlendShapesUseCase.ExecuteForBuild(primaryComponent);
+                        var outcome = GenerateBlendShapesUseCase.ExecuteForBuild(primaryComponent);
+
+                        // ネイティブフェイストラッキングのSetは、生成後のメッシュに合わせてここで書く。
+                        // Descriptorへの変更はビルドの成果物に残り、SDKのビルド後の検証と
+                        // パフォーマンスランクの計算はその成果物を見る。
+                        // Transforming Phaseでのメッシュの差し替え直後に書くため、
+                        // 後続のツール（Modular Avatar、AAO）はSetが書かれた状態のDescriptorを見る
+                        GenerateBlendShapesUseCase.WriteFaceTrackingBlendshapesSet(
+                            ctx.AvatarRootObject, primaryComponent, outcome);
                     }
 
                     // ビルド時にのみ意味を持つコンポーネントなので、生成の成否にかかわらず取り除く。

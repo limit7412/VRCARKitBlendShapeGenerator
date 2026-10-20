@@ -57,11 +57,11 @@ namespace ARKitBlendShapeGenerator.UseCase
         /// NDMFビルド時の生成処理
         /// 対象レンダラーのメッシュを複製してBlendShapeを生成し、レンダラーへ差し替える
         /// </summary>
-        public static void ExecuteForBuild(ARKitBlendShapeGeneratorComponent component)
+        public static BuildOutcome ExecuteForBuild(ARKitBlendShapeGeneratorComponent component)
         {
             if (component == null)
             {
-                return;
+                return null;
             }
 
             if (CustomMappingValidation.HasDuplicateArkitNames(component.customMappings, out var duplicateArkitNames))
@@ -69,14 +69,14 @@ namespace ARKitBlendShapeGenerator.UseCase
                 Debug.LogError(
                     "[ARKitGenerator] " + S("log.duplicate_abort", string.Join(", ", duplicateArkitNames)),
                     component);
-                return;
+                return null;
             }
 
             var renderer = ResolveTargetRenderer(component);
             if (renderer == null || renderer.sharedMesh == null)
             {
                 Debug.LogWarning("[ARKitGenerator] " + S("log.renderer_not_found"));
-                return;
+                return null;
             }
 
             var sourceMesh = renderer.sharedMesh;
@@ -97,6 +97,80 @@ namespace ARKitBlendShapeGenerator.UseCase
             if (options.Debug)
             {
                 Debug.Log($"[ARKitGenerator] Generated {result.GeneratedShapes.Count} BlendShapes: {string.Join(", ", result.GeneratedShapes)}");
+            }
+
+            return new BuildOutcome(renderer, result);
+        }
+
+        /// <summary>
+        /// NDMFビルドでの生成結果。差し替え後のレンダラーと、そのメッシュのシェイプキー一覧を持つ
+        /// </summary>
+        internal sealed class BuildOutcome
+        {
+            public readonly SkinnedMeshRenderer Renderer;
+            public readonly BlendShapeGenerationResult Result;
+
+            public BuildOutcome(SkinnedMeshRenderer renderer, BlendShapeGenerationResult result)
+            {
+                Renderer = renderer;
+                Result = result;
+            }
+        }
+
+        /// <summary>
+        /// ネイティブフェイストラッキングのBlendshapes SetをAvatar Descriptorへ書き込む。
+        ///
+        /// 生成後のメッシュにあるシェイプキー名から、トラッキングキーごとの割り当てを決めて書く。
+        /// 生成物だけでなくメッシュにもとからあるシェイプキーも候補に含めるのは、
+        /// SDKの自動入力をビルド時に行うのと同じ結果にするため
+        /// </summary>
+        public static void WriteFaceTrackingBlendshapesSet(
+            GameObject avatarRoot,
+            ARKitBlendShapeGeneratorComponent component,
+            BuildOutcome outcome)
+        {
+            if (component == null || !component.writeFaceTrackingBlendshapesSet || outcome == null)
+            {
+                return;
+            }
+
+            if (!FaceTrackingDescriptorWriter.IsSupported)
+            {
+                Debug.LogWarning("[ARKitGenerator] " + S("log.face_tracking_set.unsupported"), component);
+                return;
+            }
+
+            var plan = FaceTrackingBlendshapesSetTable.Build(outcome.Result.ShapeIndices.Keys);
+            var written = FaceTrackingDescriptorWriter.Write(avatarRoot, outcome.Renderer, plan);
+
+            switch (written.Status)
+            {
+                case FaceTrackingWriteStatus.Written:
+                    Debug.Log(
+                        "[ARKitGenerator] " + S(
+                            "log.face_tracking_set.written",
+                            FaceTrackingBlendshapesSetTable.SetName,
+                            plan.AssignedCount,
+                            plan.BlendShapeNames.Length),
+                        component);
+                    if (written.MeshLimitReached)
+                    {
+                        Debug.LogWarning(
+                            "[ARKitGenerator] " + S("log.face_tracking_set.mesh_limit", outcome.Renderer.name),
+                            component);
+                    }
+                    break;
+                case FaceTrackingWriteStatus.DescriptorNotFound:
+                    Debug.LogWarning("[ARKitGenerator] " + S("log.face_tracking_set.descriptor_not_found"), component);
+                    break;
+                case FaceTrackingWriteStatus.KeyMismatch:
+                    Debug.LogError(
+                        "[ARKitGenerator] " + S("log.face_tracking_set.key_mismatch", written.MismatchDetail),
+                        component);
+                    break;
+                case FaceTrackingWriteStatus.Unsupported:
+                    Debug.LogWarning("[ARKitGenerator] " + S("log.face_tracking_set.unsupported"), component);
+                    break;
             }
         }
 

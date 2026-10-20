@@ -61,6 +61,48 @@ ARKit名として知らない名前（カスタムマッピングで自由に付
 境界付近はブレンド帯で滑らかに遷移し、上側と下側を足すと元の形に戻る。
 口のシェイプキーが無く境界線を求められないメッシュでは、上下どちらにも元の形を半分の強度で出す。
 
+## ネイティブフェイストラッキングのBlendshapes Setの対応表
+
+`Write Native FT Blendshapes Set` を有効にすると、ビルド時にAvatar Descriptorへ書き込むBlendshapes Setの割り当てを、生成後のメッシュにあるシェイプキー名から決める。
+対応表の実体は `Editor/Domain/FaceTrackingBlendshapesSetTable.cs` にあり、Descriptorへの書き込みは `Editor/Infra/FaceTrackingDescriptorWriter.cs` が行う。
+
+VRChatのネイティブフェイストラッキングは、Unified Expressionsの基底キー102個を受け取る。
+Setはキーごとにシェイプキー名を1つ持ち、空欄のキーは何もしない。
+キーと同名のシェイプキーを実行時に自動で結び付ける挙動は無い。
+SDKのエディタにある自動入力（Auto Fill）はキー名の完全一致を最優先し、次に候補名を大文字小文字を無視して探す。
+本ツールの対応表は、その候補のうち本ツールの出力名に当たるものだけを持ち、同じ優先順位で選ぶ。
+
+キーごとの候補は、キー名そのもの、本ツールのUnified Expressions名、ARKit名の順である。
+大半のキーは「キー名 = 本ツールのUnified Expressions名」で、その次がARKit名（`JawOpen` → `jawOpen` など）になる。
+次の表は、キー名と本ツールの出力名が異なるものだけを挙げる。
+
+| トラッキングキー | 候補（優先順） | 備考 |
+|---|---|---|
+| EyeClosedLeft / Right | eyeBlinkLeft / Right | 名前の違い |
+| BrowPinchLeft / Right、BrowLowererLeft / Right | BrowDownLeft / Right → browDownLeft / Right | 統合名を分かれた基底キーの両方へ |
+| BrowInnerUpLeft / Right | browInnerUp | ARKitは左右に分かれていない |
+| CheekPuffLeft / Right | cheekPuff | 同上 |
+| MouthClosed | mouthClose | 名前の違い |
+| LipSuckUpperLeft / Right | LipSuckUpper → mouthRollUpper | 本ツールは左右に分けずに出す |
+| LipSuckLowerLeft / Right | LipSuckLower → mouthRollLower | 同上 |
+| LipFunnelUpperLeft / Right | LipFunnelUpper → mouthFunnel | 同上 |
+| LipFunnelLowerLeft / Right | LipFunnelLower → mouthFunnel | 同上 |
+| LipPuckerUpperLeft / Right、LipPuckerLowerLeft / Right | LipPucker → mouthPucker | 本ツールは上下左右に分けずに出す |
+| MouthUpperLeft、MouthLowerLeft | mouthLeft | ARKitは上下に分かれていない |
+| MouthUpperRight、MouthLowerRight | mouthRight | 同上 |
+| MouthCornerPullLeft / Right、MouthCornerSlantLeft / Right | MouthSmileLeft / Right → mouthSmileLeft / Right | 統合名を分かれた基底キーの両方へ |
+| MouthRaiserUpper / Lower | mouthShrugUpper / Lower | 名前の違い |
+| MouthPressLeft / Right | mouthPress | ARKitは左右に分かれていない |
+
+本ツールが生成しないキー（EyeDilation、CheekSuck、JawClench、舌の細かい動き、喉など）は、メッシュにキー名そのもののシェイプキーがあればそれを割り当て、無ければ空欄にする。
+
+1つのシェイプキーを複数のキーへ割り当てた場合、それらのキーが同時に動くと変形が重なる。
+SDKの自動入力も同じ割り当てを行うため、本ツールの対応表もそれに合わせている。
+
+キーの並びはSDKの列挙体（`VRCAvatarDescriptor.FaceTrackingKey`）に合わせている。
+Setはキーの番号を添字にした配列のため、並びがずれると全部の割り当てが別のキーへ行く。
+書き込みの直前にSDKの列挙体と突き合わせ、食い違えば書き込まずにエラーを出す。
+
 ## mouthPucker を自動生成しない理由
 
 `mouthPucker` は「う」から生成すると口元が破綻しやすいため、自動マッピングとプリセット（「VRChat標準表情のみで設定」）のどちらにも含めていない。

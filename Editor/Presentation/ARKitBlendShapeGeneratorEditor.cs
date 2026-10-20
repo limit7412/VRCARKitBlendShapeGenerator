@@ -664,6 +664,13 @@ namespace ARKitBlendShapeGenerator.Presentation
             {
                 EditorGUILayout.HelpBox(S("inspector.output_naming.both_note"), MessageType.Info);
             }
+
+            var writeSetProperty = serializedObject.FindProperty("writeFaceTrackingBlendshapesSet");
+            EditorGUILayout.PropertyField(writeSetProperty, G("prop.write_face_tracking_set"));
+            if (writeSetProperty.boolValue)
+            {
+                EditorGUILayout.HelpBox(S("inspector.face_tracking_set.note"), MessageType.Info);
+            }
         }
 
         /// <summary>
