@@ -136,7 +136,10 @@ namespace ARKitBlendShapeGenerator.Infra
                 }
             }
 
+            // Use All Tracking Keysが無効だと、受け取るキーは基本キー（視線とまばたき、FaceTrackingKeyの0〜9）に
+            // 限られ、Setに書いた顎・頬・口などの割り当てが動かない。Setは全キーを前提にしているので、併せて有効にする
             descriptor.enableFaceTracking = true;
+            descriptor.useAllTrackingKeys = true;
 
             return new FaceTrackingWriteResult(FaceTrackingWriteStatus.Written, meshLimitReached);
 #else

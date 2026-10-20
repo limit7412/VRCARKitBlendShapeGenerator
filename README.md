@@ -177,7 +177,7 @@ VRChatのネイティブフェイストラッキングは、Avatar Descriptorの
 
 - Unified Expressionsのトラッキングキーごとに、生成したBlendShapeへの対応を持つBlendshapes Setを1つ、Avatar Descriptorへ追加する（既に本ツールが追加したSetがあれば置き換える）
 - 対象のSkinnedMeshRendererを **Face Tracking Meshes** に加える
-- Descriptorのフェイストラッキングが無効なら有効にする
+- Descriptorのフェイストラッキング（Enable Face Tracking）と、全トラッキングキーの受信（Use All Tracking Keys）を有効にする。後者が無効だと受け取るキーが視線とまばたきに限られ、Setに書いた口や頬の割り当てが動かないため
 
 対応は、生成されたBlendShapeの名前から決めます。
 Unified Expressions名を出していればその名前を、ARKit名しか無いキーはARKit名を使い、どちらも生成されていないキーは空のままにします。
