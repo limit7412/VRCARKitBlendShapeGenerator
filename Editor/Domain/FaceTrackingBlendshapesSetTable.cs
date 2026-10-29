@@ -64,9 +64,10 @@ namespace ARKitBlendShapeGenerator.Domain
     internal static class FaceTrackingBlendshapesSetTable
     {
         /// <summary>
-        /// Blendshapes Setの名前。再ビルドで同名のSetを置き換えるための目印
+        /// Blendshapes Setの名前。再ビルドで同名のSetを置き換えるための目印。
+        /// 他のパッケージからも参照できるよう、値はRuntimeアセンブリの公開定数に置いている
         /// </summary>
-        public const string SetName = "Kx VRC ARKit BlendShape Generator";
+        public const string SetName = FaceTrackingSetNames.Generator;
 
         /// <summary>
         /// 1キーの候補。先頭がキー名で、SDKの列挙体（VRCAvatarDescriptor.FaceTrackingKey）の名前と一致する
