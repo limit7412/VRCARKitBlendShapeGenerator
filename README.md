@@ -195,6 +195,10 @@ SDKのアップロード前チェックはビルド前のアバターに対し�
 ネイティブフェイストラッキングに対応していないVRChat SDK（3.10.6-beta.2より前）では、この設定を有効にしても何も書き込みません。
 Jerry's Templatesと同時に使うと、同じBlendShapeをアニメーターとネイティブフェイストラッキングの両方が動かすため、どちらか一方にしてください。
 
+[Kx VRC NativeFT Manager](https://github.com/limit7412/VRCNativeFTManager)を同じアバターで使う場合は、この設定を無効のままにしておいて構いません。
+NativeFT ManagerのGenerator連携（ARKit版のプレハブの既定はAuto）が、ビルド用の複製の上でだけこの設定を有効にします。シーンの設定は変わりません。
+この設定が既定で無効なのは、Jerry's Templatesを使い続けるアバターで、同じBlendShapeを二重に動かさないためです。
+
 #### AAO: Avatar Optimizer との併用
 
 AAO: Avatar Optimizer（1.9.20で確認）は、BlendShapeが使われているかをアニメーターから判定し、Blendshapes Setからの参照は見ません。
