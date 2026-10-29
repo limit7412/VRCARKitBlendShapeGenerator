@@ -53,6 +53,31 @@ namespace ARKitBlendShapeGenerator.Presentation
         // インデントレベル
         private const float IndentWidth = 15f;
 
+        // 設定欄のラベル幅。最長のラベルに合わせて広げるが、入力欄にはこの幅を残す
+        private const float MinFieldWidth = 160f;
+
+        // 見出しの前に空ける余白。直前のHelpBoxと見出しがくっつかないようにする
+        private const float SectionSpacing = 10f;
+
+        // HelpBoxとその次の項目のあいだの余白
+        private const float HelpBoxSpacing = 2f;
+
+        // ラベル幅の計算対象。ラベルを持つ設定項目をすべて並べる
+        private static readonly string[] SettingLabelKeys =
+        {
+            "prop.target_renderer",
+            "prop.intensity_multiplier",
+            "prop.enable_left_right_split",
+            "prop.blend_width",
+            "prop.overwrite_existing",
+            "prop.output_naming",
+            "prop.write_face_tracking_set",
+            "prop.enable_procedural_mouth",
+            "prop.procedural_mouth_intensity",
+            "prop.enable_mouth_cancellation",
+            "prop.mouth_cancellation_strength",
+        };
+
         private string _pendingSelectionPropertyPath;
         private string _pendingSelectionValue;
 
@@ -103,53 +128,19 @@ namespace ARKitBlendShapeGenerator.Presentation
 
             EditorGUILayout.HelpBox(S("inspector.description"), MessageType.Info);
 
-            EditorGUILayout.Space();
-
-            // 基本設定
-            EditorGUILayout.LabelField(S("inspector.section.basic"), EditorStyles.boldLabel);
-            EditorGUILayout.PropertyField(serializedObject.FindProperty("targetRenderer"), G("prop.target_renderer"));
-
-            EditorGUILayout.BeginHorizontal();
-            if (GUILayout.Button(S("inspector.refresh_list")))
+            // 設定欄のラベルは言語によって長さが大きく変わるため、最長のラベルに幅を合わせる。
+            // 0を入れると既定の幅へ戻るので、描画が途中で打ち切られても後続のエディタへ幅を持ち越さない
+            EditorGUIUtility.labelWidth = CalcSettingLabelWidth();
+            try
             {
-                RefreshBlendShapeList();
+                DrawSettings();
             }
-            EditorGUILayout.LabelField(S("inspector.detected_count", _availableBlendShapes.Count), GUILayout.Width(80));
-            EditorGUILayout.EndHorizontal();
-
-            EditorGUILayout.Space();
-            EditorGUILayout.PropertyField(serializedObject.FindProperty("intensityMultiplier"), G("prop.intensity_multiplier"));
-            EditorGUILayout.PropertyField(serializedObject.FindProperty("enableLeftRightSplit"), G("prop.enable_left_right_split"));
-            EditorGUILayout.PropertyField(serializedObject.FindProperty("blendWidth"), G("prop.blend_width"));
-            EditorGUILayout.PropertyField(serializedObject.FindProperty("overwriteExisting"), G("prop.overwrite_existing"));
-
-            EditorGUILayout.Space();
-            EditorGUILayout.LabelField(S("inspector.section.output_naming"), EditorStyles.boldLabel);
-            DrawOutputNaming();
-
-            EditorGUILayout.Space();
-            EditorGUILayout.LabelField(S("inspector.section.procedural_mouth"), EditorStyles.boldLabel);
-            EditorGUILayout.HelpBox(S("inspector.procedural_mouth.description"), MessageType.Info);
-            var enableProceduralProperty = serializedObject.FindProperty("enableProceduralMouthShapes");
-            EditorGUILayout.PropertyField(enableProceduralProperty, G("prop.enable_procedural_mouth"));
-            using (new EditorGUI.DisabledScope(!enableProceduralProperty.boolValue))
+            finally
             {
-                EditorGUILayout.PropertyField(serializedObject.FindProperty("proceduralMouthIntensity"), G("prop.procedural_mouth_intensity"));
+                EditorGUIUtility.labelWidth = 0f;
             }
 
-            EditorGUILayout.Space();
-            EditorGUILayout.LabelField(S("inspector.section.mouth_cancellation"), EditorStyles.boldLabel);
-            EditorGUILayout.HelpBox(S("inspector.mouth_cancellation.description"), MessageType.Info);
-            var enableCancellationProperty = serializedObject.FindProperty("enableMouthCancellation");
-            EditorGUILayout.PropertyField(enableCancellationProperty, G("prop.enable_mouth_cancellation"));
-            if (enableCancellationProperty.boolValue)
-            {
-                EditorGUI.indentLevel++;
-                DrawMouthCancellationUI();
-                EditorGUI.indentLevel--;
-            }
-
-            EditorGUILayout.Space();
+            EditorGUILayout.Space(SectionSpacing);
             EditorGUILayout.LabelField("", GUI.skin.horizontalSlider);
 
             // カスタムマッピング
@@ -222,6 +213,56 @@ namespace ARKitBlendShapeGenerator.Presentation
             if (didApply)
             {
                 ARKitBlendShapeGeneratorPreviewState.NotifyComponentConfigurationChanged();
+            }
+        }
+
+        /// <summary>
+        /// 基本設定から口の打ち消しまでの設定欄を描く
+        /// </summary>
+        private void DrawSettings()
+        {
+            // 基本設定
+            DrawSectionHeader(S("inspector.section.basic"));
+            EditorGUILayout.PropertyField(serializedObject.FindProperty("targetRenderer"), G("prop.target_renderer"));
+
+            EditorGUILayout.BeginHorizontal();
+            if (GUILayout.Button(S("inspector.refresh_list")))
+            {
+                RefreshBlendShapeList();
+            }
+            var detectedCount = new GUIContent(S("inspector.detected_count", _availableBlendShapes.Count));
+            EditorGUILayout.LabelField(
+                detectedCount,
+                GUILayout.Width(EditorStyles.label.CalcSize(detectedCount).x + 4f));
+            EditorGUILayout.EndHorizontal();
+
+            EditorGUILayout.Space();
+            EditorGUILayout.PropertyField(serializedObject.FindProperty("intensityMultiplier"), G("prop.intensity_multiplier"));
+            EditorGUILayout.PropertyField(serializedObject.FindProperty("enableLeftRightSplit"), G("prop.enable_left_right_split"));
+            EditorGUILayout.PropertyField(serializedObject.FindProperty("blendWidth"), G("prop.blend_width"));
+            EditorGUILayout.PropertyField(serializedObject.FindProperty("overwriteExisting"), G("prop.overwrite_existing"));
+
+            DrawSectionHeader(S("inspector.section.output_naming"));
+            DrawOutputNaming();
+
+            DrawSectionHeader(S("inspector.section.procedural_mouth"));
+            DrawHelpBox(S("inspector.procedural_mouth.description"), MessageType.Info);
+            var enableProceduralProperty = serializedObject.FindProperty("enableProceduralMouthShapes");
+            EditorGUILayout.PropertyField(enableProceduralProperty, G("prop.enable_procedural_mouth"));
+            using (new EditorGUI.DisabledScope(!enableProceduralProperty.boolValue))
+            {
+                EditorGUILayout.PropertyField(serializedObject.FindProperty("proceduralMouthIntensity"), G("prop.procedural_mouth_intensity"));
+            }
+
+            DrawSectionHeader(S("inspector.section.mouth_cancellation"));
+            DrawHelpBox(S("inspector.mouth_cancellation.description"), MessageType.Info);
+            var enableCancellationProperty = serializedObject.FindProperty("enableMouthCancellation");
+            EditorGUILayout.PropertyField(enableCancellationProperty, G("prop.enable_mouth_cancellation"));
+            if (enableCancellationProperty.boolValue)
+            {
+                EditorGUI.indentLevel++;
+                DrawMouthCancellationUI();
+                EditorGUI.indentLevel--;
             }
         }
 
@@ -657,20 +698,52 @@ namespace ARKitBlendShapeGenerator.Presentation
             }
 
             bool isExperimental = namingProperty.enumValueIndex != (int)BlendShapeNaming.ARKit;
-            EditorGUILayout.HelpBox(
+            DrawHelpBox(
                 S("inspector.output_naming.experimental"),
                 isExperimental ? MessageType.Warning : MessageType.Info);
             if (namingProperty.enumValueIndex == (int)BlendShapeNaming.Both)
             {
-                EditorGUILayout.HelpBox(S("inspector.output_naming.both_note"), MessageType.Info);
+                DrawHelpBox(S("inspector.output_naming.both_note"), MessageType.Info);
             }
 
             var writeSetProperty = serializedObject.FindProperty("writeFaceTrackingBlendshapesSet");
             EditorGUILayout.PropertyField(writeSetProperty, G("prop.write_face_tracking_set"));
             if (writeSetProperty.boolValue)
             {
-                EditorGUILayout.HelpBox(S("inspector.face_tracking_set.note"), MessageType.Info);
+                DrawHelpBox(S("inspector.face_tracking_set.note"), MessageType.Info);
             }
+        }
+
+        /// <summary>
+        /// 設定欄のラベル幅を求める。既定の幅より狭くはせず、入力欄にMinFieldWidthを残せる範囲で最長のラベルに合わせる
+        /// </summary>
+        private static float CalcSettingLabelWidth()
+        {
+            // インスペクターが既定で使う幅と同じ式
+            float defaultWidth = Mathf.Max(EditorGUIUtility.currentViewWidth * 0.45f - 40f, 120f);
+
+            float longest = 0f;
+            foreach (var key in SettingLabelKeys)
+            {
+                longest = Mathf.Max(longest, EditorStyles.label.CalcSize(G(key)).x);
+            }
+
+            // 打ち消し強度は1段インデントされるため、その分とラベル右の余白を足す
+            float wanted = longest + IndentWidth + 8f;
+            float max = EditorGUIUtility.currentViewWidth - MinFieldWidth;
+            return Mathf.Max(defaultWidth, Mathf.Min(wanted, max));
+        }
+
+        private static void DrawSectionHeader(string text)
+        {
+            EditorGUILayout.Space(SectionSpacing);
+            EditorGUILayout.LabelField(text, EditorStyles.boldLabel);
+        }
+
+        private static void DrawHelpBox(string message, MessageType type)
+        {
+            EditorGUILayout.HelpBox(message, type);
+            EditorGUILayout.Space(HelpBoxSpacing);
         }
 
         /// <summary>
@@ -929,12 +1002,12 @@ namespace ARKitBlendShapeGenerator.Presentation
 
             if (targetsProperty.arraySize == 0)
             {
-                EditorGUILayout.HelpBox(S("mouth_cancellation.targets.none_warning"), MessageType.Warning);
+                DrawHelpBox(S("mouth_cancellation.targets.none_warning"), MessageType.Warning);
             }
             else if (targetsProperty.arraySize > 1)
             {
                 // 同時適用時は打ち消しが重なって過剰になるため、対象は絞ることを推奨する
-                EditorGUILayout.HelpBox(S("mouth_cancellation.targets.overshoot_warning"), MessageType.Warning);
+                DrawHelpBox(S("mouth_cancellation.targets.overshoot_warning"), MessageType.Warning);
             }
 
             _mouthCancellationTargetScrollPosition = EditorGUILayout.BeginScrollView(
