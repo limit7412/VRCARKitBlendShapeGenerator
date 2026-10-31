@@ -41,6 +41,22 @@ PINNED_GUIDS = {
     "Runtime/ARKitBlendShapeGeneratorComponent.cs": "cfe038bef4164364db38e499eaeb6e10",
 }
 
+# 配っていたが、意図して取り除いたアセットのGUID。
+# verify --base-ref は配っていたGUIDの消失を問題にするが、ここに載せたものは除外する
+RETIRED_GUIDS = {
+    # AAO 1.9.21の安定版がネイティブフェイストラッキングに対応したため、PR #103のAAO仮対応を取り除いた（#105）。
+    # 目印のコンポーネントはビルド中にだけ置かれるので、シーンやプレハブからは参照されない
+    "87d4b877307644fa9946882df3a057da": "Editor/AAOCompat",
+    "95d2e6faf29a4abdaaf87276596b0092": "Editor/AAOCompat/AAOCompatPlugin.cs",
+    "49e0c18ae6314af298542c66498800e3": "Editor/AAOCompat/ARKitBlendShapeGenerator.Editor.AAOCompat.asmdef",
+    "61b76c741615457d8fd77ca7e69c6b39": "Editor/AAOCompat/AssemblyInfo.cs",
+    "0b15b5d808bd4d81ad195eb7f0d05217": "Editor/AAOCompat/FaceTrackingSetResolver.cs",
+    "4046524e9b674afdbd0651d3b0ff58b5": "Editor/AAOCompat/FaceTrackingUsageCollector.cs",
+    "f2704fad0c0f45adb7ac5efab48ec458": "Editor/AAOCompat/NativeFaceTrackingBlendShapeUsageInformation.cs",
+    "7b529bb99dce4ab3b01c7181b9e8d148": "Runtime/AAOCompat",
+    "0d691d1bef19472cb6c890543cb8cc33": "Runtime/AAOCompat/NativeFaceTrackingBlendShapeUsage.cs",
+}
+
 PACKAGE_NAME = "com.qazx7412.kx-vrc-arkit-blendshape-generator"
 BOOTH_BASENAME = "VRCARKitBlendShapeGenerator"
 
@@ -375,7 +391,7 @@ def _diff_guids_against(repo_root, base_ref, shipped_guids):
 
         # `.meta`が残っているかによらず、配っていたGUIDが今も配布物に入っているかを見る。
         # `.meta`だけ残してアセットを消した場合、パスは存在するのに配布物からは消えている
-        if old_guid not in shipped_guids:
+        if old_guid not in shipped_guids and old_guid not in RETIRED_GUIDS:
             problems.append(
                 f"配っていたGUIDが配布物から消えている: {name} ({old_guid})。"
                 "リネームなら`.meta`も一緒に動かすこと。"
