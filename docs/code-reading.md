@@ -27,10 +27,7 @@ VRChatアバターの既存シェイプキー（まばたき、あ、い、う �
   更新確認の通信とEditorPrefsの読み書き（`UpdateCheck`）、インストール形態の問い合わせ（`PackageLocation`）もここに置く
 - **`Editor/Presentation/`**：インスペクタUI
 - **`Editor/Localization/`**：NDMFのローカライズ機構を使った文言管理（日英の `.po`）
-- **`Editor/AAOCompat/`** と **`Runtime/AAOCompat/`**：AAO: Avatar Optimizer がネイティブフェイストラッキングのBlendshapes Setを参照と見なすまでの仮対応。
-  別のアセンブリ（`ARKitBlendShapeGenerator.Editor.AAOCompat`）で、AAOとネイティブFT対応のSDKが両方入っているときだけコンパイルされる。
-  本体の生成処理には依存せず、Avatar Descriptorの設定だけを見る。AAOが対応したら、asmdefのversionDefinesの範囲を絞るか、フォルダごと取り除く
-- **`Tests/Editor/`**：EditModeテスト。`Tests/Editor/AAOCompat/` はAAO互換アセンブリの分で、同じ条件でだけコンパイルされる
+- **`Tests/Editor/`**：EditModeテスト
 
 依存の向きは、外側（Handler、Presentation）からUseCaseを経てDomainへ向かい、InfraはDomainの抽象を実装して外側から注入される。
 

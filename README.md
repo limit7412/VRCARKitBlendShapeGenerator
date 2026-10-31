@@ -165,7 +165,7 @@ Unified ExpressionsでARKitの1つが左右や上下に分かれる名前は、�
 
 「両方」では使われない側のBlendShapeがメッシュに残ります。
 AAO: Avatar Optimizer の Trace and Optimize など、未使用のBlendShapeを取り除くツールと併用してください。
-ネイティブフェイストラッキングのBlendshapes Setが参照する側は、AAOと併用する場合は本ツールが取り除かれないように守ります（後述の「AAO: Avatar Optimizer との併用」を参照）。
+ネイティブフェイストラッキングのBlendshapes Setが参照する側は、AAO 1.9.21以降ならAAO自身が使用中と判定して残します（後述の「AAO: Avatar Optimizer との併用」を参照）。
 
 ### ネイティブフェイストラッキングのBlendshapes Set（実験的）
 
@@ -192,7 +192,7 @@ SDKのアップロード前チェックはビルド前のアバターに対し�
 視線（`EyeLook*`）とまぶた（`EyeClosed*`）の割り当ては、Avatar DescriptorのEye LookとEyelidsがFace Trackingになっているときだけ使われます。
 どちらもアバターの見え方を変える設定なので本ツールは書き換えません。ボーンの視線やアニメーションのまばたきを使い続けるなら、そのままで構いません（目以外の割り当ては影響を受けません）。
 
-ネイティブフェイストラッキングに対応していないVRChat SDK（3.10.6-beta.2より前）では、この設定を有効にしても何も書き込みません。
+ネイティブフェイストラッキングに対応していないVRChat SDK（3.10.6より前。3.10.6のベータ版を含む）では、この設定を有効にしても何も書き込みません。
 Jerry's Templatesと同時に使うと、同じBlendShapeをアニメーターとネイティブフェイストラッキングの両方が動かすため、どちらか一方にしてください。
 
 [Kx VRC NativeFT Manager](https://github.com/limit7412/VRCNativeFTManager)を同じアバターで使う場合は、この設定を無効のままにしておいて構いません。
@@ -201,16 +201,12 @@ NativeFT ManagerのGenerator連携（ARKit版のプレハブの既定はAuto）�
 
 #### AAO: Avatar Optimizer との併用
 
-AAO: Avatar Optimizer（1.9.20で確認）は、BlendShapeが使われているかをアニメーターから判定し、Blendshapes Setからの参照は見ません。
-そのため、そのままではTrace and Optimizeがネイティブフェイストラッキング用のBlendShapeを未使用として固定・統合し、Setの対応が解決できなくなります。
+AAO: Avatar Optimizer と併用する場合は、AAO 1.9.21以降を使ってください。
+1.9.21以降のAAOは、Avatar DescriptorのBlendshapes SetとParameter Behaviorsが動かすBlendShapeを使用中と判定し、名前を変えたときはSetも書き直します。
 
-本ツールはAAOが導入されているとき、ビルド中に次を行ってこれを防ぎます（設定は不要です）。
-
-- AAOの直前に、Face Tracking Meshesの各メッシュについてBlendshapes Setが動かすBlendShapeを、AAOの公開APIで「実行時に動く」と伝える。固定と統合の対象から外れる
-- AAOの直後に、AAOが別の名前や別のメッシュへ移したBlendShapeに合わせてSetを書き直し、移動先のメッシュをFace Tracking Meshesへ加える。AAOが取り除いたBlendShapeの割り当ては空にして警告を出す
-
-対象は本ツールが書いたSetに限らず、Avatar Descriptorに書かれている全てのSetです。
-AAOがSetからの参照を認識するようになったら、この仮対応は本ツールの更新で取り除きます。
+1.9.20以前のAAOは、Blendshapes Setからの参照を見ません。
+Trace and Optimizeがネイティブフェイストラッキング用のBlendShapeを未使用として固定・統合し、Setの対応が解決できなくなります。
+本ツールの以前の版はこれを防ぐ仮対応を持っていましたが、AAO本体が対応したため取り除きました。
 
 ### 口の手続き的生成
 

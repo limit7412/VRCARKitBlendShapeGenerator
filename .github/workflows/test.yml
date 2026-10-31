@@ -369,17 +369,11 @@ jobs:
       - name: Resolve VPM dependencies
         working-directory: TestProject
         run: |
-          # NDMFとAAOのVPMリポジトリを登録する（VRChat公式・curatedはvrc-getが既定で持つが、
-          # AAOはcuratedには無く anatawa12 のリポジトリからしか引けない）。
+          # NDMFのVPMリポジトリを登録する（VRChat公式・curatedはvrc-getが既定で持つ）。
           # 登録済みなら失敗するので握りつぶし、実際に引けるかは後続のinstallで判断する
           vrc-get repo add https://vpm.nadena.dev/vpm.json || true
-          vrc-get repo add https://vpm.anatawa12.com/vpm.json || true
           vrc-get install com.vrchat.avatars --yes
           vrc-get install nadena.dev.ndmf --yes
-          # AAO互換アセンブリ（Editor/AAOCompat）とそのテストは、AAOとネイティブFT対応のSDK
-          # （3.10.6-beta.2以降）が両方入っているときだけコンパイルされる（asmdefのdefineConstraints）。
-          # SDKの安定版がそれより前のうちはテストは0件のまま通る
-          vrc-get install com.anatawa12.avatar-optimizer --yes
           cat Packages/vpm-manifest.json
 
       - name: Cache Library

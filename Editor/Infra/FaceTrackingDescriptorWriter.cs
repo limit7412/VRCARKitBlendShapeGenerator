@@ -53,14 +53,14 @@ namespace ARKitBlendShapeGenerator.Infra
     /// <summary>
     /// ネイティブフェイストラッキングのBlendshapes SetをVRCAvatarDescriptorへ書き込む。
     ///
-    /// Face Trackingの項目はVRChat SDK 3.10.6-beta.2で加わったもので、それより前のSDKには無い。
-    /// asmdefのversionDefinesで、対応するSDKが入っているときだけ KX_VRC_NATIVE_FACE_TRACKING が定義され、
+    /// Face Trackingの項目はVRChat SDK 3.10.6-beta.2で加わり、3.10.6で正式版になった。
+    /// asmdefのversionDefinesで、正式版の3.10.6以降が入っているときだけ KX_VRC_NATIVE_FACE_TRACKING が定義され、
     /// 無いときは何も書き込まずにUnsupportedを返す。SDKの型に触れるのはこのクラスだけにする
     /// </summary>
     internal static class FaceTrackingDescriptorWriter
     {
         /// <summary>
-        /// SDKの faceTrackingMeshes が有効と見なす件数の上限（SDK 3.10.6-beta.2）
+        /// SDKの faceTrackingMeshes が有効と見なす件数の上限（SDK 3.10.6）
         /// </summary>
         internal const int FaceTrackingMeshLimit = 16;
 
