@@ -88,7 +88,7 @@ namespace ARKitBlendShapeGenerator.Domain
 
         /// <summary>
         /// SDKの列挙体の順に並べたキーと候補。
-        /// 添字がキーの番号で、SDK 3.10.6-beta.2 の FaceTrackingKey（Max = 102）に合わせている。
+        /// 添字がキーの番号で、SDK 3.10.6 の FaceTrackingKey（Max = 102）に合わせている。
         /// 順序はDescriptorへ書き込む直前にSDKの列挙体と突き合わせて確かめる
         /// </summary>
         private static readonly KeyEntry[] Keys =

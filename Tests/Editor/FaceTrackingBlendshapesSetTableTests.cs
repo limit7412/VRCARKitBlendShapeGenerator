@@ -12,7 +12,7 @@ namespace ARKitBlendShapeGenerator.Tests
     public class FaceTrackingBlendshapesSetTableTests
     {
         /// <summary>
-        /// SDK 3.10.6-beta.2 の VRCAvatarDescriptor.FaceTrackingKey の順。
+        /// SDK 3.10.6 の VRCAvatarDescriptor.FaceTrackingKey の順（3.10.6-beta.2 から変わっていない）。
         /// 書き込み側はSDKの列挙体と突き合わせるが、SDKの無いテスト環境でも並びを固定しておくための写し
         /// </summary>
         private static readonly string[] SdkKeyOrder =
