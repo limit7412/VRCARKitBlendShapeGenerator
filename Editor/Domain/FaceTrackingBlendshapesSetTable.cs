@@ -256,14 +256,36 @@ namespace ARKitBlendShapeGenerator.Domain
         /// </summary>
         public static FaceTrackingBlendshapesSetPlan Build(IEnumerable<string> meshBlendShapeNames)
         {
+            return Build(meshBlendShapeNames, ignoreCase: false);
+        }
+
+        /// <summary>
+        /// メッシュにあるシェイプキー名から、キーごとの割り当てを決める。
+        ///
+        /// ignoreCaseがtrueのときは、どの候補も完全一致しなかったキーに限り、候補を大文字小文字を無視して探し直す。
+        /// 本ツールが生成していない、元からARKitのシェイプキーを持つメッシュ向けで、
+        /// EyeBlinkLeft のように先頭を大文字にした名前も拾う。SDKの自動入力も別名を大文字小文字を無視して探す。
+        /// 割り当てる名前はメッシュ上の綴りのままにする。Setの名前はメッシュのシェイプキー名と完全一致で結び付くためである
+        /// </summary>
+        public static FaceTrackingBlendshapesSetPlan Build(IEnumerable<string> meshBlendShapeNames, bool ignoreCase)
+        {
             var available = new HashSet<string>(StringComparer.Ordinal);
+            var byLowerName = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
             if (meshBlendShapeNames != null)
             {
                 foreach (var name in meshBlendShapeNames)
                 {
-                    if (!string.IsNullOrEmpty(name))
+                    if (string.IsNullOrEmpty(name))
                     {
-                        available.Add(name);
+                        continue;
+                    }
+
+                    available.Add(name);
+
+                    // 大文字小文字だけが違う名前が複数あるときは、メッシュ上で先にあるものを使う
+                    if (!byLowerName.ContainsKey(name))
+                    {
+                        byLowerName.Add(name, name);
                     }
                 }
             }
@@ -271,18 +293,38 @@ namespace ARKitBlendShapeGenerator.Domain
             var names = new string[Keys.Length];
             for (int i = 0; i < Keys.Length; i++)
             {
-                names[i] = string.Empty;
-                foreach (var candidate in Keys[i].Candidates)
-                {
-                    if (available.Contains(candidate))
-                    {
-                        names[i] = candidate;
-                        break;
-                    }
-                }
+                names[i] = FindExact(Keys[i].Candidates, available)
+                    ?? (ignoreCase ? FindIgnoringCase(Keys[i].Candidates, byLowerName) : null)
+                    ?? string.Empty;
             }
 
             return new FaceTrackingBlendshapesSetPlan(names);
+        }
+
+        private static string FindExact(string[] candidates, HashSet<string> available)
+        {
+            foreach (var candidate in candidates)
+            {
+                if (available.Contains(candidate))
+                {
+                    return candidate;
+                }
+            }
+
+            return null;
+        }
+
+        private static string FindIgnoringCase(string[] candidates, Dictionary<string, string> byLowerName)
+        {
+            foreach (var candidate in candidates)
+            {
+                if (byLowerName.TryGetValue(candidate, out var meshName))
+                {
+                    return meshName;
+                }
+            }
+
+            return null;
         }
     }
 }

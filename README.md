@@ -196,7 +196,8 @@ SDKのアップロード前チェックはビルド前のアバターに対し�
 Jerry's Templatesと同時に使うと、同じBlendShapeをアニメーターとネイティブフェイストラッキングの両方が動かすため、どちらか一方にしてください。
 
 [Kx VRC NativeFT Manager](https://github.com/limit7412/VRCNativeFTManager)を同じアバターで使う場合は、この設定を無効のままにしておいて構いません。
-NativeFT ManagerのGenerator連携（ARKit版のプレハブの既定はAuto）が、ビルド用の複製の上でだけこの設定を有効にします。シーンの設定は変わりません。
+NativeFT Managerの「Generatorコンポーネントを使う」（既定で有効）が、ビルド用の複製の上でだけこの設定を有効にします。シーンの設定は変わりません。
+本ツールのコンポーネントを付けていないアバターでも、本ツールがプロジェクトに入っていれば、NativeFT Managerは本ツールと同じ対応表でARKit名のシェイプキーからSetを作れます（対応するNativeFT Managerの版が必要です）。
 この設定が既定で無効なのは、Jerry's Templatesを使い続けるアバターで、同じBlendShapeを二重に動かさないためです。
 
 #### AAO: Avatar Optimizer との併用
