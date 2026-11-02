@@ -19,7 +19,7 @@ VRChatアバターの既存シェイプキー（まばたき、あ、い、う �
   コンポーネントはビルド中に取り除かれるため、アバターの実行時には何も残らない
 - **`Editor/Handler/`**：NDMFとの接続点。
   ビルドのエントリポイント、プレビュー、重複コンポーネントの自動排除。
-  他のパッケージ（Kx VRC NativeFT Manager）へ対応表を公開する `FaceTrackingSetMapping` もここに置く。Managerはリフレクションで呼ぶので、型名とメソッドの形を変えない
+  他のパッケージ（Kx VRC NativeFT Manager）へ対応表を公開する `FaceTrackingSetMapping` と、ARKit名のシェイプキーをUE名へ変換する `UnifiedExpressionsConversion` もここに置く。Managerはリフレクションで呼ぶので、型名とメソッドの形を変えない
 - **`Editor/UseCase/`**：入口とドメインの橋渡し。
   処理対象の選定と、Infra実装の組み立て
 - **`Editor/Domain/`**：生成ロジックの本体。
