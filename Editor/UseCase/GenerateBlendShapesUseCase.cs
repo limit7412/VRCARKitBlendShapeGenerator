@@ -118,6 +118,48 @@ namespace ARKitBlendShapeGenerator.UseCase
         }
 
         /// <summary>
+        /// メッシュに既にあるARKit名のシェイプキーを、Unified Expressions名のシェイプキーとして書き足す（ビルド用）。
+        ///
+        /// コンポーネントを介さず、変換だけを行う。VRChat/MMDのシェイプキーからの自動マッピング、
+        /// カスタムマッピング、口の手続き的生成、打ち消しは使わず、オプションは既定値（左右分割あり）にする。
+        /// 既にあるUE名は上書きしない。書き足すものが1つも無ければメッシュを差し替えずに空の一覧を返す。
+        /// 書き足したときはメッシュを複製してレンダラーへ差し替える。元のメッシュアセットは変えない
+        /// </summary>
+        public static List<string> ConvertArkitToUnifiedExpressions(SkinnedMeshRenderer renderer)
+        {
+            if (renderer == null || renderer.sharedMesh == null)
+            {
+                return new List<string>();
+            }
+
+            var sourceMesh = renderer.sharedMesh;
+            var convertedMesh = Object.Instantiate(sourceMesh);
+            convertedMesh.name = sourceMesh.name;
+            var options = new BlendShapeGenerationOptions
+            {
+                OutputNaming = BlendShapeNaming.UnifiedExpressions,
+            };
+
+            var result = BlendShapeGenerationEngine.Generate(
+                new UnityMeshRepository(sourceMesh),
+                new UnityMeshRepository(convertedMesh),
+                new List<CustomBlendShapeMapping>(),
+                new List<ARKitMapping>(),
+                options,
+                UnityDebugLogger.Instance,
+                targetIsSourceCopy: true);
+
+            if (result.GeneratedShapes.Count == 0)
+            {
+                Object.DestroyImmediate(convertedMesh);
+                return result.GeneratedShapes;
+            }
+
+            renderer.sharedMesh = convertedMesh;
+            return result.GeneratedShapes;
+        }
+
+        /// <summary>
         /// ネイティブフェイストラッキングのBlendshapes SetをAvatar Descriptorへ書き込む。
         ///
         /// 生成後のメッシュにあるシェイプキー名から、トラッキングキーごとの割り当てを決めて書く。

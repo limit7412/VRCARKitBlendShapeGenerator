@@ -78,6 +78,13 @@ Kx VRC NativeFT Managerが、本ツールのコンポーネントを付けてい
 この入口では、どの候補も完全一致しなかったキーに限り、候補を大文字小文字を無視して探し直す（`EyeBlinkLeft` なども拾う）。
 本ツールが生成していないシェイプキーは、ARKitの綴りどおりとは限らないためである。
 
+既存のARKit名のシェイプキーをUnified Expressions名へ変換する処理も、`UnifiedExpressionsConversion`（`Editor/Handler/UnifiedExpressionsConversion.cs`）から公開している。
+Kx VRC NativeFT Managerが、本ツールのコンポーネントを付けていないアバターで「ARKitをUEに変換」を有効にしたとき、ビルド用の複製のメッシュに対して呼ぶ。
+変換は出力名をUnified Expressionsにしたときの既存シェイプキーの変換と同じで、左右・上下の分割も同じ規則で行う。
+VRChat/MMDのシェイプキーからの自動マッピング、カスタムマッピング、口の手続き的生成、打ち消しは使わない。
+元のシェイプキーは名前を変えずに残し、UE名のシェイプキーを書き足す。同名のUE名が既にあれば上書きしない。
+ARKit名の照合は完全一致で、`EyeBlinkLeft` のように綴りの違うシェイプキーは変換しない（Setの対応表では拾われる）。
+
 キーごとの候補は、キー名そのもの、本ツールのUnified Expressions名、ARKit名の順である。
 大半のキーは「キー名 = 本ツールのUnified Expressions名」で、その次がARKit名（`JawOpen` → `jawOpen` など）になる。
 次の表は、キー名と本ツールの出力名が異なるものだけを挙げる。
