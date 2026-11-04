@@ -185,7 +185,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v7
+        uses: actions/checkout@v7.0.1
 
       # 既存の`.meta`のGUIDが変わっていないことを、変更前の内容と突き合わせて確かめる。
       # 配布済みのGUIDは利用者のアバターから参照されており、振り直すわけにはいかない。
@@ -298,7 +298,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout package
-        uses: actions/checkout@v7
+        uses: actions/checkout@v7.0.1
         with:
           # テスト用プロジェクトのPackages配下へ直接チェックアウトする
           path: TestProject/Packages/${{ env.PACKAGE_NAME }}
@@ -377,7 +377,7 @@ jobs:
           cat Packages/vpm-manifest.json
 
       - name: Cache Library
-        uses: actions/cache@v6
+        uses: actions/cache@v6.1.0
         with:
           path: TestProject/Library
           key: Library-${{ env.UNITY_VERSION }}-${{ hashFiles('TestProject/Packages/vpm-manifest.json') }}
@@ -404,7 +404,7 @@ jobs:
       # 他のアクションはNode 24を実行環境とする版へ上げているが、これはv4が最新であり
       # Node 20のまま。上流が新しいメジャーを出すまでは追随できない。
       - name: Run EditMode tests
-        uses: game-ci/unity-test-runner@v4
+        uses: game-ci/unity-test-runner@v4.4.0
         # UNITY_LICENSEは渡さない。渡すとgame-ciが.ulfでの認証を先に試し、
         # 機械の紐付け違いで退けられた後のフォールバックはPersonalを取得できない。
         # 渡さなければ、UNITY_SERIALがあればシリアル、無ければアカウント（Personal）で
@@ -424,7 +424,7 @@ jobs:
 
       - name: Upload test results
         if: always()
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@v7.0.2
         with:
           name: editmode-test-results
           path: artifacts
