@@ -1,0 +1,34 @@
+# 一時ワークフロー: actions.lock の初回生成結果をパッチとしてログへ出す。
+# 生成結果をコミットしたら、このファイルは削除する。
+
+name: bootstrap-actions-lock
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - run: gh extension install github/gh-actions-lock --pin v0.4.1
+      - name: generate
+        run: |
+          git rm -q .github/workflows/bootstrap-actions-lock.yml
+          gh actions-lock
+          git add -A .github
+          git diff --cached --binary -- . ':(exclude).github/workflows/bootstrap-actions-lock.yml' > ../lock.patch
+          echo "----- PATCH BEGIN -----"
+          cat ../lock.patch
+          echo "----- PATCH END -----"
+          echo "----- BASE64 BEGIN -----"
+          base64 -w 100 ../lock.patch
+          echo "----- BASE64 END -----"
+          sha256sum ../lock.patch
