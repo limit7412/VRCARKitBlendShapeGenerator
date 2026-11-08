@@ -6,8 +6,7 @@
         "UnityEditor.TestRunner",
         "ARKitBlendShapeGenerator.Editor",
         "ARKitBlendShapeGenerator.Runtime",
-        "VRC.SDKBase",
-        "VRC.SDK3A"
+        "VRC.SDKBase"
     ],
     "includePlatforms": [
         "Editor"
@@ -16,7 +15,9 @@
     "allowUnsafeCode": false,
     "overrideReferences": true,
     "precompiledReferences": [
-        "nunit.framework.dll"
+        "nunit.framework.dll",
+        "VRCSDKBase.dll",
+        "VRCSDK3A.dll"
     ],
     "autoReferenced": false,
     "defineConstraints": [
