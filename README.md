@@ -68,6 +68,12 @@ Releasesの `VRCARKitBlendShapeGenerator_<バージョン>.zip` に、unitypacka
 付ける先はアバタールートでも、顔メッシュを持つオブジェクトでも、それ以外のオブジェクトでも構いません。
 同一アバター内に置けるコンポーネントは1つだけです。
 
+アバタールートに直接付けたコンポーネントは、設定を保ったまま専用のオブジェクトへ移せます。
+ヒエラルキーでアバターを右クリックし、**Kx VRC ARKit BlendShape Generator** > **Move Generator from Avatar Root to Separate Object** を選んでください。
+Inspectorでコンポーネントの歯車メニューから **Move to Separate Object** を選んでも同じです。
+アバタールートの子に `Kx ARKit BlendShape Generator` オブジェクトができ、コンポーネントはそちらへ移ります。
+移動はUndo 1回で元に戻せます。
+
 ### 設定項目
 
 | 項目 | 説明 |
