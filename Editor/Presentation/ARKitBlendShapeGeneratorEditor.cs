@@ -677,8 +677,7 @@ namespace ARKitBlendShapeGenerator.Presentation
 
         /// <summary>
         /// 出力名の種別を描画する。
-        /// ARKit以外はネイティブフェイストラッキングへの対応に向けた実験的な選択肢のため、
-        /// 選んでいるあいだは注意書きを警告として出し、ARKitのあいだは説明にとどめる
+        /// ARKit以外を選んでいるあいだは、Unified Expressions名の変換元についての説明を出す
         /// </summary>
         private void DrawOutputNaming()
         {
@@ -697,10 +696,10 @@ namespace ARKitBlendShapeGenerator.Presentation
                 namingProperty.enumValueIndex = newIndex;
             }
 
-            bool isExperimental = namingProperty.enumValueIndex != (int)BlendShapeNaming.ARKit;
-            DrawHelpBox(
-                S("inspector.output_naming.experimental"),
-                isExperimental ? MessageType.Warning : MessageType.Info);
+            if (namingProperty.enumValueIndex != (int)BlendShapeNaming.ARKit)
+            {
+                DrawHelpBox(S("inspector.output_naming.source_note"), MessageType.Info);
+            }
             if (namingProperty.enumValueIndex == (int)BlendShapeNaming.Both)
             {
                 DrawHelpBox(S("inspector.output_naming.both_note"), MessageType.Info);

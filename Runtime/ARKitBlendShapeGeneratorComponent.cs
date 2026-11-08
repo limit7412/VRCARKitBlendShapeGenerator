@@ -39,8 +39,8 @@ namespace ARKitBlendShapeGenerator
         [Tooltip("Overwrite existing ARKit blend shapes")]
         public bool overwriteExisting = false;
 
-        [Header("Output Naming (Experimental)")]
-        [Tooltip("Naming of the generated blend shapes. ARKit is the current standard for Jerry's Templates. Unified Expressions and Both are experimental, ahead of VRChat's native face tracking (High Fidelity Face Tracking); the mapping may change once the SDK is released")]
+        [Header("Output Naming")]
+        [Tooltip("Naming of the generated blend shapes. ARKit is the current standard for Jerry's Templates. Unified Expressions and Both are for VRChat's native face tracking (High Fidelity Face Tracking)")]
         public BlendShapeNaming outputNaming = BlendShapeNaming.ARKit;
 
         [Tooltip("Write a Blendshapes Set for VRChat's native face tracking into the Avatar Descriptor at build time, mapping each tracking key to the generated blend shapes, and register the target mesh as a face tracking mesh. Requires a VRChat SDK with native face tracking; on older SDKs nothing is written")]
@@ -187,15 +187,15 @@ namespace ARKitBlendShapeGenerator
     /// 生成するBlendShapeの出力名の種別
     ///
     /// 生成の計画と合成は常にARKit名で行い、出力名はメッシュへ書く直前に変換する。
-    /// Unified Expressionsと両方は、VRChatのネイティブフェイストラッキングへの対応に向けた実験的な選択肢
+    /// Unified Expressionsと両方は、VRChatのネイティブフェイストラッキング向けの選択肢
     /// </summary>
     public enum BlendShapeNaming
     {
         [Tooltip("ARKit names (for Jerry's Templates ARKit)")]
         ARKit,
-        [Tooltip("Unified Expressions names (experimental)")]
+        [Tooltip("Unified Expressions names")]
         UnifiedExpressions,
-        [Tooltip("Both ARKit and Unified Expressions names (experimental; the unused set is left for tools such as AAO: Avatar Optimizer to remove)")]
+        [Tooltip("Both ARKit and Unified Expressions names (the unused set is left for tools such as AAO: Avatar Optimizer to remove)")]
         Both
     }
 
