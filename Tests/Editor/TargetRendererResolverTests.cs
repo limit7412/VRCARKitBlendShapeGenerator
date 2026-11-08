@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using NUnit.Framework;
 using UnityEngine;
+using VRC.SDK3.Avatars.Components;
 using ARKitBlendShapeGenerator.UseCase;
 
 namespace ARKitBlendShapeGenerator.Tests
@@ -61,9 +62,33 @@ namespace ARKitBlendShapeGenerator.Tests
                 return component.targetRenderer;
             }
 
-            return TargetRendererResolver.SelectFallback(
-                component.transform,
-                component.GetComponentsInChildren<SkinnedMeshRenderer>(true));
+            foreach (var root in TargetRendererResolver.GetSearchRoots(component.transform))
+            {
+                var found = TargetRendererResolver.SelectFallback(
+                    root,
+                    root.GetComponentsInChildren<SkinnedMeshRenderer>(true));
+                if (found != null)
+                {
+                    return found;
+                }
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// Avatar Descriptorを持つアバタールートと、その子の空のオブジェクトに付けたコンポーネントを作る
+        /// </summary>
+        private ARKitBlendShapeGeneratorComponent CreateOnChildOfAvatar(out Transform avatarRoot)
+        {
+            var root = new GameObject("Avatar");
+            _created.Add(root);
+            root.AddComponent<VRCAvatarDescriptor>();
+            avatarRoot = root.transform;
+
+            var holder = new GameObject("Generator");
+            holder.transform.SetParent(avatarRoot, false);
+            return holder.AddComponent<ARKitBlendShapeGeneratorComponent>();
         }
 
         [Test]
@@ -239,6 +264,82 @@ namespace ARKitBlendShapeGenerator.Tests
             var component = CreateRoot();
 
             Assert.That(TargetRendererResolver.SelectFallback(component.transform, null), Is.Null);
+        }
+
+        [Test]
+        public void Resolve_SearchesAvatarRoot_WhenAttachedToEmptyChild()
+        {
+            var component = CreateOnChildOfAvatar(out var avatarRoot);
+            AddRenderer(avatarRoot, "Hair");
+            var body = AddRenderer(avatarRoot, "Body");
+
+            // アバタールートに付けたときと同じく、ルート直下のBodyを選ぶ
+            Assert.That(TargetRendererResolver.Resolve(component), Is.EqualTo(body));
+            Assert.That(ResolveAsPreview(component), Is.EqualTo(body));
+        }
+
+        [Test]
+        public void Resolve_PrefersOwnSubtree_OverAvatarRoot()
+        {
+            var component = CreateOnChildOfAvatar(out var avatarRoot);
+            AddRenderer(avatarRoot, "Body");
+            var face = AddRenderer(component.transform, "Face");
+
+            // 自身の配下に候補があれば、アバタールート直下のBodyへ乗り換えない
+            Assert.That(TargetRendererResolver.Resolve(component), Is.EqualTo(face));
+            Assert.That(ResolveAsPreview(component), Is.EqualTo(face));
+        }
+
+        [Test]
+        public void Resolve_ReturnsNull_WhenEmptyChildIsOutsideAvatar()
+        {
+            var root = new GameObject("NotAvatar");
+            _created.Add(root);
+            AddRenderer(root.transform, "Body");
+            var holder = new GameObject("Generator");
+            holder.transform.SetParent(root.transform, false);
+            var component = holder.AddComponent<ARKitBlendShapeGeneratorComponent>();
+
+            // Avatar Descriptorが無ければ、親をさかのぼって探さない
+            Assert.That(TargetRendererResolver.Resolve(component), Is.Null);
+        }
+
+        [Test]
+        public void GetSearchRoots_ReturnsSelfThenAvatarRoot()
+        {
+            var component = CreateOnChildOfAvatar(out var avatarRoot);
+
+            Assert.That(
+                TargetRendererResolver.GetSearchRoots(component.transform),
+                Is.EqualTo(new[] { component.transform, avatarRoot }));
+        }
+
+        [Test]
+        public void GetSearchRoots_ReturnsOnlySelf_WhenAttachedToAvatarRoot()
+        {
+            var root = new GameObject("Avatar");
+            _created.Add(root);
+            root.AddComponent<VRCAvatarDescriptor>();
+
+            Assert.That(
+                TargetRendererResolver.GetSearchRoots(root.transform),
+                Is.EqualTo(new[] { root.transform }));
+        }
+
+        [Test]
+        public void Reset_AssignsAvatarRootBody_WhenAddedToEmptyChild()
+        {
+            var root = new GameObject("Avatar");
+            _created.Add(root);
+            root.AddComponent<VRCAvatarDescriptor>();
+            var body = AddRenderer(root.transform, "Body");
+            var holder = new GameObject("Generator");
+            holder.transform.SetParent(root.transform, false);
+
+            // AddComponentでResetが走り、アバタールートの配下からTarget Rendererを決める
+            var component = holder.AddComponent<ARKitBlendShapeGeneratorComponent>();
+
+            Assert.That(component.targetRenderer, Is.EqualTo(body));
         }
     }
 }

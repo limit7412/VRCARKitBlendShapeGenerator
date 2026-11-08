@@ -55,16 +55,24 @@ Releasesの `VRCARKitBlendShapeGenerator_<バージョン>.zip` に、unitypacka
 
 ### 基本的な使い方
 
-1. アバターのルートオブジェクトまたは顔メッシュを持つオブジェクトを選択
-2. Inspector > Add Component > **KxVRCARKitBlendShapeGenerator** > **Kx VRC ARKit BlendShape Generator** を追加
-3. [Jerry's Templates (MA版)](https://github.com/Adjerry91/VRCFaceTracking-Templates) をアバターに追加
-4. アップロード時に自動的にARKit BlendShapeが生成されます
+1. ヒエラルキーでアバターを右クリックし、**Kx VRC ARKit BlendShape Generator** > **Kx ARKit BlendShape Generator** を選ぶ
+2. [Jerry's Templates (MA版)](https://github.com/Adjerry91/VRCFaceTracking-Templates) をアバターに追加
+3. アップロード時に自動的にARKit BlendShapeが生成されます
+
+1では、右クリックしたオブジェクトの子に、コンポーネントを付けたオブジェクトが作られます。
+作ったオブジェクトはアバターの中であれば好きな場所へ移せます。
+アバターにすでにコンポーネントがある場合は新しく作らず、既存のコンポーネントを選択します。
+
+コンポーネントは、アバター内の既存のオブジェクトへ直接付けることもできます。
+対象のオブジェクトを選び、Inspector > Add Component > **KxVRCARKitBlendShapeGenerator** > **Kx VRC ARKit BlendShape Generator** を追加してください。
+付ける先はアバタールートでも、顔メッシュを持つオブジェクトでも、それ以外のオブジェクトでも構いません。
+同一アバター内に置けるコンポーネントは1つだけです。
 
 ### 設定項目
 
 | 項目 | 説明 |
 | ---- | ---- |
-| **Target Renderer** | 対象のSkinnedMeshRenderer（空の場合はBody/Face/Headを自動検出） |
+| **Target Renderer** | 対象のSkinnedMeshRenderer（空の場合はBody/Face/Headを自動検出。コンポーネントを付けたオブジェクトの配下に無ければ、アバタールートの配下から探す） |
 | **Intensity Multiplier** | 生成時の強度係数（0.5〜1.5推奨） |
 | **Enable Left Right Split** | 頂点のX座標による左右分割を行う（まばたき等を左右別々に生成）。OFFにするとカスタムマッピングのSide指定も無視され、両側に適用される |
 | **Blend Width** | 左右分割時のグラデーション幅（中央付近で左右をブレンドする範囲、0.001〜0.1。メッシュローカル座標で中心から片側への幅を指定するため、グラデーション全体は指定値の2倍） |

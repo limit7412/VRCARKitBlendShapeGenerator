@@ -10,7 +10,7 @@ namespace ARKitBlendShapeGenerator
     /// Jerry's Templatesと組み合わせて使用することを想定
     ///
     /// 使用方法:
-    /// 1. このコンポーネントをアバターまたは顔メッシュに追加
+    /// 1. このコンポーネントをアバター内のオブジェクト（アバタールート、顔メッシュ、ヒエラルキーの右クリックで作るオブジェクトなど）に追加
     /// 2. Jerry's Templates (MA版) をアバターに追加
     /// 3. アップロード時に自動的にBlendShapeが生成される
     /// </summary>
@@ -21,7 +21,7 @@ namespace ARKitBlendShapeGenerator
         // インスペクタ表示用の文言はEditorアセンブリ側でローカライズされる
         // （以下の属性はカスタムエディタが無効な場合のフォールバック表示）
         [Header("Target")]
-        [Tooltip("Target SkinnedMeshRenderer (when empty, a direct child named Body/Face/Head is preferred, otherwise the first SkinnedMeshRenderer on this object or its descendants)")]
+        [Tooltip("Target SkinnedMeshRenderer (when empty, a direct child named Body/Face/Head is preferred, otherwise the first SkinnedMeshRenderer on this object or its descendants; when this object has none, the avatar root is searched the same way)")]
         public SkinnedMeshRenderer targetRenderer;
 
         [Header("Generation")]
