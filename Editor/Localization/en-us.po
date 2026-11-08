@@ -42,7 +42,7 @@ msgid "prop.target_renderer"
 msgstr "Target Renderer"
 
 msgid "prop.target_renderer.tooltip"
-msgstr "Target SkinnedMeshRenderer (when empty, a direct child named Body/Face/Head is preferred, otherwise the first SkinnedMeshRenderer on this object or its descendants)"
+msgstr "Target SkinnedMeshRenderer (when empty, a direct child named Body/Face/Head is preferred, otherwise the first SkinnedMeshRenderer on this object or its descendants; when this object has none, the avatar root is searched the same way)"
 
 msgid "prop.intensity_multiplier"
 msgstr "Intensity Multiplier"
@@ -371,6 +371,12 @@ msgstr "Only one ARKitBlendShapeGeneratorComponent can be placed per avatar. The
 
 msgid "guard.dialog.duplicate_removed"
 msgstr "Only one ARKitBlendShapeGeneratorComponent can be placed per avatar.\n\nThe duplicate component that was added has been removed."
+
+msgid "create.log.already_exists"
+msgstr "This avatar already has an ARKitBlendShapeGeneratorComponent, so no new object was created."
+
+msgid "create.dialog.already_exists"
+msgstr "This avatar already has an ARKitBlendShapeGeneratorComponent.\n\nOnly one can be placed per avatar, so no new object was created and the existing component has been selected."
 
 # Validation
 msgid "validation.duplicate.generic"

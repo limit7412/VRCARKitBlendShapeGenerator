@@ -60,24 +60,16 @@ namespace ARKitBlendShapeGenerator.Handler
                 var renderer = context.Observe(component, c => c.targetRenderer);
                 if (renderer == null)
                 {
-                    // targetRenderer未設定時は子要素をフォールバック対象にする
-                    // レンダラーの列挙はComputeContext経由で行い（変更監視のため）、
-                    // どれを選ぶかの判断は他経路と共通のTargetRendererResolverに委ねる
-                    // 監視の登録と選択で二度走査するため、ここで確定させる
-                    var candidates = context
-                        .GetComponentsInChildren<SkinnedMeshRenderer>(component.gameObject, true)
-                        .ToArray();
-
-                    // フォールバックは名前も選択条件に含むため、候補の改名にも追従させる
-                    foreach (var candidate in candidates)
+                    // targetRenderer未設定時は、自身の配下、アバタールートの配下の順にフォールバック対象を探す
+                    // 探す順序は他経路と共通のTargetRendererResolverに委ねる
+                    foreach (var searchRoot in TargetRendererResolver.GetSearchRoots(component.transform))
                     {
-                        if (TargetRendererResolver.IsNameSearchTarget(component.transform, candidate))
+                        renderer = SelectFallback(context, searchRoot);
+                        if (renderer != null)
                         {
-                            context.Observe(candidate.gameObject, go => go.name);
+                            break;
                         }
                     }
-
-                    renderer = TargetRendererResolver.SelectFallback(component.transform, candidates);
                 }
 
                 if (renderer != null && context.Observe(renderer, r => r.sharedMesh) != null)
@@ -85,6 +77,30 @@ namespace ARKitBlendShapeGenerator.Handler
                     yield return RenderGroup.For(renderer).WithData(component);
                 }
             }
+        }
+
+        /// <summary>
+        /// 起点の配下からフォールバックのレンダラーを選ぶ。
+        /// レンダラーの列挙はComputeContext経由で行い（変更監視のため）、
+        /// どれを選ぶかの判断は他経路と共通のTargetRendererResolverに委ねる
+        /// </summary>
+        private static SkinnedMeshRenderer SelectFallback(ComputeContext context, Transform searchRoot)
+        {
+            // 監視の登録と選択で二度走査するため、ここで確定させる
+            var candidates = context
+                .GetComponentsInChildren<SkinnedMeshRenderer>(searchRoot.gameObject, true)
+                .ToArray();
+
+            // フォールバックは名前も選択条件に含むため、候補の改名にも追従させる
+            foreach (var candidate in candidates)
+            {
+                if (TargetRendererResolver.IsNameSearchTarget(searchRoot, candidate))
+                {
+                    context.Observe(candidate.gameObject, go => go.name);
+                }
+            }
+
+            return TargetRendererResolver.SelectFallback(searchRoot, candidates);
         }
 
         public Task<IRenderFilterNode> Instantiate(

@@ -42,7 +42,7 @@ msgid "prop.target_renderer"
 msgstr "対象Renderer"
 
 msgid "prop.target_renderer.tooltip"
-msgstr "対象のSkinnedMeshRenderer（空の場合は直下のBody/Face/Headを優先し、無ければ自身を含む子孫の最初のSkinnedMeshRendererを使用）"
+msgstr "対象のSkinnedMeshRenderer（空の場合は直下のBody/Face/Headを優先し、無ければ自身を含む子孫の最初のSkinnedMeshRendererを使用。自身の配下に無いときはアバタールートの配下を同じ順で探す）"
 
 msgid "prop.intensity_multiplier"
 msgstr "強度係数"
@@ -371,6 +371,12 @@ msgstr "同一アバター内にはARKitBlendShapeGeneratorComponentを1つだ�
 
 msgid "guard.dialog.duplicate_removed"
 msgstr "同一アバター内には ARKitBlendShapeGeneratorComponent を1つだけ設定できます。\n\n重複して追加されたコンポーネントを削除しました。"
+
+msgid "create.log.already_exists"
+msgstr "このアバターにはすでにARKitBlendShapeGeneratorComponentがあるため、新しいオブジェクトを作りませんでした。"
+
+msgid "create.dialog.already_exists"
+msgstr "このアバターにはすでに ARKitBlendShapeGeneratorComponent があります。\n\n同一アバター内には1つだけ設定できるため、新しいオブジェクトは作らず、既存のコンポーネントを選択しました。"
 
 # バリデーション
 msgid "validation.duplicate.generic"

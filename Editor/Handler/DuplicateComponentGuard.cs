@@ -29,7 +29,7 @@ namespace ARKitBlendShapeGenerator.Handler
                 return;
             }
 
-            var avatarRoot = FindAvatarRootForUniqueness(component);
+            var avatarRoot = FindAvatarRootForUniqueness(component.transform);
             if (avatarRoot == null)
             {
                 return;
@@ -89,10 +89,15 @@ namespace ARKitBlendShapeGenerator.Handler
             };
         }
 
-        private static Transform FindAvatarRootForUniqueness(ARKitBlendShapeGeneratorComponent component)
+        /// <summary>
+        /// 重複を判定する範囲（アバター）の根を返す。最も上にあるAvatar Descriptorのオブジェクトで、
+        /// アバターの外ではシーン上の最上位のオブジェクトとする。
+        /// 右クリックからの生成も、作る前の重複の確認にこの範囲を使う
+        /// </summary>
+        internal static Transform FindAvatarRootForUniqueness(Transform transform)
         {
             Transform lastDescriptorRoot = null;
-            var cursor = component.transform;
+            var cursor = transform;
 
             while (cursor != null)
             {
@@ -109,7 +114,7 @@ namespace ARKitBlendShapeGenerator.Handler
                 return lastDescriptorRoot;
             }
 
-            return component.transform.root;
+            return transform.root;
         }
 
         private static bool HasAvatarDescriptor(GameObject go)
