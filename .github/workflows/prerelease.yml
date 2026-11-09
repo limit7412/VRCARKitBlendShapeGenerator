@@ -195,7 +195,7 @@ jobs:
         run: .github/scripts/build-packages.sh "${{ steps.version.outputs.version }}"
 
       - name: Create pre-release
-        uses: softprops/action-gh-release@v3.0.3
+        uses: softprops/action-gh-release@v3.0.4
         with:
           tag_name: ${{ steps.version.outputs.version }}
           # 起動時点のコミットへタグを打つ。省略するとタグ作成時のデフォルトブランチの
