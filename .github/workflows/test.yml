@@ -45,7 +45,7 @@ env:
   # 変更する場合は unityci/editor に ubuntu-<version>-linux-il2cpp-3 タグが存在するか確認する
   UNITY_VERSION: 2022.3.62f3
   PACKAGE_NAME: com.qazx7412.kx-vrc-arkit-blendshape-generator
-  VRC_GET_VERSION: v1.9.2
+  VRC_GET_VERSION: v1.9.3
   # unity-test-runnerが取得するgame-ci CLIの版。
   # 既定のlatestは版の解決にGitHub APIを叩き、共有ランナーでは他のジョブと
   # 同じIPで無認証の上限に達して403で止まることがある。版を指定すると
