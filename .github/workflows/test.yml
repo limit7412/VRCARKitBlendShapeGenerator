@@ -53,7 +53,7 @@ env:
   # 名前をGAME_CI_で始めてはいけない。game-ci CLIはGAME_CI_<オプション名>の
   # 環境変数を自分のオプションとして読み、対応するオプションが無いと
   # "Unknown argument" で起動前に失敗する
-  UNITY_TEST_RUNNER_CLI_VERSION: v0.1.66
+  UNITY_TEST_RUNNER_CLI_VERSION: v0.1.73
 
 jobs:
   # secretsコンテキストはジョブの`if`で参照できないため、
