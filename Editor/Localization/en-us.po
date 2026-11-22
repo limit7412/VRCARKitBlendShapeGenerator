@@ -491,3 +491,37 @@ msgstr "The tracking keys of the installed VRChat SDK do not match this tool's t
 
 msgid "log.face_tracking_set.mesh_limit"
 msgstr "Face Tracking Meshes is full, so the target mesh \"{0}\" could not be added. Review Face Tracking Meshes on the Avatar Descriptor."
+
+# Repairing broken script references
+msgid "repair.progress.scan"
+msgstr "Looking for ARKit BlendShape Generator components with a missing script"
+
+msgid "repair.progress.repair"
+msgstr "Repairing ARKit BlendShape Generator references"
+
+msgid "repair.dialog.confirm"
+msgstr "Found {0} ARKit BlendShape Generator component(s) with a missing script in {1} file(s).\n\n{2}\n\nRepair them by pointing the references back to the script? Your settings are kept as they are.\nIf you skip this now, you can run it later from Tools > Kx VRC ARKit BlendShape Generator > Repair Missing Components."
+
+msgid "repair.dialog.confirm.more"
+msgstr "and {0} more file(s)"
+
+msgid "repair.dialog.confirm.repair"
+msgstr "Repair"
+
+msgid "repair.dialog.confirm.later"
+msgstr "Not now"
+
+msgid "repair.dialog.done"
+msgstr "Repaired {0} file(s). The rewritten files are listed in the Console."
+
+msgid "repair.dialog.none"
+msgstr "No ARKit BlendShape Generator component with a missing script was found."
+
+msgid "repair.dialog.script_not_found"
+msgstr "The script of ARKitBlendShapeGeneratorComponent could not be located, so nothing was checked. Check the Console for compile errors."
+
+msgid "repair.log.repaired"
+msgstr "Repaired ARKit BlendShape Generator components with a missing script ({0} file(s)).\nOriginal GUID: {1}\nNew GUID: {2}\n{3}"
+
+msgid "repair.log.write_failed"
+msgstr "Could not write to {0}, so this file was not repaired: {1}"
