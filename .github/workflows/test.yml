@@ -260,12 +260,30 @@ jobs:
             fi
           done
 
-          # VPM用は`.meta`を含めず、直下にpackage.jsonを置く。
-          # リスティングの生成はこのpackage.jsonを読む
-          if unzip -Z1 "$VPM" | grep -q '\.meta$'; then
-            echo "::error::VPM用のzipへ .meta が入っています"
+          # VPM用は、入れたファイルとディレクトリのすべてに`.meta`を添える。
+          # 欠けると導入先でUnityがGUIDを振り直し、アバターに置かれた
+          # コンポーネントがMissing Scriptになる。
+          # 中身はリポジトリの`.meta`と一致していること(GUIDを固定しているのはそちら)
+          VPM_ENTRIES="$(unzip -Z1 "$VPM")"
+          META_OK=true
+          while IFS= read -r ENTRY; do
+            case "$ENTRY" in
+              *.meta) continue ;;
+            esac
+            META="${ENTRY%/}.meta"
+            if ! grep -qxF "$META" <<< "$VPM_ENTRIES"; then
+              echo "::error::VPM用のzipに $META がありません"
+              META_OK=false
+            elif ! unzip -p "$VPM" "$META" | cmp -s - "$META"; then
+              echo "::error::VPM用のzipの $META がリポジトリのものと一致しません"
+              META_OK=false
+            fi
+          done <<< "$VPM_ENTRIES"
+          if [ "$META_OK" != "true" ]; then
             exit 1
           fi
+
+          # 直下にpackage.jsonを置く。リスティングの生成はこのpackage.jsonを読む
           if ! unzip -Z1 "$VPM" | grep -qx 'package.json'; then
             echo "::error::VPM用のzipの直下にpackage.jsonがありません"
             exit 1

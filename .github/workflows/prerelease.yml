@@ -87,8 +87,8 @@ jobs:
           # 逆に中身が変わったのに作られないかのどちらかが起きる。
           #
           # テストコード(Tests/)とドキュメントはzipへ入らないため対象外。
-          # `.meta`と`LICENSE`はbooth用のunitypackageへ入るため対象に含める。
-          # VPM用のzipからは`-x "*.meta"`で除かれるが、判定は2つの配布物の和で行う。
+          # `.meta`は両方の配布物へ、`LICENSE`はbooth用のunitypackageへ入るため
+          # 対象に含める。判定は2つの配布物の和で行う。
           #
           # 直下の`Editor.meta` `Runtime.meta` `package.json.meta` `LICENSE.meta`は
           # `Editor/*`のようなパターンに当たらないため、個別に並べる。

@@ -5,7 +5,7 @@ release.ymlとprerelease.ymlの両方がこれを呼ぶため、安定版とプ�
 
 | 生成物 | 中身 | 用途 |
 | ---- | ---- | ---- |
-| `com.qazx7412.kx-vrc-arkit-blendshape-generator-<版>.zip` | `package.json` `Runtime/` `Editor/`（`.meta` を除く） | VCC/ALCOM |
+| `com.qazx7412.kx-vrc-arkit-blendshape-generator-<版>.zip` | `package.json` `Runtime/` `Editor/` とそれぞれの `.meta` | VCC/ALCOM |
 | `VRCARKitBlendShapeGenerator_<版>.zip` | unitypackage 1つ | booth |
 
 unitypackageは `.github/scripts/booth_package.py` がUnityを使わずに組み立てる。
@@ -19,3 +19,7 @@ VPMリスティングの生成はリリースのzipをすべて舐めて直下�
 同梱対象のGUIDは `.meta` としてリポジトリで固定している。
 生成のたびに振り直すと、更新した瞬間に利用者のアバターからコンポーネントの参照が切れる。
 **同梱対象の `.meta` のGUIDは変更しないこと。** ファイルの追加時に新しいGUIDを起こすのは問題ない。
+
+VPM用のzipにも `.meta` を入れる。
+VCC/ALCOMが展開する `Packages/` 配下でも、`.meta` の無いファイルにはUnityが新しいGUIDを割り当てる。
+`.meta` を外して配ると導入のたびにGUIDが変わり、既存のアバターでコンポーネントがMissing Scriptになる。

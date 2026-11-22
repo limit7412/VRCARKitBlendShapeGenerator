@@ -27,16 +27,22 @@ PACKAGE_NAME="com.qazx7412.kx-vrc-arkit-blendshape-generator"
 jq --arg version "$VERSION" '.version = $version' package.json > package.json.tmp
 mv package.json.tmp package.json
 
-# VPM用。`.meta`は入れない。
-# VCC/ALCOMはPackages/配下へ展開し、そこではUnityが`.meta`を作らないため不要であり、
-# 既存の配布物と中身を揃える意味でも除外を続ける
+# VPM用。
+#
+# `.meta`も含める。Unityはアセットへの参照を`.meta`のGUIDで解決する。
+# VCC/ALCOMが展開するPackages/配下の埋め込みパッケージでも、`.meta`が無ければ
+# Unityが新しいGUIDで作るため、配布物から外すと導入のたびにGUIDが振り直され、
+# 更新後のアバターでコンポーネントがMissing Scriptになる。
+# ディレクトリ自身の`.meta`はパッケージ直下にあるので個別に指定する。
 VPM_ZIP="$OUTPUT_DIR/${PACKAGE_NAME}-${VERSION}.zip"
 rm -f "$VPM_ZIP"
 zip -q -r "$VPM_ZIP" \
   package.json \
+  package.json.meta \
   Runtime/ \
+  Runtime.meta \
   Editor/ \
-  -x "*.meta"
+  Editor.meta
 
 echo "Created: $(basename "$VPM_ZIP")"
 ls -la "$VPM_ZIP"
