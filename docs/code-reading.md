@@ -130,6 +130,20 @@ booth版は利用者がフォルダを移動できるため、固定のパスで
 VPM版でファイルを置き換えないのは、版数をVCC/ALCOMが `vpm-manifest.json` で管理しているためである。
 こちらが中身だけ差し替えると、管理側の記録と実態がずれる。
 
+### 切れたスクリプト参照の修復
+
+0.3.0までのVPM用zipは `.meta` を含まず、導入のたびにスクリプトのGUIDが変わっていた（経緯は [packaging.md](packaging.md) にある）。
+その版から更新すると、配置済みのコンポーネントは古いGUIDを指したままMissing Scriptになる。
+`MissingScriptRepairStartup` は、読み込み時にスクリプトのGUIDを前回調べたときのものと比べ、変わっていたときだけ `Assets/` 配下のプレハブとシーンを調べる。
+
+古いGUIDはプロジェクトごとに違うため、対象はGUIDの値では決められない。
+`MissingScriptReferences` は、参照先のアセットが無いMonoBehaviourのうち、0.1.0から現在まで共通するフィールドをすべて持つものを対象とみなす。
+ファイルの読み書きとAssetDatabaseへの問い合わせは `MissingScriptRepairer` が行い、書き換えるのは `m_Script` の行のGUIDだけである。
+
+利用者のファイルを書き換えるので、調べた結果を見せて同意を得てから書き換える。
+調べ終えたGUIDは `EditorUserSettings` に残し、断られた場合も読み込みのたびに尋ね直すことはしない。
+以後はメニュー（Tools > Kx VRC ARKit BlendShape Generator > Repair Missing Components）から実行できる。
+
 ## どこから読み始めるか
 
 次の順で読むと迷いにくい。

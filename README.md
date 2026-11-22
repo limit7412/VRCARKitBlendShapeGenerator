@@ -51,6 +51,21 @@ Releasesの `VRCARKitBlendShapeGenerator_<バージョン>.zip` に、unitypacka
 
 更新の仕組みと注意点（取り込み前の控え、フォルダを移動している場合の制限など）は [docs/update-check.md](docs/update-check.md) にまとめています。
 
+### 更新後にコンポーネントがMissing Scriptになった場合
+
+0.3.0以前のバージョンをVCC/ALCOM経由で導入していたプロジェクトでは、パッケージを更新すると、配置済みのコンポーネントがMissing Scriptになることがあります。
+0.3.0以前の配布物には `.meta` が入っておらず、コンポーネントのスクリプトを指すGUIDが導入のたびに変わっていたためです。
+
+この状態でも設定値はプレハブやシーンに残っています。
+更新後の最初の読み込みで `Assets/` 配下のプレハブとシーンを調べ、該当するコンポーネントが見つかれば修復するかを尋ねるダイアログを出します。
+「修復する」を選ぶと、スクリプトへの参照だけを付け替えます。設定値は変わりません。
+書き換えたファイルと元のGUIDはConsoleに出します。
+
+ダイアログで修復しなかった場合や、後から取り込んだプレハブに該当するコンポーネントがある場合は、メニューの Tools > Kx VRC ARKit BlendShape Generator > Repair Missing Components から実行できます。
+
+アセットの保存形式（Project Settings > Editor > Asset Serialization）がForce Text以外のプロジェクトでは、バイナリ形式で保存されたファイルを調べられません。
+VRChatのプロジェクトは既定でForce Textです。
+
 ## 使用方法
 
 ### 基本的な使い方
